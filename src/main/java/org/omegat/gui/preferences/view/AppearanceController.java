@@ -37,11 +37,12 @@ import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import org.jspecify.annotations.Nullable;
 import org.openide.awt.Mnemonics;
 
 import org.omegat.core.Core;
 import org.omegat.gui.preferences.BasePreferencesController;
-import org.omegat.gui.preferences.IMenuPreferece;
+import org.omegat.gui.preferences.IMenuPreference;
 import org.omegat.gui.preferences.MainMenuUI;
 import org.omegat.util.OStrings;
 import org.omegat.util.Platform;
@@ -55,18 +56,20 @@ import org.omegat.util.gui.UIDesignManager;
  */
 public class AppearanceController extends BasePreferencesController {
 
-    private AppearancePreferencesPanel panel;
+    private final AppearancePreferencesPanel panel;
+    private volatile boolean initialized = false;
     private boolean previousFileListDialog;
 
     private List<LookAndFeelInfo> darkThemeList = new ArrayList<>();
     private List<LookAndFeelInfo> lightThemeList = new ArrayList<>();
     private final DelegatingComboBoxRenderer<String, String> renderer;
 
-    private String preferredLightThemeClass;
-    private String preferredDarkThemeClass;
+    private @Nullable String preferredLightThemeClass;
+    private @Nullable String preferredDarkThemeClass;
     private final String themeMode;
 
     public AppearanceController() {
+        panel = new AppearancePreferencesPanel();
         themeMode = Preferences.getPreferenceDefault(Preferences.THEME_COLOR_MODE, "default");
         renderer = new DelegatingComboBoxRenderer<>() {
             @Override
@@ -95,11 +98,17 @@ public class AppearanceController extends BasePreferencesController {
 
     @Override
     public JComponent getGui() {
-        if (panel == null) {
-            initThemeLists();
-            initGui();
-            initFromPrefs();
-            initListeners();
+        if (initialized) {
+            return panel;
+        }
+        synchronized (panel) {
+            if (!initialized) {
+                initThemeLists();
+                initGui();
+                initFromPrefs();
+                initListeners();
+                initialized = true;
+            }
         }
         return panel;
     }
@@ -118,9 +127,8 @@ public class AppearanceController extends BasePreferencesController {
     }
 
     private void initGui() {
-        panel = new AppearancePreferencesPanel();
 
-        List<IMenuPreferece> menuStylePrefs = new ArrayList<>();
+        List<IMenuPreference> menuStylePrefs = new ArrayList<>();
         menuStylePrefs.add(new MainMenuUI());
         menuStylePrefs.addAll(UIDesignManager.getMenuUIPreferences());
         String[] menuStyles = menuStylePrefs.stream()
@@ -132,13 +140,11 @@ public class AppearanceController extends BasePreferencesController {
             protected String getDisplayText(final String value) {
                 return menuStylePrefs.stream()
                         .filter(p -> p.getClass().getName().equals(value))
-                        .map(IMenuPreferece::getMenuUIName)
+                        .map(IMenuPreference::getMenuUIName)
                         .findFirst().orElse("");
             }
         });
-        panel.cbMenustyleSelect.addActionListener(e -> {
-            setRestartRequired(isModified());
-        });
+        panel.cbMenustyleSelect.addActionListener(e -> setRestartRequired(isModified()));
 
         String[] lightLafs = lightThemeList.stream().map(LookAndFeelInfo::getClassName)
                 .toArray(String[]::new);
@@ -237,8 +243,10 @@ public class AppearanceController extends BasePreferencesController {
 
     @Override
     public void persist() {
-        Preferences.setPreference(Preferences.MENUUI_CLASS_NAME,
-                panel.cbMenustyleSelect.getSelectedItem().toString());
+        Object item = panel.cbMenustyleSelect.getSelectedItem();
+        if (item != null) {
+            Preferences.setPreference(Preferences.MENUUI_CLASS_NAME, item.toString());
+        }
         if (panel.useLightDefaultThemeRB.isSelected()) {
             Preferences.setPreference(Preferences.THEME_COLOR_MODE, "default");
         } else if (panel.useDarkThemeRB.isSelected()) {
