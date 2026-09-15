@@ -104,6 +104,9 @@ public class TableSearchField extends Box {
             }
         });
         sorter.addRowSorterListener(e -> updateCounter());
+        // Without sort keys or a filter the sorter stays silent on model
+        // changes, so listen to the model as well for the total count.
+        table.getModel().addTableModelListener(e -> updateCounter());
         updateCounter();
     }
 
