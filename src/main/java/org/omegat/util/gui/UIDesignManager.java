@@ -255,9 +255,17 @@ public final class UIDesignManager {
     public static void ensureDockablesVisible(DockingDesktop desktop) {
         for (DockableState state : desktop.getDockables()) {
             if (state.isClosed()) {
-                // VLDocking says this is how you re-show a closed Dockable,
-                // but it prints a stack trace. So just ignore it?
-                desktop.addDockable(state.getDockable());
+                try {
+                    // VLDocking says this is how you re-show a closed Dockable,
+                    // but it prints a stack trace. So just ignore it?
+                    desktop.addDockable(state.getDockable());
+                } catch (RuntimeException e) {
+                    // A layout restored from an install that never saw this
+                    // dockable can leave VLDocking unable to re-attach it
+                    // (NPE from DockingUtilities.replaceChild); skip it
+                    // instead of aborting layout setup for the rest.
+                    Log.log(e);
+                }
             }
         }
     }
