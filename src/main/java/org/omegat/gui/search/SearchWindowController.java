@@ -980,6 +980,21 @@ public class SearchWindowController {
         form.dispose();
     }
 
+    /** Current content of the search field, for programmatic callers. */
+    public String getSearchText() {
+        return form.m_searchField.getEditor().getItem().toString();
+    }
+
+    /** Content pane of the window, for callers embedding the search UI. */
+    public java.awt.Container getWindowContent() {
+        return form.getContentPane();
+    }
+
+    /** Persist the window options, for programmatic callers. */
+    public void saveOptions() {
+        savePreferences();
+    }
+
     private void cancelHandlerIfRunning() {
         if (handle != null && !handle.completion().isDone()) {
             handle.cancel();
@@ -993,6 +1008,14 @@ public class SearchWindowController {
      * @param query
      *            Initial query string (may be empty or null)
      */
+    /**
+     * Run the search with the current field contents, as if the Search button
+     * was pressed.
+     */
+    public void startSearch() {
+        doSearch();
+    }
+
     public void makeVisible(String query) {
         if (!StringUtil.isEmpty(query)) {
             setSearchText(query);

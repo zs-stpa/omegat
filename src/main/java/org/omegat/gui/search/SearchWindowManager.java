@@ -27,6 +27,7 @@ package org.omegat.gui.search;
 
 import org.omegat.core.Core;
 import org.omegat.core.search.SearchMode;
+import org.omegat.util.StringUtil;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -52,6 +53,20 @@ public final class SearchWindowManager {
         SearchWindowController search = new SearchWindowController(mode);
         addSearchWindow(search);
         search.makeVisible(query);
+    }
+
+    /**
+     * Open a search window prefilled with the given query (options come from
+     * the persisted search window preferences) and optionally run the search
+     * immediately.
+     */
+    public static void createSearchWindow(SearchMode mode, String query, boolean autoRun) {
+        SearchWindowController search = new SearchWindowController(mode);
+        addSearchWindow(search);
+        search.makeVisible(query);
+        if (autoRun && !StringUtil.isEmpty(query)) {
+            search.startSearch();
+        }
     }
 
     public static void closeSearchWindows() {
