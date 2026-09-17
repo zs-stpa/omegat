@@ -410,10 +410,26 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             ActionSpec spec = row.action();
             if (spec != null) {
                 catalog.rebuild();
-                ActionInvoker.invoke(spec, catalog, e.getModifiers());
+                ActionInvoker.invoke(spec, catalog, e.getModifiers(), ActionPanelView.this,
+                        updated -> updateRowAction(row, updated));
             }
         });
         return button;
+    }
+
+    /** Store a revised action back into the row's configuration entry. */
+    private void updateRowAction(ActionRow row, ActionSpec updated) {
+        List<ActionRow> rows = new ArrayList<>(ActionPanelConfig.getInstance().getRows());
+        // Rows are value records: among identical duplicates the first one is
+        // updated, which yields the same configuration either way.
+        int index = rows.indexOf(row);
+        if (index < 0) {
+            // The row was edited away while the wizard was open.
+            java.awt.Toolkit.getDefaultToolkit().beep();
+            return;
+        }
+        rows.set(index, rows.get(index).withAction(updated));
+        ActionPanelConfig.getInstance().setRows(rows);
     }
 
     /** Per-row text, background and border colours, where configured. */
