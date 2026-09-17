@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JRadioButtonMenuItem;
@@ -82,6 +83,16 @@ public final class ActionInvoker {
     }
 
     public static void invoke(ActionSpec spec, MenuActionCatalog catalog, int modifiers) {
+        invoke(spec, catalog, modifiers, null, null);
+    }
+
+    /**
+     * With a parent and an update consumer, a search preset whose stored
+     * option set no longer matches the current search window offers the user
+     * an immediate fix: revise the preset in the wizard and store it back.
+     */
+    public static void invoke(ActionSpec spec, MenuActionCatalog catalog, int modifiers,
+            @Nullable Component parent, @Nullable Consumer<ActionSpec> onUpdateSpec) {
         if (spec instanceof MenuActionSpec menu) {
             invokeMenu(menu, catalog, modifiers);
         } else if (spec instanceof EditorKeyActionSpec editorKey) {
@@ -89,10 +100,7 @@ public final class ActionInvoker {
         } else if (spec instanceof ScriptActionSpec script) {
             invokeScript(script);
         } else if (spec instanceof SearchActionSpec search) {
-            // Restore the captured search window options, then open and run.
-            search.options().forEach(Preferences::setPreference);
-            SearchWindowManager.createSearchWindow(
-                    search.replace() ? SearchMode.REPLACE : SearchMode.SEARCH, search.query(), true);
+            invokeSearch(search, parent, onUpdateSpec);
         } else if (spec instanceof SnippetActionSpec snippet) {
             insertText(snippet.text());
         } else if (spec instanceof UrlActionSpec url) {
@@ -117,6 +125,65 @@ public final class ActionInvoker {
         } else if (spec instanceof UnknownActionSpec) {
             Toolkit.getDefaultToolkit().beep();
         }
+    }
+
+    /**
+     * Run a search preset as the complete search window state. When the
+     * stored option set differs from the current one (options added or
+     * removed since the preset was saved), a dialog warns and offers to
+     * revise the preset in the wizard right away, run it with coded defaults
+     * for the unknown options, or cancel.
+     */
+    private static void invokeSearch(SearchActionSpec search, @Nullable Component parent,
+            @Nullable Consumer<ActionSpec> onUpdateSpec) {
+        Map<String, String> current = SearchActionWizard.captureSearchOptions();
+        java.util.Set<String> added = new java.util.TreeSet<>(current.keySet());
+        added.removeAll(search.options().keySet());
+        java.util.Set<String> stale = new java.util.TreeSet<>(search.options().keySet());
+        stale.removeAll(current.keySet());
+        if (!added.isEmpty() || !stale.isEmpty()) {
+            // Without an update consumer there is nowhere to store a revised
+            // preset, so the update choice is not offered at all.
+            boolean canUpdate = onUpdateSpec != null;
+            Object[] choices = canUpdate
+                    ? new Object[] { ActionPanelModule.getString("SEARCH_PRESET_UPDATE"),
+                            ActionPanelModule.getString("SEARCH_PRESET_RUN_ANYWAY"),
+                            ActionPanelModule.getString("SEARCH_PRESET_CANCEL") }
+                    : new Object[] { ActionPanelModule.getString("SEARCH_PRESET_RUN_ANYWAY"),
+                            ActionPanelModule.getString("SEARCH_PRESET_CANCEL") };
+            int choice = javax.swing.JOptionPane.showOptionDialog(parent,
+                    MessageFormat.format(ActionPanelModule.getString("SEARCH_PRESET_CONFLICT"),
+                            optionList(added), optionList(stale)),
+                    ActionPanelModule.getString("SEARCH_PRESET_CONFLICT_TITLE"),
+                    javax.swing.JOptionPane.YES_NO_CANCEL_OPTION,
+                    javax.swing.JOptionPane.WARNING_MESSAGE, null, choices, choices[0]);
+            if (canUpdate) {
+                if (choice == 0) {
+                    ActionSpec updated = SearchActionWizard.show(parent, search.replace(), search);
+                    if (updated != null) {
+                        onUpdateSpec.accept(updated);
+                    }
+                    return;
+                }
+                if (choice != 1) {
+                    return;
+                }
+            } else if (choice != 0) {
+                return;
+            }
+        }
+        SearchActionWizard.applyPresetOptions(search.options(), current.keySet());
+        SearchWindowManager.createSearchWindow(
+                search.replace() ? SearchMode.REPLACE : SearchMode.SEARCH, search.query(), true);
+    }
+
+    /** Readable option names for the conflict dialog. */
+    private static String optionList(java.util.Set<String> keys) {
+        if (keys.isEmpty()) {
+            return "–";
+        }
+        return keys.stream().map(key -> key.replaceFirst("^search_window_", ""))
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     static Autotext.@Nullable AutotextItem findAutotextItem(String source) {

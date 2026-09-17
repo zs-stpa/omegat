@@ -69,6 +69,17 @@ public final class SearchActionWizard {
 
     /** Runs the modal wizard; null when the user cancelled. */
     public static @Nullable SearchActionSpec show(Component parent, boolean replace) {
+        return show(parent, replace, null);
+    }
+
+    /**
+     * With a preset: the embedded window opens prefilled with the preset's
+     * stored query and options, so the user can revise and re-save it. Only
+     * the search field is prefilled — a replacement term is not part of the
+     * stored spec.
+     */
+    public static @Nullable SearchActionSpec show(Component parent, boolean replace,
+            @Nullable SearchActionSpec preset) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         // The embedded search window needs a loaded project to preview and
         // to enumerate its scopes; without one the capture cannot work.
@@ -88,9 +99,17 @@ public final class SearchActionWizard {
 
         // The user's sticky search options must survive a cancelled wizard.
         Map<String, String> before = captureSearchOptions();
+        if (preset != null) {
+            // Before the controller reads them: its controls initialize from
+            // the preferences at construction time.
+            applyPresetOptions(preset.options(), before.keySet());
+        }
 
         SearchWindowController controller = new SearchWindowController(
                 replace ? SearchMode.REPLACE : SearchMode.SEARCH);
+        if (preset != null && !preset.query().isEmpty()) {
+            controller.setSearchText(preset.query());
+        }
 
         CardLayout cards = new CardLayout();
         JPanel cardPanel = new JPanel(cards);
@@ -163,6 +182,21 @@ public final class SearchActionWizard {
         Map<String, String> options = captureSearchOptions();
         before.forEach(Preferences::setPreference);
         return new SearchActionSpec(query, replace, options);
+    }
+
+    /**
+     * Apply stored preset options as the complete search window state: stored
+     * keys get their snapshot value, current keys the preset does not know
+     * are emptied so the window falls back to its coded default instead of
+     * whatever sticky value the user last used.
+     */
+    static void applyPresetOptions(Map<String, String> options, java.util.Set<String> currentKeys) {
+        options.forEach(Preferences::setPreference);
+        for (String key : currentKeys) {
+            if (!options.containsKey(key)) {
+                Preferences.setPreference(key, "");
+            }
+        }
     }
 
     /**
