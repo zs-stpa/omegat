@@ -27,12 +27,15 @@ package org.omegat.core.team2;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +49,6 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 
 import org.jetbrains.annotations.Nullable;
-import org.omegat.core.KnownException;
 import org.omegat.core.data.ProjectProperties;
 import org.omegat.core.team2.IRemoteRepository2.NetworkException;
 import org.omegat.util.FileUtil;
@@ -135,29 +137,42 @@ public class RemoteRepositoryProvider {
                     throw new IllegalArgumentException("Invalid mapping: local and/or remote is not set.");
                 }
             }
+            dropDuplicateMappings(r);
+        }
+    }
+
+    /**
+     * Drop mapping entries that duplicate an earlier entry of the same
+     * repository. Exact duplicates carry no information but make every file
+     * under them match more than one mapping, and oneMapping() then refuses
+     * to load the project. Mappings that differ only in leading or trailing
+     * slashes address the same folders and count as duplicates.
+     */
+    static void dropDuplicateMappings(RepositoryDefinition repo) {
+        Set<String> seen = new HashSet<>();
+        for (Iterator<RepositoryMapping> it = repo.getMapping().iterator(); it.hasNext();) {
+            RepositoryMapping m = it.next();
+            String key = withoutSlashes(m.getLocal()) + ' ' + withoutSlashes(m.getRepository());
+            if (!seen.add(key)) {
+                Log.logWarningRB("TEAM_DUPLICATE_MAPPING_IGNORED", m.getLocal(), m.getRepository(),
+                        repo.getUrl());
+                it.remove();
+            }
         }
     }
 
     /**
      * Initialize repositories instances.
-     * <p>
-     * Every method of this class indexes {@code repositories} by the position
-     * of the corresponding definition, so a repository that cannot be
-     * initialized must abort the provider instead of leaving the two lists out
-     * of sync.
-     *
-     * @throws KnownException
-     *             when a repository connector cannot be created or initialized
      */
     protected void initializeRepositories() {
         for (RepositoryDefinition r : repositoriesDefinitions) {
+            IRemoteRepository2 repo = RemoteRepositoryFactory.create(r.getType());
             try {
-                IRemoteRepository2 repo = RemoteRepositoryFactory.create(r.getType());
                 repo.init(r, getRepositoryDir(r), teamSettings);
                 repositories.add(repo);
             } catch (Exception e) {
-                throw new KnownException(e, "TEAM_REPOSITORY_INIT_ERROR", r.getUrl(),
-                        e.getLocalizedMessage() != null ? e.getLocalizedMessage() : e.toString());
+                Log.log(e);
+                break;
             }
         }
     }
@@ -375,24 +390,9 @@ public class RemoteRepositoryProvider {
      * Switch repository that contains path to specified version. If version is
      * null, need to switch to latest version. Returns the path in the remote
      * repository ( /path/to/omegatproject/.repositories/url/filepath
-     * <p>
-     * A failure to reach a specific version is reported with the file, the
-     * version and the repository URL instead of the raw backend error (such as
-     * JGit's "Missing unknown &lt;hash&gt;"), because the version usually
-     * comes from the stored team sync marker and the plain backend message
-     * gives the user no clue what was looked up, or why.
      */
     public File switchToVersion(String filePath, @Nullable String version) throws Exception {
-        Mapping mapping = oneMapping(filePath);
-        if (version == null) {
-            return mapping.switchToVersion(null);
-        }
-        try {
-            return mapping.switchToVersion(version);
-        } catch (Exception ex) {
-            throw new KnownException(ex, "TEAM_SWITCH_VERSION_ERROR", filePath, version,
-                    mapping.repoDefinition.getUrl());
-        }
+        return oneMapping(filePath).switchToVersion(version);
     }
 
     /**
