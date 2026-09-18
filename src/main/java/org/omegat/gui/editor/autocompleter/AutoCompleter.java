@@ -30,6 +30,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
@@ -129,6 +131,10 @@ public class AutoCompleter implements IAutoCompleter {
         popup.add(viewLabel, BorderLayout.SOUTH);
 
         resetKeys();
+        // Key bindings follow their preferences; the dialog need not know.
+        PropertyChangeListener rebind = e -> SwingUtilities.invokeLater(this::resetKeys);
+        Preferences.addPropertyChangeListener(Preferences.AC_SHOW_SUGGESTIONS_AUTOMATICALLY, rebind);
+        Preferences.addPropertyChangeListener(Preferences.AC_SWITCH_VIEWS_WITH_LR, rebind);
     }
 
     @Override
