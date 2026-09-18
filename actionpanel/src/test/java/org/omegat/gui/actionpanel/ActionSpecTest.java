@@ -62,6 +62,13 @@ public class ActionSpecTest {
     }
 
     @Test
+    public void testToggleKindRoundTrips() {
+        ActionSpec spec = new ActionSpec.PreferenceActionSpec("glossary_stemming", "toggle", 0, 0,
+                List.of("true"));
+        assertEquals(spec, ActionSpec.of(spec.type(), spec.attributes()));
+    }
+
+    @Test
     public void testUnknownTagIsPreserved() {
         ActionSpec spec = ActionSpec.of("hologram", java.util.Map.of("beam", "wide"));
         assertTrue(spec instanceof UnknownActionSpec);

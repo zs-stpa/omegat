@@ -122,6 +122,17 @@ public final class ActionInvoker {
             applyColorScheme(scheme.ref());
         } else if (spec instanceof ShortcutSetActionSpec set) {
             applyShortcutSet(set.ref());
+        } else if (spec instanceof ActionSpec.PreferenceActionSpec stored) {
+            ActionSpec.PreferenceActionSpec preference = PreferenceCatalog.resolve(stored);
+            if (PreferenceCatalog.KIND_TOGGLE.equals(preference.kind())) {
+                // A shortcut on a toggle row flips it; the panel checkbox
+                // follows through its preference listener.
+                Preferences.setPreference(preference.key(), !PreferenceCatalog.isSelected(preference));
+                PreferenceCatalog.applySideEffects(preference.key());
+            } else {
+                // Sliders and comboboxes have no single "invoke" meaning.
+                Toolkit.getDefaultToolkit().beep();
+            }
         } else if (spec instanceof UnknownActionSpec) {
             Toolkit.getDefaultToolkit().beep();
         }

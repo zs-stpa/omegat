@@ -327,7 +327,8 @@ public class ActionPanelTableModel extends AbstractTableModel {
             return ActionPanelModule.getString("ASSIGN_MENU_SHORTCUTSET") + ": " + set.ref();
         }
         if (spec instanceof PreferenceActionSpec preference) {
-            return ActionPanelModule.getString("ASSIGN_MENU_PREFERENCE") + ": " + preference.key();
+            return ActionPanelModule.getString("ASSIGN_MENU_PREFERENCE") + ": "
+                    + PreferenceCatalog.label(preference.key());
         }
         if (spec instanceof ActionSpec.ProjectFlagActionSpec flag) {
             return ActionPanelModule.getString("ASSIGN_MENU_PROJECT") + ": "
