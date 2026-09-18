@@ -24,6 +24,7 @@
  **************************************************************************/
 package org.omegat.gui.editor;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,15 +45,22 @@ import org.omegat.core.segmentation.Segmenter;
 import org.omegat.filters2.mozlang.MozillaLangFilter;
 import org.omegat.filters2.po.PoFilter;
 import org.omegat.filters4.xml.xliff.Xliff1Filter;
+import org.jspecify.annotations.Nullable;
+import org.omegat.gui.editor.mark.EntryMarks;
+import org.omegat.gui.editor.mark.IMarker;
+import org.omegat.gui.editor.mark.Mark;
 import org.omegat.gui.main.IMainWindow;
 import org.omegat.gui.notes.INotes;
 import org.omegat.tokenizer.DefaultTokenizer;
 import org.omegat.tokenizer.ITokenizer;
 import org.omegat.tokenizer.LuceneEnglishTokenizer;
 import org.omegat.util.Language;
+import org.omegat.util.Preferences;
 
 import javax.swing.text.Document;
+import javax.swing.text.Highlighter;
 import javax.swing.text.JTextComponent;
+import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
 import java.beans.PropertyChangeListener;
@@ -91,6 +99,13 @@ public class EditorControllerTest extends TestCore {
     public static void setUpBeforeClass() {
         assumeFalse("Skipping test: headless environment",
                 GraphicsEnvironment.isHeadless());
+    }
+
+    @After
+    public final void tearDown() {
+        // The marker stays registered JVM-wide; the flag must not leak into
+        // editors constructed by later tests.
+        firstCharMarksEnabled = false;
     }
 
     @Before
@@ -250,6 +265,109 @@ public class EditorControllerTest extends TestCore {
         assertSegmentOrder(1, 2, 3, 4);
     }
 
+    /**
+     * Scrolling up prepends segments at document offset 0. A highlight
+     * Position at offset 0 is pinned by Swing and does not shift with the
+     * insertion, so a mark on the very first character of the topmost
+     * segment used to inflate over every prepended segment.
+     */
+    @Test
+    public void testLoadUpDoesNotInflateMarkAtDocumentStart() throws Exception {
+        Preferences.setPreference(Preferences.EDITOR_INITIAL_SEGMENT_LOAD_COUNT, 2);
+        setMultiEntryProject();
+        fireLoadProjectEvent();
+
+        // Deterministic window: exactly the last two segments are loaded, so
+        // two more can be prepended; deterministic marks: one synchronous
+        // re-mark per loaded segment. Late asynchronous deliveries of the
+        // load-time passes are harmless: they replace marks idempotently, and
+        // results computed against the replaced first document are dropped by
+        // the document guard in marksOutput.
+        EventQueue.invokeAndWait(() -> {
+            editorController.displayedEntryIndex = 3;
+            editorController.loadDocument();
+            firstCharMarksEnabled = true;
+            editorController.markerController.reprocessImmediately(editorController.m_docSegList[2]);
+            editorController.markerController.reprocessImmediately(editorController.m_docSegList[3]);
+        });
+        assertEquals(2, firstCharHighlights().size());
+
+        EventQueue.invokeAndWait(() -> editorController.loadUp(2));
+
+        List<Highlighter.Highlight> highlights = firstCharHighlights();
+        assertEquals(4, highlights.size());
+        List<Integer> starts = new ArrayList<>();
+        for (Highlighter.Highlight highlight : highlights) {
+            assertEquals("a first-char mark must stay one character wide after prepending",
+                    1, highlight.getEndOffset() - highlight.getStartOffset());
+            starts.add(highlight.getStartOffset());
+        }
+        Collections.sort(starts);
+        // Expected positions independently of the builders' own bookkeeping:
+        // each mark must sit on the first character of its source text as
+        // found in the document itself.
+        String[] docText = new String[1];
+        EventQueue.invokeAndWait(() -> {
+            try {
+                Document3 doc = editorController.editor.getOmDocument();
+                docText[0] = doc.getText(0, doc.getLength());
+            } catch (javax.swing.text.BadLocationException ex) {
+                throw new AssertionError(ex);
+            }
+        });
+        List<Integer> expectedStarts = new ArrayList<>();
+        for (String source : new String[] { "delta", "charlie", "bravo", "alpha" }) {
+            int at = docText[0].indexOf(source);
+            assertTrue("source text missing in document: " + source, at >= 0);
+            expectedStarts.add(at);
+        }
+        Collections.sort(expectedStarts);
+        assertEquals("every mark must sit on the first character of its own segment",
+                expectedStarts, starts);
+    }
+
+    /**
+     * A view-option toggle rebuilds the document with new builders
+     * (loadDocument); a slow marker thread may then deliver results computed
+     * against the replaced document. Such a builder's display version never
+     * changes again, so the result used to be painted with the old document's
+     * offsets onto the current document, as a permanent ghost highlight.
+     */
+    @Test
+    public void testStaleMarksOfReplacedDocumentAreDropped() throws Exception {
+        setMultiEntryProject();
+        fireLoadProjectEvent();
+
+        EntryMarks[] stale = new EntryMarks[1];
+        EventQueue.invokeAndWait(() -> {
+            // Capture a marker result against the current document...
+            SegmentBuilder oldBuilder = editorController.m_docSegList[0];
+            stale[0] = new EntryMarks(oldBuilder, oldBuilder.getDisplayVersion(), 0);
+            Mark mark = new Mark(Mark.ENTRY_PART.SOURCE, 0, 1);
+            mark.painter = FirstCharSourceMarker.PAINTER;
+            stale[0].result = List.of(mark);
+            // ...then replace the document, as any view-option toggle does.
+            editorController.loadDocument();
+        });
+        EventQueue.invokeAndWait(() -> editorController.markerController.queueMarksOutput(stale[0]));
+
+        assertEquals("a mark computed against a replaced document must be dropped",
+                0, firstCharHighlights().size());
+    }
+
+    private List<Highlighter.Highlight> firstCharHighlights() throws Exception {
+        List<Highlighter.Highlight> result = new ArrayList<>();
+        EventQueue.invokeAndWait(() -> {
+            for (Highlighter.Highlight highlight : editorController.editor.getHighlighter()
+                    .getHighlights()) {
+                if (highlight.getPainter() == FirstCharSourceMarker.PAINTER) {
+                    result.add(highlight);
+                }
+            }
+        });
+        return result;
+    }
+
     private void fireLoadProjectEvent() {
         CountDownLatch latch = new CountDownLatch(1);
         // JTextComponent.setDocument fires "document"; nothing ever fires
@@ -317,8 +435,36 @@ public class EditorControllerTest extends TestCore {
 
     @Override
     protected void initEditor(IMainWindow mainWindow) {
+        // Core.MARKERS is a JVM-static list; register the test marker once,
+        // before the EditorController snapshots the marker list.
+        if (!firstCharMarkerRegistered) {
+            Core.registerMarker(new FirstCharSourceMarker());
+            firstCharMarkerRegistered = true;
+        }
         editorController = new EditorController(mainWindow);
         TestCoreInitializer.initEditor(editorController);
+    }
+
+    private static boolean firstCharMarkerRegistered;
+
+    /** Marks the first source character of every entry while enabled, to pin
+     * a highlight Position at document offset 0 on the topmost segment. */
+    private static volatile boolean firstCharMarksEnabled;
+
+    public static class FirstCharSourceMarker implements IMarker {
+        static final Highlighter.HighlightPainter PAINTER = new UnderlineFactory.SolidBoldUnderliner(
+                Color.RED);
+
+        @Override
+        public @Nullable List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText,
+                String translationText, boolean isActive) {
+            if (!firstCharMarksEnabled || sourceText == null || sourceText.isEmpty()) {
+                return null;
+            }
+            Mark mark = new Mark(Mark.ENTRY_PART.SOURCE, 0, 1);
+            mark.painter = PAINTER;
+            return List.of(mark);
+        }
     }
 
     class TestProjectProperties extends ProjectProperties {

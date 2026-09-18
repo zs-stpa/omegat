@@ -137,11 +137,13 @@ public class SegmentBuilder {
     protected @Nullable Position beginPosP1;
     protected @Nullable Position endPosM1;
 
-    /** Source start position - for marks. */
-    protected @Nullable Position posSourceBeg;
+    /** Source start position - for marks. Stored one character in, like
+     * beginPosP1: a Position at document offset 0 is pinned by Swing and
+     * would not shift with segments prepended at 0 on scrolling up. */
+    protected @Nullable Position posSourceBegP1;
     protected int posSourceLength;
-    /** Translation start position - for marks. */
-    protected @Nullable Position posTranslationBeg;
+    /** Translation start position - for marks. Stored one character in. */
+    protected @Nullable Position posTranslationBegP1;
     protected int posTranslationLength;
 
     /** current offset in document to insert new stuff */
@@ -318,7 +320,7 @@ public class SegmentBuilder {
                 }
             }
 
-            posSourceBeg = doc.createPosition(prevOffset + (hasRTL ? 1 : 0));
+            posSourceBegP1 = doc.createPosition(prevOffset + (hasRTL ? 1 : 0) + 1);
             posSourceLength = sourceText.length();
 
             if (trans.isTranslated()) {
@@ -348,7 +350,7 @@ public class SegmentBuilder {
 
             String activeTranslationText = translationText == null ? "" : translationText;
             translationText = addActiveSegPart(activeTranslationText);
-            posTranslationBeg = null;
+            posTranslationBegP1 = null;
 
             doc.activeTranslationBeginM1 = doc.createPosition(activeTranslationBeginOffset - 1);
             doc.activeTranslationEndP1 = doc.createPosition(activeTranslationEndOffset + 1);
@@ -409,19 +411,19 @@ public class SegmentBuilder {
         if (sourceText != null) {
             int prevOffset = offset;
             sourceText = addInactiveSegPart(true, sourceText);
-            posSourceBeg = doc.createPosition(prevOffset + (hasRTL ? 1 : 0));
+            posSourceBegP1 = doc.createPosition(prevOffset + (hasRTL ? 1 : 0) + 1);
             posSourceLength = sourceText.length();
         } else {
-            posSourceBeg = null;
+            posSourceBegP1 = null;
         }
 
         if (translationText != null) {
             int prevOffset = offset;
             translationText = addInactiveSegPart(false, translationText);
-            posTranslationBeg = doc.createPosition(prevOffset + (hasRTL ? 1 : 0));
+            posTranslationBegP1 = doc.createPosition(prevOffset + (hasRTL ? 1 : 0) + 1);
             posTranslationLength = translationText.length();
         } else {
-            posTranslationBeg = null;
+            posTranslationBegP1 = null;
         }
     }
 
@@ -453,17 +455,23 @@ public class SegmentBuilder {
         return translationText;
     }
 
+    /** The document this builder writes into; marks of a builder whose
+     * document was replaced must never reach the current document. */
+    Document3 getDocument() {
+        return doc;
+    }
+
     public int getStartSourcePosition() {
-        if (posSourceBeg != null) {
-            return posSourceBeg.getOffset();
+        if (posSourceBegP1 != null) {
+            return posSourceBegP1.getOffset() - 1;
         } else {
             return -1;
         }
     }
 
     public int getStartTranslationPosition() {
-        if (posTranslationBeg != null) {
-            return posTranslationBeg.getOffset();
+        if (posTranslationBegP1 != null) {
+            return posTranslationBegP1.getOffset() - 1;
         } else {
             return -1;
         }
@@ -737,8 +745,8 @@ public class SegmentBuilder {
     public void resetTextAttributes() {
         doc.setTrustedChangesInProgress(true);
         try {
-            if (posSourceBeg != null) {
-                int sBeg = posSourceBeg.getOffset();
+            if (posSourceBegP1 != null) {
+                int sBeg = posSourceBegP1.getOffset() - 1;
                 int sLen = posSourceLength;
                 AttributeSet attrs = attrs(true, false, false, false);
                 doc.setCharacterAttributes(sBeg, sLen, attrs, true);
@@ -749,8 +757,8 @@ public class SegmentBuilder {
                 AttributeSet attrs = attrs(false, false, false, false);
                 doc.setCharacterAttributes(tBeg, tEnd - tBeg, attrs, true);
             } else {
-                if (posTranslationBeg != null) {
-                    int tBeg = posTranslationBeg.getOffset();
+                if (posTranslationBegP1 != null) {
+                    int tBeg = posTranslationBegP1.getOffset() - 1;
                     int tLen = posTranslationLength;
                     AttributeSet attrs = attrs(false, false, false, false);
                     doc.setCharacterAttributes(tBeg, tLen, attrs, true);
