@@ -185,8 +185,9 @@ public sealed interface ActionSpec {
 
     /**
      * A typed application preference rendered as a control instead of a
-     * button: kind "slider" edits an integer preference between min and max,
-     * kind "combobox" chooses one of the listed values.
+     * button: kind "toggle" switches a boolean (the single listed value is
+     * the coded default), kind "slider" edits an integer preference between
+     * min and max, kind "combobox" chooses one of the listed values.
      */
     record PreferenceActionSpec(String key, String kind, int min, int max, java.util.List<String> values)
             implements ActionSpec {

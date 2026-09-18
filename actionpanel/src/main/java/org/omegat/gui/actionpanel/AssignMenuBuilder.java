@@ -56,7 +56,8 @@ import org.omegat.gui.scripting.ScriptRunner;
  * Builds the multi-level assignment popup out of every available action
  * source: the live menu bar, the currently mapped editor and autocompleter
  * shortcuts, the scripts folder, a preset search, text snippets, and the
- * saved colour scheme and shortcut set folders.
+ * settings tree of the preferences dialog (including saved colour schemes
+ * and shortcut sets).
  *
  * @author stephan.pakebusch at zollsoft.de
  */
@@ -102,13 +103,7 @@ public final class AssignMenuBuilder {
         popup.add(buildSearchItem(parent, onAssign, false));
         popup.add(buildSearchItem(parent, onAssign, true));
         popup.add(buildSnippetBranch(parent, onAssign));
-        popup.add(buildPreferenceBranch(onAssign));
-        popup.add(buildFileFolderBranch("ASSIGN_MENU_COLORSCHEME",
-                ActionPanelFolders.getColorSchemeFolder(), parent, onAssign,
-                ColorSchemeActionSpec::new));
-        popup.add(buildFileFolderBranch("ASSIGN_MENU_SHORTCUTSET",
-                ActionPanelFolders.getShortcutSetFolder(), parent, onAssign,
-                ShortcutSetActionSpec::new));
+        popup.add(buildPreferenceBranch(parent, onAssign));
         if (bulk != null) {
             for (Component component : popup.getComponents()) {
                 if (component instanceof JMenu menu) {
@@ -295,23 +290,18 @@ public final class AssignMenuBuilder {
     }
 
     /**
-     * Curated typed settings: OmegaT preferences are untyped strings, so the
-     * slider and combobox entries below carry their type and range here.
-     * Menu-derived toggles and radio groups need no entry — they are
-     * inferred from the live menu bar.
+     * Settings, arranged like the pages of the preferences dialog (see
+     * {@link PreferenceCatalog}). The Colours and Keyboard Shortcuts pages
+     * hold the saved colour schemes and shortcut sets; boolean project
+     * settings, which live in the project properties rather than the
+     * dialog, close the list.
      */
-    private static JMenu buildPreferenceBranch(AssignTarget onAssign) {
+    private static JMenu buildPreferenceBranch(Component parent, AssignTarget onAssign) {
         JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_PREFERENCE"));
-        menu.add(leaf(ActionPanelModule.getString("PREF_FONT_SIZE"),
-                new ActionSpec.PreferenceActionSpec(org.omegat.util.Preferences.TF_SRC_FONT_SIZE,
-                        "slider", 8, 32, List.of()),
-                onAssign));
-        menu.add(leaf(ActionPanelModule.getString("PREF_THEME_MODE"),
-                new ActionSpec.PreferenceActionSpec(org.omegat.util.Preferences.THEME_COLOR_MODE,
-                        "combobox", 0, 0, List.of("default", "dark", "sync")),
-                onAssign));
-        // Boolean project settings, discovered generically; toggling saves
-        // and reloads the project.
+        for (PreferenceCatalog.Group group : PreferenceCatalog.groups()) {
+            menu.add(buildPreferenceGroup(group, parent, onAssign));
+        }
+        menu.addSeparator();
         JMenu projectMenu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_PROJECT"));
         for (String property : ProjectFlagActions.listFlags()) {
             projectMenu.add(leaf(ProjectFlagActions.label(property),
@@ -321,9 +311,36 @@ public final class AssignMenuBuilder {
         return menu;
     }
 
-    private static JMenu buildFileFolderBranch(String labelKey, File folder, Component parent,
+    private static JMenu buildPreferenceGroup(PreferenceCatalog.Group group, Component parent,
+            AssignTarget onAssign) {
+        JMenu menu;
+        if (group.folder() == PreferenceCatalog.Folder.COLOR_SCHEMES) {
+            menu = buildFileFolderBranch(group.title(), ActionPanelFolders.getColorSchemeFolder(), parent,
+                    onAssign, ColorSchemeActionSpec::new);
+        } else if (group.folder() == PreferenceCatalog.Folder.SHORTCUT_SETS) {
+            menu = buildFileFolderBranch(group.title(), ActionPanelFolders.getShortcutSetFolder(), parent,
+                    onAssign, ShortcutSetActionSpec::new);
+        } else {
+            menu = new JMenu(group.title());
+        }
+        for (PreferenceCatalog.Entry entry : group.entries()) {
+            menu.add(leaf(entry.label(), entry.spec(), onAssign));
+        }
+        if (!group.children().isEmpty()) {
+            if (!group.entries().isEmpty()) {
+                menu.addSeparator();
+            }
+            for (PreferenceCatalog.Group child : group.children()) {
+                menu.add(buildPreferenceGroup(child, parent, onAssign));
+            }
+        }
+        return menu;
+    }
+
+    /** Saved .properties files of a folder, plus a chooser for any other file. */
+    private static JMenu buildFileFolderBranch(String title, File folder, Component parent,
             AssignTarget onAssign, java.util.function.Function<String, ActionSpec> factory) {
-        JMenu menu = new JMenu(ActionPanelModule.getString(labelKey));
+        JMenu menu = new JMenu(title);
         List<String> names = listPropertiesFiles(folder);
         for (String name : names) {
             menu.add(leaf(name, factory.apply(name), onAssign));
