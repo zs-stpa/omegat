@@ -26,6 +26,7 @@
 package org.omegat.gui.actionpanel;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.ComponentOrientation;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -47,6 +48,7 @@ import java.util.Locale;
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -54,6 +56,7 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -189,7 +192,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     }
 
     /** Global font on every control; panel foreground on borderless text. */
-    private void applyGlobalStyle(java.awt.Component component, Font font) {
+    private void applyGlobalStyle(Component component, Font font) {
         String text = component instanceof JLabel label ? label.getText()
                 : component instanceof AbstractButton button ? button.getText() : null;
         component.setFont(FallbackFonts.withGlyphFallback(font, text));
@@ -197,7 +200,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             component.setForeground(getForeground());
         }
         if (component instanceof java.awt.Container container) {
-            for (java.awt.Component child : container.getComponents()) {
+            for (Component child : container.getComponents()) {
                 applyGlobalStyle(child, font);
             }
         }
@@ -214,9 +217,17 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             control = createToggle(row, checkbox);
         } else if (entry != null && entry.getItem() instanceof JRadioButtonMenuItem radio) {
             control = createRadioGroupCombo(row, radio);
-        } else if (spec instanceof PreferenceActionSpec preference) {
-            control = "combobox".equals(preference.kind()) ? createPreferenceCombo(row, preference)
-                    : createPreferenceSlider(row, preference);
+        } else if (spec instanceof PreferenceActionSpec stored) {
+            // The row owns its name; kind, range and default are the
+            // catalog's business and follow later versions.
+            PreferenceActionSpec preference = PreferenceCatalog.resolve(stored);
+            control = switch (preference.kind()) {
+            case PreferenceCatalog.KIND_COMBOBOX -> createPreferenceCombo(row, preference);
+            case PreferenceCatalog.KIND_TOGGLE -> createPreferenceToggle(row, preference);
+            case PreferenceCatalog.KIND_SLIDER -> createPreferenceSlider(row, preference);
+            // A kind from a newer version: a disabled button, never a guess.
+            default -> createButton(row);
+            };
         } else if (spec instanceof ActionSpec.ProjectFlagActionSpec flag) {
             control = createProjectFlagToggle(row, flag);
         } else {
@@ -241,14 +252,14 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             toggle.setSelected(item.isSelected());
         });
         toggle.setEnabled(item.isEnabled());
-        return toggle;
+        return withIcon(row, toggle);
     }
 
     /** Radio menu item: a labeled combobox over its sibling group. */
     private JComponent createRadioGroupCombo(ActionRow row, JRadioButtonMenuItem item) {
         List<JRadioButtonMenuItem> group = new ArrayList<>();
         if (item.getParent() instanceof JPopupMenu parent) {
-            for (java.awt.Component sibling : parent.getComponents()) {
+            for (Component sibling : parent.getComponents()) {
                 if (sibling instanceof JRadioButtonMenuItem radio) {
                     group.add(radio);
                 }
@@ -300,77 +311,187 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 toggle.setSelected(ProjectFlagActions.getValue(flag.property()));
             }
         });
-        return toggle;
+        return withIcon(row, toggle);
+    }
+
+    /** Boolean preference: a switch, live in both directions. */
+    private JComponent createPreferenceToggle(ActionRow row, PreferenceActionSpec spec) {
+        JCheckBox toggle = new JCheckBox(row.name(), PreferenceCatalog.isSelected(spec));
+        toggle.setFocusable(false);
+        toggle.setOpaque(false);
+        toggle.setToolTipText(tooltip(row));
+        toggle.addActionListener(e -> {
+            Preferences.setPreference(spec.key(), toggle.isSelected());
+            PreferenceCatalog.applySideEffects(spec.key());
+        });
+        java.beans.PropertyChangeListener sync = e -> SwingUtilities.invokeLater(() -> {
+            boolean value = PreferenceCatalog.isSelected(spec);
+            if (toggle.isSelected() != value) {
+                toggle.setSelected(value);
+            }
+        });
+        Preferences.addPropertyChangeListener(spec.key(), sync);
+        itemListenerCleanups.add(() -> Preferences.removePropertyChangeListener(spec.key(), sync));
+        return withIcon(row, toggle);
     }
 
     /** Scalar preference: a labeled slider, applied on release. */
     private JComponent createPreferenceSlider(ActionRow row, PreferenceActionSpec spec) {
-        int current = Preferences.getPreferenceDefault(spec.key(), spec.min());
+        int current = PreferenceCatalog.intValue(spec);
         JSlider slider = new JSlider(spec.min(), spec.max(),
                 Math.min(spec.max(), Math.max(spec.min(), current)));
         slider.setFocusable(false);
         slider.setOpaque(false);
         slider.setToolTipText(tooltip(row));
+        // Readout after the knob: current value and range, e.g. "12 [8\u201332]".
+        // Reserves the width of the widest value in the current font (digits
+        // are tabular in UI fonts), so the row neither jitters while dragging
+        // nor truncates after the panel font grows (the font size slider
+        // changes it live).
+        String range = " [" + spec.min() + "\u2013" + spec.max() + "]";
+        int widest = Math.max(Integer.toString(spec.min()).length(), Integer.toString(spec.max()).length());
+        String widestText = "0".repeat(widest) + range;
+        JLabel readout = new JLabel(slider.getValue() + range) {
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension size = super.getPreferredSize();
+                size.width = Math.max(size.width, getFontMetrics(getFont()).stringWidth(widestText)
+                        + getInsets().left + getInsets().right);
+                return size;
+            }
+        };
+        readout.setToolTipText(tooltip(row));
         slider.addChangeListener(e -> {
+            readout.setText(slider.getValue() + range);
             if (!slider.getValueIsAdjusting()) {
                 Preferences.setPreference(spec.key(), slider.getValue());
-                applyPreferenceSideEffects(spec.key());
+                PreferenceCatalog.applySideEffects(spec.key());
             }
         });
         // Live in both directions: edits elsewhere (preferences dialog,
         // another panel row) move the slider along.
         java.beans.PropertyChangeListener sync = e -> SwingUtilities.invokeLater(() -> {
-            int value = Preferences.getPreferenceDefault(spec.key(), spec.min());
+            int value = PreferenceCatalog.intValue(spec);
             if (slider.getValue() != value) {
                 slider.setValue(Math.min(spec.max(), Math.max(spec.min(), value)));
             }
         });
         Preferences.addPropertyChangeListener(spec.key(), sync);
         itemListenerCleanups.add(() -> Preferences.removePropertyChangeListener(spec.key(), sync));
-        return labeled(row, slider);
+        JComponent wrapper = labeled(row, slider);
+        wrapper.add(readout);
+        return wrapper;
     }
 
     /** Enum preference: a labeled combobox over the declared values. */
     private JComponent createPreferenceCombo(ActionRow row, PreferenceActionSpec spec) {
         JComboBox<String> combo = new JComboBox<>(spec.values().toArray(new String[0]));
-        combo.setSelectedItem(Preferences.getPreferenceDefault(spec.key(),
-                spec.values().isEmpty() ? "" : spec.values().get(0)));
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, @Nullable Object value, int index,
+                    boolean selected, boolean focused) {
+                Object shown = value == null ? null : PreferenceCatalog.valueLabel(spec.key(), value.toString());
+                return super.getListCellRendererComponent(list, shown, index, selected, focused);
+            }
+        });
+        selectComboValue(combo, spec);
         combo.setFocusable(false);
         combo.setToolTipText(tooltip(row));
         combo.addActionListener(e -> {
             Object selected = combo.getSelectedItem();
             if (selected != null) {
                 Preferences.setPreference(spec.key(), selected.toString());
-                applyPreferenceSideEffects(spec.key());
+                PreferenceCatalog.applySideEffects(spec.key());
             }
         });
         // Live in both directions, matching the slider behaviour.
         java.beans.PropertyChangeListener sync = e -> SwingUtilities.invokeLater(() -> {
-            String value = Preferences.getPreferenceDefault(spec.key(),
-                    spec.values().isEmpty() ? "" : spec.values().get(0));
-            if (!value.equals(combo.getSelectedItem())) {
-                combo.setSelectedItem(value);
-            }
+            selectComboValue(combo, spec);
         });
         Preferences.addPropertyChangeListener(spec.key(), sync);
         itemListenerCleanups.add(() -> Preferences.removePropertyChangeListener(spec.key(), sync));
         return labeled(row, combo);
     }
 
-    /** Some preferences take live effect only through their core event. */
-    private void applyPreferenceSideEffects(String key) {
-        if (Preferences.TF_SRC_FONT_SIZE.equals(key) || Preferences.TF_SRC_FONT_NAME.equals(key)) {
-            CoreEvents.fireFontChanged(FontUtil.getScaledFont());
+    /**
+     * Show the stored value even when the catalog no longer lists it (a
+     * renamed enum constant, a foreign omegat.prefs): it is appended as an
+     * extra item rather than silently displayed as the first entry.
+     */
+    private static void selectComboValue(JComboBox<String> combo, PreferenceActionSpec spec) {
+        String value = Preferences.getPreferenceDefault(spec.key(),
+                spec.values().isEmpty() ? "" : spec.values().get(0));
+        if (value.equals(combo.getSelectedItem())) {
+            return;
         }
+        boolean listed = false;
+        for (int i = 0; i < combo.getItemCount(); i++) {
+            listed |= value.equals(combo.getItemAt(i));
+        }
+        if (!listed) {
+            combo.addItem(value);
+        }
+        combo.setSelectedItem(value);
     }
 
+    /** Label plus control; the label carries the row icon, if any. */
     private JComponent labeled(ActionRow row, JComponent control) {
         JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEADING, 4, 0));
         wrapper.setOpaque(false);
-        JLabel label = new JLabel(row.name());
+        Icon icon = loadRowIcon(row, null);
+        JLabel label = new JLabel(
+                icon != null && ActionPanelViewOptions.getDisplayMode() == DisplayMode.ICON_ONLY ? "" : row.name());
+        if (icon != null) {
+            label.setIcon(icon);
+            label.setToolTipText(tooltip(row));
+        }
         label.setLabelFor(control);
         wrapper.add(label);
         wrapper.add(control);
+        return wrapper;
+    }
+
+    /**
+     * The row's icon at panel size, or null when none is configured or the
+     * display mode hides icons. The contrast check runs against the control's
+     * effective background: a configured row colour wins over the theme's.
+     */
+    private @Nullable Icon loadRowIcon(ActionRow row, @Nullable Color themeBackground) {
+        if (row.iconRef() == null || ActionPanelViewOptions.getDisplayMode() == DisplayMode.NAME_ONLY) {
+            return null;
+        }
+        File iconFile = ActionPanelConfig.resolveIcon(row.iconRef());
+        Color effectiveBackground = decode(row.backgroundColor());
+        if (effectiveBackground == null) {
+            effectiveBackground = themeBackground;
+        }
+        if (effectiveBackground == null) {
+            effectiveBackground = getBackground();
+        }
+        // Icons follow the global font size, so icon-only buttons resize
+        // with the rest of the panel (24 px at the default 12 pt).
+        int iconSize = Math.max(16, Math.round(getFont().getSize2D() * 2f));
+        return IconLoader.load(iconFile, iconSize, effectiveBackground);
+    }
+
+    /**
+     * A checkbox keeps its tick, so the row icon goes into a label in front
+     * of it; in icon-only mode the name moves into the tooltip.
+     */
+    private JComponent withIcon(ActionRow row, JCheckBox toggle) {
+        Icon icon = loadRowIcon(row, null);
+        toggle.getAccessibleContext().setAccessibleName(row.name());
+        if (icon == null) {
+            toggle.setText(row.name());
+            return toggle;
+        }
+        toggle.setText(ActionPanelViewOptions.getDisplayMode() == DisplayMode.ICON_ONLY ? "" : row.name());
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEADING, 4, 0));
+        wrapper.setOpaque(false);
+        JLabel iconLabel = new JLabel(icon);
+        iconLabel.setToolTipText(tooltip(row));
+        wrapper.add(iconLabel);
+        wrapper.add(toggle);
         return wrapper;
     }
 
@@ -379,28 +500,11 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         // Toolbar convention: clicking must not move the focus, so editor
         // actions land in the editor and not on the button itself.
         button.setFocusable(false);
-        DisplayMode mode = ActionPanelViewOptions.getDisplayMode();
-        Icon icon = null;
-        if (row.iconRef() != null && mode != DisplayMode.NAME_ONLY) {
-            File iconFile = ActionPanelConfig.resolveIcon(row.iconRef());
-            // Contrast check against the button's effective background: a
-            // configured row colour wins over the theme's button colour.
-            Color effectiveBackground = decode(row.backgroundColor());
-            if (effectiveBackground == null) {
-                effectiveBackground = javax.swing.UIManager.getColor("Button.background");
-            }
-            if (effectiveBackground == null) {
-                effectiveBackground = button.getBackground();
-            }
-            // Icons follow the global font size, so icon-only buttons resize
-            // with the rest of the panel (24 px at the default 12 pt).
-            int iconSize = Math.max(16, Math.round(getFont().getSize2D() * 2f));
-            icon = IconLoader.load(iconFile, iconSize, effectiveBackground);
-        }
+        Icon icon = loadRowIcon(row, javax.swing.UIManager.getColor("Button.background"));
         if (icon != null) {
             button.setIcon(icon);
         }
-        if (icon == null || mode == DisplayMode.ICON_AND_NAME) {
+        if (icon == null || ActionPanelViewOptions.getDisplayMode() == DisplayMode.ICON_AND_NAME) {
             button.setText(row.name());
         }
         button.setToolTipText(tooltip(row));
@@ -439,7 +543,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         Color border = decode(row.borderColor());
         if (foreground != null) {
             control.setForeground(foreground);
-            for (java.awt.Component child : control.getComponents()) {
+            for (Component child : control.getComponents()) {
                 child.setForeground(foreground);
             }
         }
@@ -454,7 +558,8 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             control.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(border),
                     BorderFactory.createEmptyBorder(2, 6, 2, 6)));
             if (control instanceof AbstractButton button) {
-                // Checkboxes do not paint borders unless told to.
+                // Bare checkboxes do not paint borders unless told to;
+                // icon-bearing ones sit in a wrapper that paints its own.
                 button.setBorderPainted(true);
             }
         }
@@ -499,6 +604,9 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         if (spec == null || spec instanceof UnknownActionSpec) {
             return false;
         }
+        if (spec instanceof PreferenceActionSpec preference) {
+            return PreferenceCatalog.isKnownKind(PreferenceCatalog.resolve(preference).kind());
+        }
         if (spec instanceof MenuActionSpec menu) {
             MenuActionCatalog.MenuEntry entry = catalog.lookup(menu.actionCommand());
             JMenuItem item = entry == null ? null : entry.getItem();
@@ -534,7 +642,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 (spec, label) -> appendRows(List.of(new ActionRow(label, null, spec))),
                 entries -> appendRows(entries.stream()
                         .map(entry -> new ActionRow(entry.label(), null, entry.spec())).toList()));
-        for (java.awt.Component component : assign.getComponents()) {
+        for (Component component : assign.getComponents()) {
             addMenu.add(component);
         }
         menu.add(addMenu);
@@ -584,13 +692,23 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     /**
      * Drag a control to reorder it in place; drop outside the panel to remove
      * it, after a confirmation unless Shift or Ctrl is held. Both gestures
-     * change the stored configuration, not only the view. Labeled comboboxes
-     * and sliders are dragged by their label.
+     * change the stored configuration, not only the view. Labeled comboboxes,
+     * sliders and icon-bearing toggles are dragged by their label.
      */
     private void installDragReorder(JComponent control) {
         DragReorderHandler handler = new DragReorderHandler(control);
         control.addMouseListener(handler);
         control.addMouseMotionListener(handler);
+        // Labels inside a wrapper carry tooltips, and a tooltip registers a
+        // mouse listener, so the press would stop there instead of reaching
+        // the wrapper. The handler converts coordinates from the event
+        // source, so it can sit on the labels directly.
+        for (Component child : control.getComponents()) {
+            if (child instanceof JLabel) {
+                child.addMouseListener(handler);
+                child.addMouseMotionListener(handler);
+            }
+        }
     }
 
     private final class DragReorderHandler extends MouseAdapter {
@@ -669,7 +787,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         private boolean insidePanelArea(MouseEvent e) {
             java.awt.Container viewport = SwingUtilities.getAncestorOfClass(javax.swing.JViewport.class,
                     ActionPanelView.this);
-            java.awt.Component area = viewport != null ? viewport : ActionPanelView.this;
+            Component area = viewport != null ? viewport : ActionPanelView.this;
             Point p = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), area);
             return p.x >= 0 && p.y >= 0 && p.x < area.getWidth() && p.y < area.getHeight();
         }
