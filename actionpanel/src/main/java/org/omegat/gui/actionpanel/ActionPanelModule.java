@@ -31,7 +31,7 @@ import javax.swing.SwingUtilities;
 
 import org.jspecify.annotations.Nullable;
 
-import com.vlsolutions.swing.docking.Dockable;
+import com.vlsolutions.swing.docking.DockableState;
 import com.vlsolutions.swing.docking.DockingDesktop;
 
 import org.omegat.core.Core;
@@ -60,6 +60,7 @@ public final class ActionPanelModule {
             .getBundle("org.omegat.gui.actionpanel.Bundle");
 
     private static @Nullable IApplicationEventListener listener;
+    private static @Nullable ActionPanelView view;
 
     private ActionPanelModule() {
     }
@@ -97,21 +98,29 @@ public final class ActionPanelModule {
             return;
         }
         ActionPanelConfig.getInstance().load();
-        ActionPanelView view = new ActionPanelView();
+        if (view != null) {
+            // A second startup (acceptance tests) replaces the previous view.
+            view.dispose();
+        }
+        view = new ActionPanelView();
         DockableScrollPane pane = new DockableScrollPane(DOCK_KEY,
                 getString("ACTION_PANEL_TITLE"), view, true);
-        mainWindow.addDockable(pane);
-        // The saved layout is applied after all startup listeners ran; only
-        // then minimize the pane, and only on its very first appearance, so
-        // a user-chosen placement is never overridden afterwards.
+        DockingDesktop desktop = mainWindow.getDesktop();
+        // Register only: the main window reads its layout later in this same
+        // startup pass and places the pane by key. A pane docked now instead
+        // would keep a stale DOCKED location after the layout rebuild, and
+        // re-adding it then fails inside VLDocking (NPE in replaceChild).
+        desktop.registerDockable(pane);
+        // After the layout pass: dock the pane if the layout had no place
+        // for it, and minimize it on its very first appearance only, so a
+        // user-chosen placement is never overridden afterwards.
         SwingUtilities.invokeLater(() -> {
+            if (pane.getDockKey().getLocation() == DockableState.Location.CLOSED) {
+                desktop.addDockable(pane);
+            }
             if (!Preferences.existsPreference(INITIALIZED_PREFERENCE)) {
-                DockingDesktop desktop = mainWindow.getDesktop();
-                Dockable dockable = desktop.getContext().getDockableByKey(DOCK_KEY);
-                if (dockable != null) {
-                    desktop.setAutoHide(dockable, true);
-                    Preferences.setPreference(INITIALIZED_PREFERENCE, true);
-                }
+                desktop.setAutoHide(pane, true);
+                Preferences.setPreference(INITIALIZED_PREFERENCE, true);
             }
         });
     }

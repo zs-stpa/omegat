@@ -52,10 +52,10 @@ public final class ActionPanelViewOptions {
 
     public static DisplayMode getDisplayMode() {
         try {
-            return DisplayMode
-                    .valueOf(Preferences.getPreferenceDefault(DISPLAY_MODE_PREFERENCE, DisplayMode.ICON_ONLY.name()));
+            return DisplayMode.valueOf(
+                    Preferences.getPreferenceDefault(DISPLAY_MODE_PREFERENCE, DisplayMode.ICON_AND_NAME.name()));
         } catch (IllegalArgumentException e) {
-            return DisplayMode.ICON_ONLY;
+            return DisplayMode.ICON_AND_NAME;
         }
     }
 
