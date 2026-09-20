@@ -33,6 +33,7 @@ import java.util.List;
 
 import javax.swing.text.Highlighter.HighlightPainter;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.data.SourceTextEntry;
 import org.omegat.util.StringUtil;
@@ -56,7 +57,8 @@ public class BidiMarkers extends AbstractMarker {
     }
 
     @Override
-    public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String text, boolean isActive)
+    public List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String text, boolean isActive)
             throws Exception {
         if (!isEnabled()) {
             return null;
