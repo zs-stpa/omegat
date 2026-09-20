@@ -43,6 +43,16 @@ public sealed interface ActionSpec {
     /** Attributes to persist besides the tag. Keys are XML attribute names. */
     Map<String, String> attributes();
 
+    /**
+     * What distinguishes this action from others of its type: the first
+     * attribute, which every variant lists first (menu command, editor key,
+     * file, query, text, URL, autotext source, file reference, preference
+     * key, project property). Used for component names.
+     */
+    default String identity() {
+        return attributes().values().stream().findFirst().orElse("");
+    }
+
     /** A main-menu action, addressed by its action command (= field name). */
     record MenuActionSpec(String actionCommand) implements ActionSpec {
         @Override

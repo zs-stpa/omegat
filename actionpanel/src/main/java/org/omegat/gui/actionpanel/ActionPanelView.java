@@ -72,6 +72,8 @@ import org.jspecify.annotations.Nullable;
 
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
+import org.omegat.core.events.IColorsChangedEventListener;
+import org.omegat.core.events.IFontChangedEventListener;
 import org.omegat.core.events.IProjectEventListener;
 import org.omegat.gui.actionpanel.ActionPanelViewOptions.DisplayMode;
 import org.omegat.gui.actionpanel.ActionPanelViewOptions.LayoutMode;
@@ -106,6 +108,10 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     private final transient MenuActionCatalog catalog = new MenuActionCatalog();
     private final transient Runnable configListener = () -> SwingUtilities.invokeLater(this::rebuild);
+    private final transient IFontChangedEventListener fontListener = font -> SwingUtilities
+            .invokeLater(this::rebuild);
+    private final transient IColorsChangedEventListener colorsListener = () -> SwingUtilities
+            .invokeLater(this::rebuild);
     /** Menu items we attached sync listeners to, cleared on every rebuild. */
     private final transient List<Runnable> itemListenerCleanups = new ArrayList<>();
     /** Rows in display order, parallel to {@link #rowControls}. */
@@ -119,13 +125,29 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     private transient @Nullable JComponent dragRemoveMark;
 
     public ActionPanelView() {
+        setName(ComponentNames.PANEL);
         ActionPanelConfig.getInstance().addChangeListener(configListener);
         PropertiesShortcuts.getMainMenuShortcuts().addChangeListener(configListener);
         PropertiesShortcuts.getEditorShortcuts().addChangeListener(configListener);
         CoreEvents.registerProjectChangeListener(this);
-        CoreEvents.registerFontChangedEventListener(font -> SwingUtilities.invokeLater(this::rebuild));
-        CoreEvents.registerColorsChangedEventListener(() -> SwingUtilities.invokeLater(this::rebuild));
+        CoreEvents.registerFontChangedEventListener(fontListener);
+        CoreEvents.registerColorsChangedEventListener(colorsListener);
         rebuild();
+    }
+
+    /**
+     * Let go of every global listener, so a replaced view (the acceptance
+     * tests start the application once per test) stops rebuilding itself.
+     */
+    void dispose() {
+        ActionPanelConfig.getInstance().removeChangeListener(configListener);
+        PropertiesShortcuts.getMainMenuShortcuts().removeChangeListener(configListener);
+        PropertiesShortcuts.getEditorShortcuts().removeChangeListener(configListener);
+        CoreEvents.unregisterProjectChangeListener(this);
+        CoreEvents.unregisterFontChangedEventListener(fontListener);
+        CoreEvents.unregisterColorsChangedEventListener(colorsListener);
+        itemListenerCleanups.forEach(Runnable::run);
+        itemListenerCleanups.clear();
     }
 
     @Override
@@ -174,6 +196,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         }
         if (rows.isEmpty()) {
             JLabel hint = new JLabel(ActionPanelModule.getString("ACTION_PANEL_EMPTY_HINT"));
+            hint.setName(ComponentNames.EMPTY_HINT);
             hint.setEnabled(false);
             hint.setFont(globalFont);
             add(hint);
@@ -360,6 +383,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 return size;
             }
         };
+        readout.setName(ComponentNames.readout(row.id()));
         readout.setToolTipText(tooltip(row));
         slider.addChangeListener(e -> {
             readout.setText(slider.getValue() + range);
@@ -434,13 +458,19 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         combo.setSelectedItem(value);
     }
 
-    /** Label plus control; the label carries the row icon, if any. */
+    /**
+     * Label plus control; the label carries the row icon, if any. Names
+     * (see {@link ComponentNames}) are given here, where the parts are built.
+     */
     private JComponent labeled(ActionRow row, JComponent control) {
         JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEADING, 4, 0));
+        wrapper.setName(ComponentNames.row(row.id()));
         wrapper.setOpaque(false);
+        control.setName(ComponentNames.control(row.id()));
         Icon icon = loadRowIcon(row, null);
         JLabel label = new JLabel(
                 icon != null && ActionPanelViewOptions.getDisplayMode() == DisplayMode.ICON_ONLY ? "" : row.name());
+        label.setName(ComponentNames.label(row.id()));
         if (icon != null) {
             label.setIcon(icon);
             label.setToolTipText(tooltip(row));
@@ -480,6 +510,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
      */
     private JComponent withIcon(ActionRow row, JCheckBox toggle) {
         Icon icon = loadRowIcon(row, null);
+        toggle.setName(ComponentNames.control(row.id()));
         toggle.getAccessibleContext().setAccessibleName(row.name());
         if (icon == null) {
             toggle.setText(row.name());
@@ -487,8 +518,10 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         }
         toggle.setText(ActionPanelViewOptions.getDisplayMode() == DisplayMode.ICON_ONLY ? "" : row.name());
         JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEADING, 4, 0));
+        wrapper.setName(ComponentNames.row(row.id()));
         wrapper.setOpaque(false);
         JLabel iconLabel = new JLabel(icon);
+        iconLabel.setName(ComponentNames.icon(row.id()));
         iconLabel.setToolTipText(tooltip(row));
         wrapper.add(iconLabel);
         wrapper.add(toggle);
@@ -497,6 +530,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     private JButton createButton(ActionRow row) {
         JButton button = new JButton();
+        button.setName(ComponentNames.control(row.id()));
         // Toolbar convention: clicking must not move the focus, so editor
         // actions land in the editor and not on the button itself.
         button.setFocusable(false);
@@ -523,17 +557,10 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     /** Store a revised action back into the row's configuration entry. */
     private void updateRowAction(ActionRow row, ActionSpec updated) {
-        List<ActionRow> rows = new ArrayList<>(ActionPanelConfig.getInstance().getRows());
-        // Rows are value records: among identical duplicates the first one is
-        // updated, which yields the same configuration either way.
-        int index = rows.indexOf(row);
-        if (index < 0) {
+        if (!ActionPanelConfig.getInstance().updateRow(row.id(), r -> r.withAction(updated))) {
             // The row was edited away while the wizard was open.
             java.awt.Toolkit.getDefaultToolkit().beep();
-            return;
         }
-        rows.set(index, rows.get(index).withAction(updated));
-        ActionPanelConfig.getInstance().setRows(rows);
     }
 
     /** Per-row text, background and border colours, where configured. */
@@ -630,6 +657,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     @Override
     public void populatePaneMenu(JPopupMenu menu) {
         JMenuItem settings = new JMenuItem(ActionPanelModule.getString("ACTION_PANEL_SETTINGS_MENU"));
+        settings.setName(ComponentNames.paneMenu("ACTION_PANEL_SETTINGS_MENU"));
         settings.addActionListener(e -> new PreferencesWindowController()
                 .show(SwingUtilities.getWindowAncestor(this), ActionPanelPreferencesController.class));
         menu.add(settings);
@@ -638,6 +666,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         // The same assignment tree as the settings' Add button, adding rows
         // to the live configuration directly.
         JMenu addMenu = new JMenu(ActionPanelModule.getString("BTN_ADD"));
+        addMenu.setName(ComponentNames.paneMenu("BTN_ADD"));
         JPopupMenu assign = AssignMenuBuilder.build(this, catalog,
                 (spec, label) -> appendRows(List.of(new ActionRow(label, null, spec))),
                 entries -> appendRows(entries.stream()
@@ -648,6 +677,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         menu.add(addMenu);
 
         JMenu displayMenu = new JMenu(ActionPanelModule.getString("MENU_DISPLAY_MODE"));
+        displayMenu.setName(ComponentNames.paneMenu("MENU_DISPLAY_MODE"));
         ButtonGroup displayGroup = new ButtonGroup();
         addDisplayItem(displayMenu, displayGroup, "DISPLAY_MODE_ICON", DisplayMode.ICON_ONLY);
         addDisplayItem(displayMenu, displayGroup, "DISPLAY_MODE_NAME", DisplayMode.NAME_ONLY);
@@ -655,12 +685,14 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         menu.add(displayMenu);
 
         JMenu layoutMenu = new JMenu(ActionPanelModule.getString("MENU_LAYOUT"));
+        layoutMenu.setName(ComponentNames.paneMenu("MENU_LAYOUT"));
         ButtonGroup layoutGroup = new ButtonGroup();
         addLayoutItem(layoutMenu, layoutGroup, "LAYOUT_FLOW", LayoutMode.FLOW);
         addLayoutItem(layoutMenu, layoutGroup, "LAYOUT_COLUMNS", LayoutMode.COLUMNS);
         layoutMenu.addSeparator();
         JCheckBoxMenuItem reverse = new JCheckBoxMenuItem(ActionPanelModule.getString("LAYOUT_REVERSE"),
                 ActionPanelViewOptions.isReverse());
+        reverse.setName(ComponentNames.paneMenu("LAYOUT_REVERSE"));
         reverse.addActionListener(e -> ActionPanelViewOptions.setReverse(reverse.isSelected()));
         layoutMenu.add(reverse);
         menu.add(layoutMenu);
@@ -669,6 +701,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     private void addDisplayItem(JMenu menu, ButtonGroup group, String key, DisplayMode mode) {
         JRadioButtonMenuItem item = new JRadioButtonMenuItem(ActionPanelModule.getString(key),
                 ActionPanelViewOptions.getDisplayMode() == mode);
+        item.setName(ComponentNames.paneMenu(key));
         item.addActionListener(e -> ActionPanelViewOptions.setDisplayMode(mode));
         group.add(item);
         menu.add(item);
@@ -677,6 +710,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     private void addLayoutItem(JMenu menu, ButtonGroup group, String key, LayoutMode mode) {
         JRadioButtonMenuItem item = new JRadioButtonMenuItem(ActionPanelModule.getString(key),
                 ActionPanelViewOptions.getLayoutMode() == mode);
+        item.setName(ComponentNames.paneMenu(key));
         item.addActionListener(e -> ActionPanelViewOptions.setLayoutMode(mode));
         group.add(item);
         menu.add(item);
@@ -691,7 +725,8 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     /**
      * Drag a control to reorder it in place; drop outside the panel to remove
-     * it, after a confirmation unless Shift or Ctrl is held. Both gestures
+     * it, after a confirmation unless Shift or Ctrl is held (on macOS Ctrl
+     * also opens a row's context menu, so Shift is the safer choice). Both gestures
      * change the stored configuration, not only the view. Labeled comboboxes,
      * sliders and icon-bearing toggles are dragged by their label.
      */

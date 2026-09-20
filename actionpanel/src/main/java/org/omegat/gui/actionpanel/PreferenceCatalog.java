@@ -79,7 +79,8 @@ public final class PreferenceCatalog {
     }
 
     /** One preferences page: its entries, sub pages, and an optional folder. */
-    public record Group(String title, List<Entry> entries, List<Group> children, @Nullable Folder folder) {
+    public record Group(@Nullable String titleKey, String title, List<Entry> entries, List<Group> children,
+            @Nullable Folder folder) {
     }
 
     /** Locale-free definition; labels are resolved when a tree is requested. */
@@ -441,7 +442,8 @@ public final class PreferenceCatalog {
         for (GroupDef child : page.children()) {
             children.add(localize(child));
         }
-        return new Group(page.titleKey() == null ? "" : text(page.titleKey()), entries, children, page.folder());
+        return new Group(page.titleKey(), page.titleKey() == null ? "" : text(page.titleKey()), entries, children,
+                page.folder());
     }
 
     /**

@@ -56,13 +56,24 @@ public final class MenuActionCatalog {
         private final String actionCommand;
         private final String label;
         private final List<String> path;
+        private final List<String> menuNames;
         private final JMenuItem item;
 
-        MenuEntry(String actionCommand, String label, List<String> path, JMenuItem item) {
+        MenuEntry(String actionCommand, String label, List<String> path, List<String> menuNames,
+                JMenuItem item) {
             this.actionCommand = actionCommand;
             this.label = label;
             this.path = List.copyOf(path);
+            this.menuNames = List.copyOf(menuNames);
             this.item = item;
+        }
+
+        /**
+         * Component names of the menus on the path, parallel to
+         * {@link #getPath()}; a menu without a name contributes its label.
+         */
+        public List<String> getMenuNames() {
+            return menuNames;
         }
 
         public String getActionCommand() {
@@ -95,23 +106,30 @@ public final class MenuActionCatalog {
         for (int i = 0; i < menuBar.getMenuCount(); i++) {
             JMenu menu = menuBar.getMenu(i);
             if (menu != null) {
-                harvest(menu, new ArrayList<>(List.of(menu.getText())));
+                harvest(menu, new ArrayList<>(List.of(menu.getText())), new ArrayList<>(List.of(nameOf(menu))));
             }
         }
     }
 
-    private void harvest(JMenu menu, List<String> path) {
+    /** Menus of the menu bar are named after their fields; a nameless one (a plugin's) falls back to its label. */
+    private static String nameOf(JMenu menu) {
+        return menu.getName() == null || menu.getName().isEmpty() ? menu.getText() : menu.getName();
+    }
+
+    private void harvest(JMenu menu, List<String> path, List<String> names) {
         for (java.awt.Component component : menu.getMenuComponents()) {
             if (component instanceof JMenu submenu) {
                 path.add(submenu.getText());
-                harvest(submenu, path);
+                names.add(nameOf(submenu));
+                harvest(submenu, path, names);
                 path.remove(path.size() - 1);
+                names.remove(names.size() - 1);
             } else if (component instanceof JMenuItem item) {
                 String command = item.getActionCommand();
                 // Items without an explicit command echo their label; only
                 // commands set from the handler field names are invokable.
                 if (command != null && !command.isEmpty() && !command.equals(item.getText())) {
-                    menuEntries.put(command, new MenuEntry(command, item.getText(), path, item));
+                    menuEntries.put(command, new MenuEntry(command, item.getText(), path, names, item));
                 }
             }
         }
