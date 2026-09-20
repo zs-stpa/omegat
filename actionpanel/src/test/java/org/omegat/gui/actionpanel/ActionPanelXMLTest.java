@@ -26,6 +26,7 @@
 package org.omegat.gui.actionpanel;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -105,6 +106,23 @@ public class ActionPanelXMLTest {
         assertEquals("bare", read.get(0).name());
         assertNull(read.get(0).iconRef());
         assertNull(read.get(0).action());
+    }
+
+    @Test
+    public void testRowsWithoutIdGetOneAndAreReported() throws IOException {
+        File file = new File(folder.getRoot(), "actionpanel.xml");
+        Files.writeString(file.toPath(), "<actionpanel version=\"1\"><row name=\"old\"/>"
+                + "<row id=\"kept\" name=\"new\"/></actionpanel>", StandardCharsets.UTF_8);
+        ActionPanelXML.ReadResult result = ActionPanelXML.readWithReport(file);
+        assertTrue(result.idsAdded());
+        assertEquals(2, result.rows().size());
+        assertFalse(result.rows().get(0).id().isBlank());
+        assertEquals("kept", result.rows().get(1).id());
+
+        ActionPanelXML.write(result.rows(), file);
+        ActionPanelXML.ReadResult reread = ActionPanelXML.readWithReport(file);
+        assertFalse(reread.idsAdded());
+        assertEquals(result.rows(), reread.rows());
     }
 
     @Test

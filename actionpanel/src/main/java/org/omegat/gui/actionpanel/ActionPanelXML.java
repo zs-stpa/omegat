@@ -69,6 +69,7 @@ public final class ActionPanelXML {
     static final String ROW_ELEMENT = "row";
     static final String ACTION_ELEMENT = "action";
     static final String VERSION_ATTRIBUTE = "version";
+    static final String ID_ATTRIBUTE = "id";
     static final String NAME_ATTRIBUTE = "name";
     static final String ICON_ATTRIBUTE = "icon";
     static final String TYPE_ATTRIBUTE = "type";
@@ -80,7 +81,20 @@ public final class ActionPanelXML {
     private ActionPanelXML() {
     }
 
+    /** Rows of a file plus whether any of them lacked an id there. */
+    public record ReadResult(List<ActionRow> rows, boolean idsAdded) {
+    }
+
     public static List<ActionRow> read(File file) throws IOException {
+        return readWithReport(file).rows();
+    }
+
+    /**
+     * Read the rows; a row without an id (a file from before ids existed, or
+     * a hand-written one) gets a fresh id, and the result says so, so the
+     * caller can persist the ids once instead of minting new ones per start.
+     */
+    public static ReadResult readWithReport(File file) throws IOException {
         try {
             DocumentBuilder builder = createDocumentBuilder();
             Document doc = builder.parse(file);
@@ -99,20 +113,28 @@ public final class ActionPanelXML {
                 // Missing or malformed version: treat as current.
             }
             List<ActionRow> rows = new ArrayList<>();
+            boolean idsAdded = false;
             NodeList children = root.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
                 Node node = children.item(i);
                 if (node.getNodeType() == Node.ELEMENT_NODE && ROW_ELEMENT.equals(node.getNodeName())) {
-                    rows.add(readRow((Element) node));
+                    Element rowElement = (Element) node;
+                    ActionRow row = readRow(rowElement);
+                    idsAdded |= !row.id().equals(attr(rowElement, ID_ATTRIBUTE));
+                    rows.add(row);
                 }
             }
-            return rows;
+            return new ReadResult(rows, idsAdded);
         } catch (ParserConfigurationException | org.xml.sax.SAXException e) {
             throw new IOException(e);
         }
     }
 
     private static ActionRow readRow(Element rowElement) {
+        String id = attr(rowElement, ID_ATTRIBUTE);
+        if (id == null || id.isBlank()) {
+            id = ActionRow.newId();
+        }
         String name = rowElement.getAttribute(NAME_ATTRIBUTE);
         String icon = rowElement.hasAttribute(ICON_ATTRIBUTE) ? rowElement.getAttribute(ICON_ATTRIBUTE)
                 : null;
@@ -138,7 +160,7 @@ public final class ActionPanelXML {
                 break;
             }
         }
-        return new ActionRow(name, icon, spec, textColor, backgroundColor, borderColor);
+        return new ActionRow(id, name, icon, spec, textColor, backgroundColor, borderColor);
     }
 
     private static @Nullable String attr(Element element, String attribute) {
@@ -158,6 +180,7 @@ public final class ActionPanelXML {
             doc.appendChild(root);
             for (ActionRow row : rows) {
                 Element rowElement = doc.createElement(ROW_ELEMENT);
+                rowElement.setAttribute(ID_ATTRIBUTE, row.id());
                 rowElement.setAttribute(NAME_ATTRIBUTE, row.name());
                 if (row.iconRef() != null) {
                     rowElement.setAttribute(ICON_ATTRIBUTE, row.iconRef());

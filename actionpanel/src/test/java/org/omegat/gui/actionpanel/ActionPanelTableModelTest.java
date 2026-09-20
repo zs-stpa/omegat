@@ -48,6 +48,15 @@ public class ActionPanelTableModelTest {
     }
 
     @Test
+    public void testDuplicatesGetTheirOwnId() {
+        ActionPanelTableModel m = model("a", "b");
+        int first = m.duplicateRows(new int[] { 0, 1 });
+        assertEquals(2, first);
+        assertEquals(List.of("a", "b", "a", "b"), names(m));
+        assertEquals(4, m.getRows().stream().map(ActionRow::id).distinct().count());
+    }
+
+    @Test
     public void testAddDefaults() {
         ActionPanelTableModel m = model("a");
         int index = m.addRow();

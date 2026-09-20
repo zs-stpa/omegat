@@ -147,6 +147,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         catalog.rebuild();
         model = new ActionPanelTableModel(ActionPanelConfig.getInstance().getRows(), catalog);
         table = new JTable(model);
+        table.setName(ComponentNames.PREFS_TABLE);
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setDragEnabled(true);
         table.setDropMode(DropMode.INSERT_ROWS);
@@ -185,6 +186,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
 
         JPanel content = new JPanel(new BorderLayout(6, 6));
         TableSearchField searchField = new TableSearchField(table, sorter);
+        searchField.setName(ComponentNames.PREFS_SEARCH);
         // The search field sits above the table only, so its hit counter
         // ends at the table edge, not at the window edge.
         JPanel tablePane = new JPanel(new BorderLayout(6, 6));
@@ -194,10 +196,8 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
 
         JPanel movePanel = new JPanel();
         movePanel.setLayout(new BoxLayout(movePanel, BoxLayout.Y_AXIS));
-        JButton upButton = new JButton(ActionPanelModule.getString("BTN_UP"));
-        upButton.addActionListener(e -> moveSelection(true));
-        JButton downButton = new JButton(ActionPanelModule.getString("BTN_DOWN"));
-        downButton.addActionListener(e -> moveSelection(false));
+        JButton upButton = createButton("BTN_UP", () -> moveSelection(true));
+        JButton downButton = createButton("BTN_DOWN", () -> moveSelection(false));
         movePanel.add(upButton);
         movePanel.add(Box.createVerticalStrut(4));
         movePanel.add(downButton);
@@ -206,6 +206,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.X_AXIS));
         JButton addButton = new JButton(ActionPanelModule.getString("BTN_ADD"));
+        addButton.setName(ComponentNames.prefs("BTN_ADD"));
         addButton.addActionListener(e -> onAdd(addButton));
         buttons.add(addButton);
         buttons.add(Box.createHorizontalStrut(4));
@@ -226,6 +227,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
                 new String[] { ActionPanelModule.getString("DISPLAY_MODE_ICON"),
                         ActionPanelModule.getString("DISPLAY_MODE_NAME"),
                         ActionPanelModule.getString("DISPLAY_MODE_BOTH") });
+        displayCombo.setName(ComponentNames.prefs("DISPLAY_MODE_LABEL"));
         displayLabel.setLabelFor(displayCombo);
         displayCombo.setSelectedIndex(ActionPanelViewOptions.getDisplayMode().ordinal());
         displayCombo.addActionListener(e -> ActionPanelViewOptions.setDisplayMode(
@@ -237,6 +239,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         JComboBox<String> layoutCombo = new JComboBox<>(
                 new String[] { ActionPanelModule.getString("LAYOUT_FLOW"),
                         ActionPanelModule.getString("LAYOUT_COLUMNS") });
+        layoutCombo.setName(ComponentNames.prefs("LAYOUT_MODE_LABEL"));
         layoutLabel.setLabelFor(layoutCombo);
         layoutCombo.setSelectedIndex(ActionPanelViewOptions.getLayoutMode().ordinal());
         layoutCombo.addActionListener(e -> ActionPanelViewOptions.setLayoutMode(
@@ -245,6 +248,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         displayRow.add(layoutCombo);
         javax.swing.JCheckBox reverseBox = new javax.swing.JCheckBox(
                 ActionPanelModule.getString("LAYOUT_REVERSE"), ActionPanelViewOptions.isReverse());
+        reverseBox.setName(ComponentNames.prefs("LAYOUT_REVERSE"));
         reverseBox.addActionListener(e -> ActionPanelViewOptions.setReverse(reverseBox.isSelected()));
         displayRow.add(reverseBox);
         south.add(displayRow);
@@ -267,6 +271,7 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
 
     private JButton createButton(String key, Runnable action) {
         JButton button = new JButton(ActionPanelModule.getString(key));
+        button.setName(ComponentNames.prefs(key));
         button.addActionListener(e -> action.run());
         return button;
     }
@@ -731,7 +736,10 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         }
         Preferences.setPreference(EXPORT_DIRECTORY_PREFERENCE, chooser.getSelectedFile().getParent());
         try {
-            List<ActionRow> imported = ActionPanelXML.read(chooser.getSelectedFile());
+            // Imported rows are copies: fresh ids, so an import of one's own
+            // export never clashes with the rows it was taken from.
+            List<ActionRow> imported = ActionPanelXML.read(chooser.getSelectedFile()).stream()
+                    .map(ActionRow::withFreshId).toList();
             stopEditing();
             model.appendRows(imported);
         } catch (IOException ex) {

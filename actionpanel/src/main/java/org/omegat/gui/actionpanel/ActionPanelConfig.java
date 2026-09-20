@@ -27,9 +27,11 @@ package org.omegat.gui.actionpanel;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.UnaryOperator;
 
 import org.omegat.util.Log;
 import org.omegat.util.StaticUtils;
@@ -63,9 +65,12 @@ public final class ActionPanelConfig {
         return Collections.unmodifiableList(rows);
     }
 
-    /** Replace the configuration, persist it, and notify listeners. */
+    /**
+     * Replace the configuration, persist it, and notify listeners. Row ids
+     * are made unique on the way in; the caller's list is not touched.
+     */
     public void setRows(List<ActionRow> newRows) {
-        rows = List.copyOf(newRows);
+        rows = List.copyOf(ActionRow.withUniqueIds(newRows));
         try {
             ActionPanelXML.write(rows, getConfigFile());
         } catch (IOException e) {
@@ -76,16 +81,43 @@ public final class ActionPanelConfig {
         }
     }
 
-    /** Load the stored configuration; a missing file means an empty panel. */
+    /**
+     * Load the stored configuration; a missing file means an empty panel.
+     * Rows that came without an id (or with a repeated one) are written
+     * back at once, so their ids stay stable from here on.
+     */
     public void load() {
         File file = getConfigFile();
-        if (file.isFile()) {
-            try {
-                rows = List.copyOf(ActionPanelXML.read(file));
-            } catch (IOException e) {
-                Log.log(e);
+        if (!file.isFile()) {
+            rows = List.of();
+            return;
+        }
+        try {
+            ActionPanelXML.ReadResult result = ActionPanelXML.readWithReport(file);
+            List<ActionRow> unique = ActionRow.withUniqueIds(result.rows());
+            rows = List.copyOf(unique);
+            if (result.idsAdded() || !unique.equals(result.rows())) {
+                ActionPanelXML.write(rows, file);
+            }
+        } catch (IOException e) {
+            Log.log(e);
+        }
+    }
+
+    /**
+     * Change one row, found by id (it may have been renamed or moved since
+     * the caller saw it), persist and notify. False when the row is gone.
+     */
+    public boolean updateRow(String id, UnaryOperator<ActionRow> change) {
+        List<ActionRow> updated = new ArrayList<>(rows);
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).id().equals(id)) {
+                updated.set(i, change.apply(updated.get(i)));
+                setRows(updated);
+                return true;
             }
         }
+        return false;
     }
 
     /** Notify listeners about a view option change without new rows. */

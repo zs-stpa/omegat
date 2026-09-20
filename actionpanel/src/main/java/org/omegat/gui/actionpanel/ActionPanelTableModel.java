@@ -100,7 +100,7 @@ public class ActionPanelTableModel extends AbstractTableModel {
     public int duplicateRows(int[] indices) {
         int first = rows.size();
         for (int index : indices) {
-            rows.add(rows.get(index));
+            rows.add(rows.get(index).withFreshId());
         }
         fireTableRowsInserted(first, rows.size() - 1);
         return first;

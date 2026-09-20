@@ -117,6 +117,7 @@ public final class AssignMenuBuilder {
     /** Leaf item: carries its spec for bulk collection, assigns on click. */
     private static JMenuItem leaf(String label, ActionSpec spec, AssignTarget onAssign) {
         JMenuItem item = new JMenuItem(label);
+        item.setName(ComponentNames.assignLeaf(spec));
         item.putClientProperty(SPEC_PROPERTY, spec);
         item.addActionListener(e -> onAssign.assign(spec, label));
         return item;
@@ -147,6 +148,7 @@ public final class AssignMenuBuilder {
         }
         JMenuItem addAll = new JMenuItem(java.text.MessageFormat
                 .format(ActionPanelModule.getString("ADD_ALL_CHILDREN"), entries.size()));
+        addAll.setName(ComponentNames.child(menu, ComponentNames.ADD_ALL_SUFFIX));
         addAll.addActionListener(e -> {
             // Collect again at click time: submenus below were extended too.
             List<AssignEntry> confirmed = new ArrayList<>();
@@ -166,16 +168,18 @@ public final class AssignMenuBuilder {
     /** Mirror the live menu bar as a submenu tree. */
     private static JMenu buildMenuBranch(MenuActionCatalog catalog, AssignTarget onAssign) {
         JMenu root = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_ROOT_MENU"));
+        root.setName(ComponentNames.ASSIGN_MENU_BAR);
         catalog.rebuild();
         Map<List<String>, JMenu> menus = new HashMap<>();
         for (MenuActionCatalog.MenuEntry entry : catalog.getMenuEntries().values()) {
-            JMenu parent = menuForPath(root, menus, entry.getPath());
+            JMenu parent = menuForPath(root, menus, entry.getPath(), entry.getMenuNames());
             parent.add(leaf(entry.getLabel(), new MenuActionSpec(entry.getActionCommand()), onAssign));
         }
         return root;
     }
 
-    private static JMenu menuForPath(JMenu root, Map<List<String>, JMenu> menus, List<String> path) {
+    private static JMenu menuForPath(JMenu root, Map<List<String>, JMenu> menus, List<String> path,
+            List<String> names) {
         if (path.isEmpty()) {
             return root;
         }
@@ -183,8 +187,10 @@ public final class AssignMenuBuilder {
         if (existing != null) {
             return existing;
         }
-        JMenu parent = menuForPath(root, menus, path.subList(0, path.size() - 1));
+        JMenu parent = menuForPath(root, menus, path.subList(0, path.size() - 1),
+                names.subList(0, names.size() - 1));
         JMenu menu = new JMenu(path.get(path.size() - 1));
+        menu.setName(ComponentNames.assignMenuBranch(names));
         parent.add(menu);
         menus.put(List.copyOf(path), menu);
         return menu;
@@ -192,6 +198,7 @@ public final class AssignMenuBuilder {
 
     private static JMenu buildEditorBranch(AssignTarget onAssign) {
         JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_EDITOR"));
+        menu.setName(ComponentNames.assignBranch("ASSIGN_MENU_EDITOR"));
         for (String key : MenuActionCatalog.getMappedEditorKeys()) {
             menu.add(leaf(MenuActionCatalog.editorKeyLabel(key), new EditorKeyActionSpec(key), onAssign));
         }
@@ -201,6 +208,7 @@ public final class AssignMenuBuilder {
 
     private static JMenu buildScriptsBranch(AssignTarget onAssign) {
         JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_SCRIPTS"));
+        menu.setName(ComponentNames.assignBranch("ASSIGN_MENU_SCRIPTS"));
         File folder = ActionPanelFolders.getScriptsFolder();
         List<String> extensions = ScriptRunner.getAvailableScriptExtensions();
         File[] files = folder.listFiles();
@@ -223,6 +231,7 @@ public final class AssignMenuBuilder {
             boolean replace) {
         JMenuItem item = new JMenuItem(
                 ActionPanelModule.getString(replace ? "ASSIGN_MENU_REPLACE" : "ASSIGN_MENU_SEARCH"));
+        item.setName(ComponentNames.assignEntry(replace ? "ASSIGN_MENU_REPLACE" : "ASSIGN_MENU_SEARCH"));
         item.addActionListener(e -> {
             ActionSpec spec = SearchActionWizard.show(parent, replace);
             if (spec != null) {
@@ -234,7 +243,9 @@ public final class AssignMenuBuilder {
 
     private static JMenu buildSnippetBranch(Component parent, AssignTarget onAssign) {
         JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_SNIPPET"));
+        menu.setName(ComponentNames.assignBranch("ASSIGN_MENU_SNIPPET"));
         JMenuItem freeText = new JMenuItem(ActionPanelModule.getString("ASSIGN_SNIPPET_FREETEXT"));
+        freeText.setName(ComponentNames.assignEntry("ASSIGN_SNIPPET_FREETEXT"));
         freeText.addActionListener(e -> {
             String text = JOptionPane.showInputDialog(parent,
                     ActionPanelModule.getString("ASSIGN_SNIPPET_FREETEXT"));
@@ -244,6 +255,7 @@ public final class AssignMenuBuilder {
         });
         menu.add(freeText);
         JMenuItem urlItem = new JMenuItem(ActionPanelModule.getString("ASSIGN_MENU_URL"));
+        urlItem.setName(ComponentNames.assignEntry("ASSIGN_MENU_URL"));
         urlItem.addActionListener(e -> {
             String url = JOptionPane.showInputDialog(parent,
                     ActionPanelModule.getString("ASSIGN_URL_PROMPT"));
@@ -276,11 +288,14 @@ public final class AssignMenuBuilder {
             // Each autotext entry offers both storage modes: freeze the
             // current target text, or follow the entry by reference.
             JMenu entry = new JMenu(autotext.source + " \u2014 " + autotext.target);
+            entry.setName(ComponentNames.assignAutotext(autotext.source));
             JMenuItem freeze = new JMenuItem(ActionPanelModule.getString("ASSIGN_SNIPPET_FREEZE"));
+            freeze.setName(ComponentNames.child(entry, ComponentNames.FREEZE_SUFFIX));
             freeze.addActionListener(
                     e -> onAssign.assign(new SnippetActionSpec(autotext.target), autotext.source));
             entry.add(freeze);
             JMenuItem reference = new JMenuItem(ActionPanelModule.getString("ASSIGN_SNIPPET_REF"));
+            reference.setName(ComponentNames.child(entry, ComponentNames.REFERENCE_SUFFIX));
             reference.addActionListener(
                     e -> onAssign.assign(new AutotextRefActionSpec(autotext.source), autotext.source));
             entry.add(reference);
@@ -298,11 +313,13 @@ public final class AssignMenuBuilder {
      */
     private static JMenu buildPreferenceBranch(Component parent, AssignTarget onAssign) {
         JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_PREFERENCE"));
+        menu.setName(ComponentNames.assignBranch("ASSIGN_MENU_PREFERENCE"));
         for (PreferenceCatalog.Group group : PreferenceCatalog.groups()) {
             menu.add(buildPreferenceGroup(group, parent, onAssign));
         }
         menu.addSeparator();
         JMenu projectMenu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_PROJECT"));
+        projectMenu.setName(ComponentNames.assignBranch("ASSIGN_MENU_PROJECT"));
         for (String property : ProjectFlagActions.listFlags()) {
             projectMenu.add(leaf(ProjectFlagActions.label(property),
                     new ActionSpec.ProjectFlagActionSpec(property), onAssign));
@@ -314,14 +331,16 @@ public final class AssignMenuBuilder {
     private static JMenu buildPreferenceGroup(PreferenceCatalog.Group group, Component parent,
             AssignTarget onAssign) {
         JMenu menu;
+        String name = ComponentNames.assignPreferenceGroup(group.titleKey(), group.title());
         if (group.folder() == PreferenceCatalog.Folder.COLOR_SCHEMES) {
-            menu = buildFileFolderBranch(group.title(), ActionPanelFolders.getColorSchemeFolder(), parent,
+            menu = buildFileFolderBranch(group.title(), name, ActionPanelFolders.getColorSchemeFolder(), parent,
                     onAssign, ColorSchemeActionSpec::new);
         } else if (group.folder() == PreferenceCatalog.Folder.SHORTCUT_SETS) {
-            menu = buildFileFolderBranch(group.title(), ActionPanelFolders.getShortcutSetFolder(), parent,
+            menu = buildFileFolderBranch(group.title(), name, ActionPanelFolders.getShortcutSetFolder(), parent,
                     onAssign, ShortcutSetActionSpec::new);
         } else {
             menu = new JMenu(group.title());
+            menu.setName(name);
         }
         for (PreferenceCatalog.Entry entry : group.entries()) {
             menu.add(leaf(entry.label(), entry.spec(), onAssign));
@@ -338,9 +357,10 @@ public final class AssignMenuBuilder {
     }
 
     /** Saved .properties files of a folder, plus a chooser for any other file. */
-    private static JMenu buildFileFolderBranch(String title, File folder, Component parent,
-            AssignTarget onAssign, java.util.function.Function<String, ActionSpec> factory) {
+    private static JMenu buildFileFolderBranch(String title, String componentName, File folder,
+            Component parent, AssignTarget onAssign, java.util.function.Function<String, ActionSpec> factory) {
         JMenu menu = new JMenu(title);
+        menu.setName(componentName);
         List<String> names = listPropertiesFiles(folder);
         for (String name : names) {
             menu.add(leaf(name, factory.apply(name), onAssign));
@@ -349,6 +369,7 @@ public final class AssignMenuBuilder {
             menu.addSeparator();
         }
         JMenuItem choose = new JMenuItem(ActionPanelModule.getString("ASSIGN_CHOOSE_FILE"));
+        choose.setName(ComponentNames.child(menu, ComponentNames.CHOOSE_FILE_SUFFIX));
         choose.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser(folder.isDirectory() ? folder : null);
             chooser.setFileFilter(new FileNameExtensionFilter("*.properties", "properties"));
