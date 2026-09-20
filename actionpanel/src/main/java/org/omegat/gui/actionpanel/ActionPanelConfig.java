@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
 
+import org.jspecify.annotations.Nullable;
+
 import org.omegat.util.Log;
 import org.omegat.util.StaticUtils;
 
@@ -133,6 +135,39 @@ public final class ActionPanelConfig {
 
     public void removeChangeListener(Runnable listener) {
         listeners.remove(listener);
+    }
+
+    /** The row with the given id, or null when it is gone. */
+    public @Nullable ActionRow findRow(String id) {
+        for (ActionRow row : rows) {
+            if (row.id().equals(id)) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    /** Insert a copy of the row right after it; false when the row is gone. */
+    public boolean duplicateRow(String id) {
+        List<ActionRow> updated = new ArrayList<>(rows);
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).id().equals(id)) {
+                updated.add(i + 1, RowEditing.copyOf(updated.get(i)));
+                setRows(updated);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Remove the row with the given id; false when it is gone already. */
+    public boolean removeRow(String id) {
+        List<ActionRow> updated = new ArrayList<>(rows);
+        if (!updated.removeIf(r -> r.id().equals(id))) {
+            return false;
+        }
+        setRows(updated);
+        return true;
     }
 
     static File getConfigFile() {

@@ -32,10 +32,13 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -59,6 +62,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
@@ -120,11 +124,41 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     private final transient List<ActionRow> displayRows = new ArrayList<>();
     private final transient List<JComponent> rowControls = new ArrayList<>();
     private static final Cursor DELETE_CURSOR = createDeleteCursor();
-    private static final Cursor MOVE_DRAG_CURSOR = createMoveCursor();
+    private static final Cursor MOVE_DRAG_CURSOR = createMoveCursor(false);
+    private static final Cursor COPY_DRAG_CURSOR = createMoveCursor(true);
+    private static final Cursor NO_DROP_CURSOR = createNoDropCursor();
     /** Display index an active drag would drop at; -1 without a drag. */
     private transient int dropIndicator = -1;
     /** Control an outside drag would remove; marked with a painted cross. */
     private transient @Nullable JComponent dragRemoveMark;
+    /** What the current drag would do, for the painted markers. */
+    private transient DragEffect dragEffect = DragEffect.MOVE;
+    /** Modifier watcher of the running drag, so feedback follows the keys. */
+    private transient @Nullable KeyEventDispatcher dragKeys;
+
+    /**
+     * What releasing a drag does, from the drop side and the modifiers:
+     * inside the panel Shift copies, otherwise moves; outside Shift does
+     * nothing (a copy has nowhere to go), Ctrl or Cmd removes without
+     * asking, otherwise removal asks first. On macOS Ctrl held at the press
+     * opens the context menu instead; press it after the drag started, or
+     * use Cmd.
+     */
+    enum DragEffect {
+        MOVE, COPY, REMOVE, REMOVE_SILENT, NONE;
+
+        static DragEffect of(boolean inside, int modifiersEx) {
+            boolean shift = (modifiersEx & InputEvent.SHIFT_DOWN_MASK) != 0;
+            if (inside) {
+                return shift ? COPY : MOVE;
+            }
+            if (shift) {
+                return NONE;
+            }
+            boolean silent = (modifiersEx & (InputEvent.CTRL_DOWN_MASK | InputEvent.META_DOWN_MASK)) != 0;
+            return silent ? REMOVE_SILENT : REMOVE;
+        }
+    }
 
     public ActionPanelView() {
         setName(ComponentNames.PANEL);
@@ -173,6 +207,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         // no marker is painted against the new layout.
         dropIndicator = -1;
         dragRemoveMark = null;
+        uninstallDragKeys();
         itemListenerCleanups.forEach(Runnable::run);
         itemListenerCleanups.clear();
         displayRows.clear();
@@ -494,7 +529,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             return null;
         }
         File iconFile = ActionPanelConfig.resolveIcon(row.iconRef());
-        Color effectiveBackground = decode(row.backgroundColor());
+        Color effectiveBackground = RowEditing.decode(row.backgroundColor());
         if (effectiveBackground == null) {
             effectiveBackground = themeBackground;
         }
@@ -560,17 +595,14 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     /** Store a revised action back into the row's configuration entry. */
     private void updateRowAction(ActionRow row, ActionSpec updated) {
-        if (!ActionPanelConfig.getInstance().updateRow(row.id(), r -> r.withAction(updated))) {
-            // The row was edited away while the wizard was open.
-            java.awt.Toolkit.getDefaultToolkit().beep();
-        }
+        changeRow(row.id(), r -> r.withAction(updated));
     }
 
     /** Per-row text, background and border colours, where configured. */
     private void applyRowColors(ActionRow row, JComponent control) {
-        Color foreground = decode(row.textColor());
-        Color background = decode(row.backgroundColor());
-        Color border = decode(row.borderColor());
+        Color foreground = RowEditing.decode(row.textColor());
+        Color background = RowEditing.decode(row.backgroundColor());
+        Color border = RowEditing.decode(row.borderColor());
         if (foreground != null) {
             control.setForeground(foreground);
             for (Component child : control.getComponents()) {
@@ -592,17 +624,6 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 // icon-bearing ones sit in a wrapper that paints its own.
                 button.setBorderPainted(true);
             }
-        }
-    }
-
-    static @Nullable Color decode(@Nullable String hex) {
-        if (hex == null || hex.isEmpty()) {
-            return null;
-        }
-        try {
-            return Color.decode(hex);
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 
@@ -661,8 +682,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     public void populatePaneMenu(JPopupMenu menu) {
         JMenuItem settings = new JMenuItem(ActionPanelModule.getString("ACTION_PANEL_SETTINGS_MENU"));
         settings.setName(ComponentNames.paneMenu("ACTION_PANEL_SETTINGS_MENU"));
-        settings.addActionListener(e -> new PreferencesWindowController()
-                .show(SwingUtilities.getWindowAncestor(this), ActionPanelPreferencesController.class));
+        settings.addActionListener(e -> openSettings());
         menu.add(settings);
         menu.addSeparator();
 
@@ -733,11 +753,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
      * Entries refresh their enabled state each time the menu opens.
      */
     private void installContextMenu(ActionRow row, JComponent control) {
-        JPopupMenu menu = buildRowMenu(row);
-        if (menu == null) {
-            return;
-        }
-        control.setComponentPopupMenu(menu);
+        control.setComponentPopupMenu(buildRowMenu(row));
         inheritPopupMenu(control);
     }
 
@@ -752,14 +768,165 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
 
     /**
      * The context menu of a row: entries specific to its action type first,
-     * generic entries after a separator once there are any. Null while the
-     * menu would be empty, so such a row shows none.
+     * then the generic ones (rename, icon, colours, duplicate, remove) and
+     * the panel settings, so a row is fully configurable in place. Entries
+     * act on the live row looked up by id when clicked, and re-evaluate
+     * their enabled state each time the menu opens, so a menu built before
+     * a rebuild still does the right thing.
      */
-    private @Nullable JPopupMenu buildRowMenu(ActionRow row) {
+    private JPopupMenu buildRowMenu(ActionRow row) {
         JPopupMenu menu = new JPopupMenu();
         menu.setName(ComponentNames.rowMenu(row.id()));
-        addTypeSpecificEntries(menu, row);
-        return menu.getComponentCount() == 0 ? null : menu;
+        List<Runnable> refreshers = new ArrayList<>();
+        addTypeSpecificEntries(menu, row, refreshers);
+        if (menu.getComponentCount() > 0) {
+            menu.addSeparator();
+        }
+        addGenericEntries(menu, row, refreshers);
+        menu.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                refreshers.forEach(Runnable::run);
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+            }
+        });
+        return menu;
+    }
+
+    private void addTypeSpecificEntries(JPopupMenu menu, ActionRow row, List<Runnable> refreshers) {
+        if (row.action() instanceof SearchActionSpec search) {
+            JMenuItem filter = rowMenuItem(row, "ROW_MENU_APPLY_FILTER");
+            filter.addActionListener(e -> ActionInvoker.applySearchFilter(search, this,
+                    updated -> updateRowAction(row, updated)));
+            refreshers.add(() -> filter
+                    .setEnabled(Core.getProject().isProjectLoaded() && !search.query().isEmpty()));
+            menu.add(filter);
+            JMenuItem edit = rowMenuItem(row, "ROW_MENU_EDIT_SEARCH");
+            edit.addActionListener(e -> {
+                ActionSpec updated = SearchActionWizard.show(this, search.replace(), search);
+                if (updated != null) {
+                    updateRowAction(row, updated);
+                }
+            });
+            menu.add(edit);
+        }
+    }
+
+    private void addGenericEntries(JPopupMenu menu, ActionRow row, List<Runnable> refreshers) {
+        String id = row.id();
+        ActionPanelConfig config = ActionPanelConfig.getInstance();
+        JMenuItem rename = rowMenuItem(row, "ROW_MENU_RENAME");
+        rename.addActionListener(e -> {
+            ActionRow live = config.findRow(id);
+            if (live == null) {
+                Toolkit.getDefaultToolkit().beep();
+                return;
+            }
+            Object name = JOptionPane.showInputDialog(this, ActionPanelModule.getString("ROW_MENU_RENAME_PROMPT"),
+                    ActionPanelModule.getString("ACTION_PANEL_TITLE"), JOptionPane.PLAIN_MESSAGE, null, null,
+                    live.name());
+            if (name != null && !name.toString().isBlank()) {
+                changeRow(id, r -> r.withName(name.toString().trim()));
+            }
+        });
+        menu.add(rename);
+
+        JMenuItem icon = rowMenuItem(row, "ROW_MENU_ICON");
+        icon.addActionListener(e -> {
+            String iconRef = RowEditing.chooseIcon(this);
+            if (iconRef != null) {
+                changeRow(id, r -> r.withIconRef(iconRef));
+            }
+        });
+        menu.add(icon);
+        // Drops the reference only; a file copied into the icon folder stays
+        // there, other rows may use it.
+        JMenuItem removeIcon = rowMenuItem(row, "ROW_MENU_ICON_REMOVE");
+        removeIcon.addActionListener(e -> changeRow(id, r -> r.withIconRef(null)));
+        refreshers.add(() -> {
+            ActionRow live = config.findRow(id);
+            removeIcon.setEnabled(live != null && live.iconRef() != null);
+        });
+        menu.add(removeIcon);
+
+        JMenu colors = new JMenu(ActionPanelModule.getString("ROW_MENU_COLORS"));
+        colors.setName(ComponentNames.rowMenuEntry(id, "ROW_MENU_COLORS"));
+        String[] colorKeys = { "COL_TEXT_COLOR", "COL_BACKGROUND_COLOR", "COL_BORDER_COLOR" };
+        for (int i = 0; i < colorKeys.length; i++) {
+            final int column = i;
+            JMenuItem item = rowMenuItem(row, colorKeys[i]);
+            item.addActionListener(e -> {
+                ActionRow live = config.findRow(id);
+                if (live == null) {
+                    Toolkit.getDefaultToolkit().beep();
+                    return;
+                }
+                String[] current = { live.textColor(), live.backgroundColor(), live.borderColor() };
+                String hex = RowEditing.chooseColor(this, item.getText(), RowEditing.decode(current[column]));
+                if (hex != null) {
+                    changeRow(id, r -> r.withColor(column, hex));
+                }
+            });
+            colors.add(item);
+        }
+        colors.addSeparator();
+        JMenuItem reset = rowMenuItem(row, "COLOR_RESET");
+        reset.addActionListener(e -> changeRow(id, r -> r.withColor(0, null).withColor(1, null).withColor(2, null)));
+        refreshers.add(() -> {
+            ActionRow live = config.findRow(id);
+            reset.setEnabled(live != null
+                    && (live.textColor() != null || live.backgroundColor() != null || live.borderColor() != null));
+        });
+        colors.add(reset);
+        menu.add(colors);
+
+        menu.addSeparator();
+        JMenuItem duplicate = rowMenuItem(row, "BTN_DUPLICATE");
+        duplicate.addActionListener(e -> {
+            if (!config.duplicateRow(id)) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        });
+        menu.add(duplicate);
+        JMenuItem remove = rowMenuItem(row, "BTN_REMOVE");
+        remove.addActionListener(e -> {
+            ActionRow live = config.findRow(id);
+            if (live != null && confirmRemove(live) && !config.removeRow(id)) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        });
+        menu.add(remove);
+
+        menu.addSeparator();
+        JMenuItem settings = rowMenuItem(row, "ACTION_PANEL_SETTINGS_MENU");
+        settings.addActionListener(e -> openSettings());
+        menu.add(settings);
+    }
+
+    /** Change the live row by id; a beep when it was edited away meanwhile. */
+    private static void changeRow(String id, java.util.function.UnaryOperator<ActionRow> change) {
+        if (!ActionPanelConfig.getInstance().updateRow(id, change)) {
+            Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    private void openSettings() {
+        new PreferencesWindowController().show(SwingUtilities.getWindowAncestor(this),
+                ActionPanelPreferencesController.class);
+    }
+
+    private boolean confirmRemove(ActionRow row) {
+        return JOptionPane.showConfirmDialog(this,
+                MessageFormat.format(ActionPanelModule.getString("CONFIRM_REMOVE"), row.name()),
+                ActionPanelModule.getString("ACTION_PANEL_TITLE"), JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION;
     }
 
     private void addTypeSpecificEntries(JPopupMenu menu, ActionRow row) {
@@ -800,11 +967,14 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     }
 
     /**
-     * Drag a control to reorder it in place; drop outside the panel to remove
-     * it, after a confirmation unless Shift or Ctrl is held (on macOS Ctrl
-     * also opens a row's context menu, so Shift is the safer choice). Both gestures
-     * change the stored configuration, not only the view. Labeled comboboxes,
-     * sliders and icon-bearing toggles are dragged by their label.
+     * Drag a control to reorder it in place; with Shift held at release, a
+     * copy lands at the drop position and the original stays. Drop outside
+     * the panel to remove the row, after a confirmation unless Ctrl or Cmd
+     * is held; with Shift an outside drop does nothing, so an overshot copy
+     * never deletes. Cursor and painted markers follow the modifiers live,
+     * also without mouse motion. All gestures change the stored
+     * configuration, not only the view. Labeled comboboxes, sliders and
+     * icon-bearing toggles are dragged by their label.
      */
     private void installDragReorder(JComponent control) {
         DragReorderHandler handler = new DragReorderHandler(control);
@@ -822,6 +992,37 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         }
     }
 
+    /**
+     * While a drag runs, modifier key presses and releases re-evaluate the
+     * feedback at once, so the cursor and the markers show what the release
+     * would do before the mouse moves again.
+     */
+    private void installDragKeys(DragReorderHandler handler) {
+        uninstallDragKeys();
+        dragKeys = e -> {
+            int code = e.getKeyCode();
+            if (code == KeyEvent.VK_SHIFT || code == KeyEvent.VK_CONTROL || code == KeyEvent.VK_META
+                    || code == KeyEvent.VK_ALT) {
+                handler.updateFeedback(e.getModifiersEx());
+            }
+            return false;
+        };
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dragKeys);
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        uninstallDragKeys();
+    }
+
+    private void uninstallDragKeys() {
+        if (dragKeys != null) {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(dragKeys);
+            dragKeys = null;
+        }
+    }
+
     private final class DragReorderHandler extends MouseAdapter {
         /** Movement below this many pixels stays a plain click. */
         private static final int DRAG_THRESHOLD = 5;
@@ -830,6 +1031,9 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         private @Nullable Point pressPoint;
         private boolean dragging;
         private @Nullable Cursor originalCursor;
+        /** Last drag position in panel coordinates, and whether it was inside. */
+        private @Nullable Point lastPanelPoint;
+        private boolean lastInside;
 
         private DragReorderHandler(JComponent control) {
             this.control = control;
@@ -855,20 +1059,39 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                     button.getModel().setArmed(false);
                     button.getModel().setPressed(false);
                 }
+                installDragKeys(this);
             }
             if (dragging) {
-                boolean inside = insidePanelArea(e);
-                // macOS suppresses cursor changes while a button is held, so
-                // the painted markers below are the primary feedback there.
-                control.setCursor(inside ? MOVE_DRAG_CURSOR : DELETE_CURSOR);
-                int indicator = inside ? displayDropIndex(SwingUtilities.convertPoint(e.getComponent(),
-                        e.getPoint(), ActionPanelView.this)) : -1;
-                JComponent removeMark = inside ? null : control;
-                if (indicator != dropIndicator || removeMark != dragRemoveMark) {
-                    dropIndicator = indicator;
-                    dragRemoveMark = removeMark;
-                    repaint();
-                }
+                lastInside = insidePanelArea(e);
+                lastPanelPoint = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), ActionPanelView.this);
+                updateFeedback(e.getModifiersEx());
+            }
+        }
+
+        /**
+         * Cursor and painted markers for the current position and modifiers;
+         * called on every drag step and whenever a modifier key changes.
+         * macOS suppresses cursor changes while a button is held, so the
+         * painted markers are the primary feedback there.
+         */
+        void updateFeedback(int modifiersEx) {
+            if (!dragging || lastPanelPoint == null) {
+                return;
+            }
+            DragEffect effect = DragEffect.of(lastInside, modifiersEx);
+            control.setCursor(switch (effect) {
+            case COPY -> COPY_DRAG_CURSOR;
+            case MOVE -> MOVE_DRAG_CURSOR;
+            case NONE -> NO_DROP_CURSOR;
+            case REMOVE, REMOVE_SILENT -> DELETE_CURSOR;
+            });
+            int indicator = lastInside ? displayDropIndex(lastPanelPoint) : -1;
+            JComponent mark = lastInside ? null : control;
+            if (indicator != dropIndicator || mark != dragRemoveMark || effect != dragEffect) {
+                dropIndicator = indicator;
+                dragRemoveMark = mark;
+                dragEffect = effect;
+                repaint();
             }
         }
 
@@ -880,17 +1103,24 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             boolean wasDragging = dragging;
             dragging = false;
             pressPoint = null;
+            lastPanelPoint = null;
             dropIndicator = -1;
             dragRemoveMark = null;
+            uninstallDragKeys();
             repaint();
             if (!wasDragging) {
                 return;
             }
             control.setCursor(originalCursor);
-            if (insidePanelArea(e)) {
-                dropAt(e);
-            } else {
-                removeDragged(e);
+            switch (DragEffect.of(insidePanelArea(e), e.getModifiersEx())) {
+            case COPY -> dropAt(e, true);
+            case MOVE -> dropAt(e, false);
+            case REMOVE -> removeDragged(true);
+            case REMOVE_SILENT -> removeDragged(false);
+            default -> {
+                // NONE: Shift means copy; outside the panel there is nowhere
+                // to copy to, and it must never turn into a delete.
+            }
             }
         }
 
@@ -903,7 +1133,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             return p.x >= 0 && p.y >= 0 && p.x < area.getWidth() && p.y < area.getHeight();
         }
 
-        private void dropAt(MouseEvent e) {
+        private void dropAt(MouseEvent e, boolean copy) {
             int from = rowControls.indexOf(control);
             if (from < 0) {
                 return;
@@ -911,6 +1141,16 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             Point p = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), ActionPanelView.this);
             int to = displayDropIndex(p);
             List<ActionRow> reordered = new ArrayList<>(displayRows);
+            if (copy) {
+                // A copy lands at the drop position, the original stays.
+                reordered.add(Math.min(Math.max(to, 0), reordered.size()),
+                        RowEditing.copyOf(displayRows.get(from)));
+                if (ActionPanelViewOptions.isReverse()) {
+                    Collections.reverse(reordered);
+                }
+                ActionPanelConfig.getInstance().setRows(reordered);
+                return;
+            }
             ActionRow moved = reordered.remove(from);
             if (to > from) {
                 to--;
@@ -925,21 +1165,12 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             ActionPanelConfig.getInstance().setRows(reordered);
         }
 
-        private void removeDragged(MouseEvent e) {
+        private void removeDragged(boolean confirm) {
             int index = rowControls.indexOf(control);
             if (index < 0) {
                 return;
             }
-            // Cmd counts too: Ctrl+drag is synthesised into a popup gesture
-            // on macOS when held from the start.
-            boolean skipConfirm = (e.getModifiersEx() & (InputEvent.SHIFT_DOWN_MASK
-                    | InputEvent.CTRL_DOWN_MASK | InputEvent.META_DOWN_MASK)) != 0;
-            if (!skipConfirm && javax.swing.JOptionPane.showConfirmDialog(ActionPanelView.this,
-                    MessageFormat.format(ActionPanelModule.getString("CONFIRM_REMOVE"),
-                            displayRows.get(index).name()),
-                    ActionPanelModule.getString("ACTION_PANEL_TITLE"),
-                    javax.swing.JOptionPane.OK_CANCEL_OPTION,
-                    javax.swing.JOptionPane.WARNING_MESSAGE) != javax.swing.JOptionPane.OK_OPTION) {
+            if (confirm && !confirmRemove(displayRows.get(index))) {
                 return;
             }
             // The modal dialog pumps events: a rebuild meanwhile replaces the
@@ -980,13 +1211,27 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 boolean after = dropIndicator >= rowControls.size();
                 Rectangle b = rowControls.get(after ? rowControls.size() - 1 : dropIndicator)
                         .getBounds();
+                int badgeX;
+                int badgeY;
                 if (ActionPanelViewOptions.getLayoutMode() == LayoutMode.COLUMNS) {
                     int y = after ? b.y + b.height + 1 : b.y - 3;
                     g2.fillRoundRect(b.x, Math.max(0, y), b.width, 2, 2, 2);
+                    badgeX = b.x + b.width / 2;
+                    badgeY = Math.max(0, y) + 1;
                 } else {
                     boolean ltr = getComponentOrientation().isLeftToRight();
                     int x = after == ltr ? b.x + b.width + 1 : b.x - 3;
                     g2.fillRoundRect(Math.max(0, x), b.y, 2, b.height, 2, 2);
+                    badgeX = Math.max(0, x) + 1;
+                    badgeY = b.y + b.height / 2;
+                }
+                if (dragEffect == DragEffect.COPY) {
+                    // A plus badge on the insertion marker: this drop copies.
+                    // Kept inside the panel: a drop before the first row puts
+                    // the marker at the edge.
+                    int margin = BADGE_RADIUS + 2;
+                    paintPlusBadge(g2, Math.min(Math.max(badgeX, margin), getWidth() - margin),
+                            Math.min(Math.max(badgeY, margin), getHeight() - margin), BADGE_RADIUS, g2.getColor());
                 }
             }
             if (dragRemoveMark != null) {
@@ -994,16 +1239,12 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 int s = Math.max(12, Math.min(Math.min(b.width, b.height) - 4, 32));
                 int x = b.x + (b.width - s) / 2;
                 int y = b.y + (b.height - s) / 2;
-                g2.setStroke(new java.awt.BasicStroke(Math.max(4f, s / 4f),
-                        java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
-                g2.setColor(Color.WHITE);
-                g2.drawLine(x, y, x + s, y + s);
-                g2.drawLine(x + s, y, x, y + s);
-                g2.setStroke(new java.awt.BasicStroke(Math.max(2f, s / 8f),
-                        java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
-                g2.setColor(new Color(0xcc2222));
-                g2.drawLine(x, y, x + s, y + s);
-                g2.drawLine(x + s, y, x, y + s);
+                if (dragEffect == DragEffect.NONE) {
+                    // Shift outside: nothing will happen, shown as a grey no-drop sign.
+                    paintNoDropSign(g2, x, y, s);
+                } else {
+                    paintCross(g2, x, y, s);
+                }
             }
         } finally {
             g2.dispose();
@@ -1063,16 +1304,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                     java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
             int s = Math.min(size.width, size.height);
-            g.setStroke(new java.awt.BasicStroke(Math.max(4f, s / 4f), java.awt.BasicStroke.CAP_ROUND,
-                    java.awt.BasicStroke.JOIN_ROUND));
-            g.setColor(Color.WHITE);
-            g.drawLine(4, 4, s - 5, s - 5);
-            g.drawLine(s - 5, 4, 4, s - 5);
-            g.setStroke(new java.awt.BasicStroke(Math.max(2f, s / 8f), java.awt.BasicStroke.CAP_ROUND,
-                    java.awt.BasicStroke.JOIN_ROUND));
-            g.setColor(new Color(0xcc2222));
-            g.drawLine(4, 4, s - 5, s - 5);
-            g.drawLine(s - 5, 4, 4, s - 5);
+            paintCross(g, 4, 4, s - 9);
         } finally {
             g.dispose();
         }
@@ -1080,23 +1312,97 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 "actionpanel-delete");
     }
 
-    /**
-     * Four-direction move arrows, white-backed like the delete cross. The
-     * predefined MOVE_CURSOR renders as the plain arrow on macOS, so a drag
-     * needs an own glyph to be visible at all.
-     */
-    private static Cursor createMoveCursor() {
+    /** Half length of the plus badge's arms on the panel. */
+    private static final int BADGE_RADIUS = 5;
+
+    /** White-outlined plus with arms of length r, centred on (cx, cy); the copy badge and cursor mark. */
+    private static void paintPlusBadge(java.awt.Graphics2D g, int cx, int cy, int r, Color color) {
+        g.setStroke(new java.awt.BasicStroke(Math.max(3f, r * 0.8f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(Color.WHITE);
+        g.drawLine(cx - r, cy, cx + r, cy);
+        g.drawLine(cx, cy - r, cx, cy + r);
+        g.setStroke(new java.awt.BasicStroke(Math.max(1.5f, r * 0.4f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(color);
+        g.drawLine(cx - r, cy, cx + r, cy);
+        g.drawLine(cx, cy - r, cx, cy + r);
+    }
+
+    /** White-backed red cross of size s at (x, y): the remove mark and cursor. */
+    private static void paintCross(java.awt.Graphics2D g, int x, int y, int s) {
+        g.setStroke(new java.awt.BasicStroke(Math.max(4f, s / 4f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(Color.WHITE);
+        g.drawLine(x, y, x + s, y + s);
+        g.drawLine(x + s, y, x, y + s);
+        g.setStroke(new java.awt.BasicStroke(Math.max(2f, s / 8f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(0xcc2222));
+        g.drawLine(x, y, x + s, y + s);
+        g.drawLine(x + s, y, x, y + s);
+    }
+
+    /** Grey circle with a slash: this drop does nothing. */
+    private static void paintNoDropSign(java.awt.Graphics2D g, int x, int y, int s) {
+        g.setStroke(new java.awt.BasicStroke(Math.max(4f, s / 4f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(Color.WHITE);
+        g.drawOval(x, y, s, s);
+        g.drawLine(x + s / 5, y + s / 5, x + s - s / 5, y + s - s / 5);
+        g.setStroke(new java.awt.BasicStroke(Math.max(2f, s / 8f), java.awt.BasicStroke.CAP_ROUND,
+                java.awt.BasicStroke.JOIN_ROUND));
+        g.setColor(new Color(0x666666));
+        g.drawOval(x, y, s, s);
+        g.drawLine(x + s / 5, y + s / 5, x + s - s / 5, y + s - s / 5);
+    }
+
+    private static Cursor createNoDropCursor() {
         if (java.awt.GraphicsEnvironment.isHeadless()) {
             return Cursor.getDefaultCursor();
         }
         try {
-            return paintMoveCursor();
+            Toolkit toolkit = Toolkit.getDefaultToolkit();
+            Dimension size = toolkit.getBestCursorSize(24, 24);
+            if (size.width <= 0 || size.height <= 0) {
+                return Cursor.getDefaultCursor();
+            }
+            java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(size.width, size.height,
+                    java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D g = image.createGraphics();
+            try {
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int s = Math.min(size.width, size.height);
+                paintNoDropSign(g, 3, 3, s - 7);
+            } finally {
+                g.dispose();
+            }
+            return toolkit.createCustomCursor(image, new Point(size.width / 2, size.height / 2),
+                    "actionpanel-nodrop");
+        } catch (RuntimeException e) {
+            return Cursor.getDefaultCursor();
+        }
+    }
+
+    /**
+     * Four-direction move arrows, white-backed like the delete cross. The
+     * predefined MOVE_CURSOR renders as the plain arrow on macOS, so a drag
+     * needs an own glyph to be visible at all. With copy, a plus badge sits
+     * in the lower right corner.
+     */
+    private static Cursor createMoveCursor(boolean copy) {
+        if (java.awt.GraphicsEnvironment.isHeadless()) {
+            return Cursor.getDefaultCursor();
+        }
+        try {
+            return paintMoveCursor(copy);
         } catch (RuntimeException e) {
             return Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR);
         }
     }
 
-    private static Cursor paintMoveCursor() {
+    private static Cursor paintMoveCursor(boolean copy) {
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension size = toolkit.getBestCursorSize(24, 24);
         if (size.width <= 0 || size.height <= 0) {
@@ -1114,11 +1420,20 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 paintMoveGlyph(g, s, offset[0], offset[1], Color.WHITE);
             }
             paintMoveGlyph(g, s, 0, 0, new Color(0x222222));
+            if (copy) {
+                // Badge on a white disc in the corner, clear of the arrowheads
+                // and inside the image whatever the cursor size.
+                int r = Math.max(3, s / 8);
+                int cx = s - r - 3;
+                g.setColor(Color.WHITE);
+                g.fillOval(cx - r - 2, cx - r - 2, 2 * r + 4, 2 * r + 4);
+                paintPlusBadge(g, cx, cx, r, new Color(0x1a7f37));
+            }
         } finally {
             g.dispose();
         }
         return toolkit.createCustomCursor(image, new Point(size.width / 2, size.height / 2),
-                "actionpanel-move");
+                copy ? "actionpanel-copy" : "actionpanel-move");
     }
 
     private static void paintMoveGlyph(java.awt.Graphics2D g, int s, int dx, int dy, Color color) {
