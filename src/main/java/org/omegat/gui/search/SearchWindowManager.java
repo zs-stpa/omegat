@@ -58,15 +58,16 @@ public final class SearchWindowManager {
     /**
      * Open a search window prefilled with the given query (options come from
      * the persisted search window preferences) and optionally run the search
-     * immediately.
+     * immediately. Returns the window's controller.
      */
-    public static void createSearchWindow(SearchMode mode, String query, boolean autoRun) {
+    public static SearchWindowController createSearchWindow(SearchMode mode, String query, boolean autoRun) {
         SearchWindowController search = new SearchWindowController(mode);
         addSearchWindow(search);
         search.makeVisible(query);
         if (autoRun && !StringUtil.isEmpty(query)) {
             search.startSearch();
         }
+        return search;
     }
 
     public static void closeSearchWindows() {
