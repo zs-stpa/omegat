@@ -1930,7 +1930,7 @@ public class EditorController implements IEditor {
     }
 
     @Override
-    public String getCurrentTranslation() {
+    public @Nullable String getCurrentTranslation() {
         UIThreadsUtil.mustBeSwingThread();
 
         return editor.getOmDocument().extractTranslation();
