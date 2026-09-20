@@ -190,7 +190,12 @@ public final class TagUtil {
     public static List<Tag> getAllTagsMissingFromTarget() {
         List<Tag> result = new ArrayList<Tag>();
 
-        StringBuilder target = new StringBuilder(Core.getEditor().getCurrentTranslation());
+        String translation = Core.getEditor().getCurrentTranslation();
+        if (translation == null) {
+            // no segment in edit mode: no target to compare, no way to insert tags
+            return result;
+        }
+        StringBuilder target = new StringBuilder(translation);
 
         for (Tag tag : getAllTagsInSource()) {
             int pos = -1;
