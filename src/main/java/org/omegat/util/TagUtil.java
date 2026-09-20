@@ -184,6 +184,10 @@ public final class TagUtil {
 
     public static List<Tag> getAllTagsInSource() {
         SourceTextEntry ste = Core.getEditor().getCurrentEntry();
+        if (ste == null) {
+            // no active segment: no source to take tags from
+            return Collections.emptyList();
+        }
         return buildTagList(ste.getSrcText(), ste.getProtectedParts());
     }
 
