@@ -226,25 +226,8 @@ public abstract class AbstractZipFilter extends AbstractFilter {
         if (entryComparator != null) {
             translatableEntries.sort(entryComparator);
         }
-        if (zipOutputStream == null) {
-            translateEntries(zipFile, filterContext, translatableEntries);
-        } else {
-            for (ZipEntry zipEntry : translatableEntries) {
-                translateEntry(zipFile, zipOutputStream, writer, filterContext, zipEntry);
-            }
-        }
-    }
-
-    private void translateEntries(ZipFile zf, FilterContext fc, List<ZipEntry> toTranslate) {
-        for (ZipEntry ze : toTranslate) {
-            try (XMLReader xReader = new XMLReader(zf.getInputStream(ze))) {
-                AbstractXmlFilter xmlfilter = getFilter(ze);
-                try (BufferedReader reader = new BufferedReader(xReader)) {
-                    xmlfilter.processFile(reader, null, fc);
-                }
-            } catch (Exception e) {
-                Log.log(e);
-            }
+        for (ZipEntry zipEntry : translatableEntries) {
+            translateEntry(zipFile, zipOutputStream, writer, filterContext, zipEntry);
         }
     }
 
