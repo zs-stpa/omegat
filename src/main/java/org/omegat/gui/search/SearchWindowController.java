@@ -125,6 +125,10 @@ public class SearchWindowController {
     private final CaretPosition initialCaret;
 
     private @Nullable LongProcessHandle<Void> handle;
+    /** Set by {@link #filterOnNextResult()}; taken over by the next search. */
+    private boolean filterOnResult;
+    /** The running search filters and closes on its result. */
+    private boolean filterCurrentResult;
 
     private final Map<ButtonModel, SearchExpression.SearchExpressionType> modelToType;
 
@@ -806,7 +810,27 @@ public class SearchWindowController {
             } else {
                 viewer.requestFocus();
             }
+            if (filterCurrentResult && haveResults) {
+                filterCurrentResult = false;
+                doFilter();
+                form.dispose();
+            }
+            // Without results the window stays: the zero count and the
+            // disabled Filter button say why nothing was filtered.
+            filterCurrentResult = false;
         });
+    }
+
+    /**
+     * Apply the result of the next search as the editor filter, as the
+     * Filter button would, then close this window; without results the
+     * window stays open. The request belongs to the next search only: one
+     * that never produces a result (bad directory, invalid pattern,
+     * cancelled) drops it. For callers running a saved search only to filter
+     * by it.
+     */
+    public void filterOnNextResult() {
+        filterOnResult = true;
     }
 
     // /////////////////////////////////////////////////////////////
@@ -880,6 +904,9 @@ public class SearchWindowController {
             // stop old search task
             handle.cancel();
         }
+        boolean filter = filterOnResult;
+        filterOnResult = false;
+        filterCurrentResult = false;
 
         EntryListPane viewer = (EntryListPane) form.m_viewer;
 
@@ -944,6 +971,7 @@ public class SearchWindowController {
         Searcher searcher = new Searcher(Core.getProject(), s);
         // start the search in a separate thread
         SearchTask task = new SearchTask(this, searcher);
+        filterCurrentResult = filter;
         handle = Core.getLongProcessExecutor().submit(task::run);
     }
 
