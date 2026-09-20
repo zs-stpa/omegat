@@ -28,6 +28,7 @@ package org.omegat.gui.actionpanel;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import java.text.MessageFormat;
 import java.util.List;
 
 import org.junit.Test;
@@ -52,7 +53,9 @@ public class ActionPanelTableModelTest {
         ActionPanelTableModel m = model("a", "b");
         int first = m.duplicateRows(new int[] { 0, 1 });
         assertEquals(2, first);
-        assertEquals(List.of("a", "b", "a", "b"), names(m));
+        String pattern = ActionPanelModule.getString("ROW_COPY_NAME");
+        assertEquals(List.of("a", "b", MessageFormat.format(pattern, "a"), MessageFormat.format(pattern, "b")),
+                names(m));
         assertEquals(4, m.getRows().stream().map(ActionRow::id).distinct().count());
     }
 
@@ -73,7 +76,9 @@ public class ActionPanelTableModelTest {
         ActionPanelTableModel m = model("a", "b", "c");
         int first = m.duplicateRows(new int[] { 0, 2 });
         assertEquals(3, first);
-        assertEquals(List.of("a", "b", "c", "a", "c"), names(m));
+        String pattern = ActionPanelModule.getString("ROW_COPY_NAME");
+        assertEquals(List.of("a", "b", "c", MessageFormat.format(pattern, "a"), MessageFormat.format(pattern, "c")),
+                names(m));
     }
 
     @Test

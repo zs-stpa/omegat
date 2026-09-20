@@ -26,15 +26,20 @@
 package org.omegat.gui.actionpanel;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
 
 import javax.swing.JMenuItem;
 
 import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.finder.JOptionPaneFinder;
 import org.assertj.swing.fixture.JCheckBoxFixture;
+import org.assertj.swing.fixture.JOptionPaneFixture;
+import org.assertj.swing.fixture.JPopupMenuFixture;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -119,6 +124,38 @@ public class ActionPanelTest extends TestCoreGUI {
         setRows(List.of(slider, button, toggle.withName("Renamed")));
         window.checkBox(ComponentNames.control(toggle.id())).requireText("Renamed");
         window.button(ComponentNames.control(button.id())).requireText("About");
+    }
+
+    @Test
+    public void testContextMenuRenamesAndDuplicates() {
+        assertNotNull(window);
+        ActionRow button = new ActionRow("About", null, new MenuActionSpec("helpAboutMenuItem"));
+        setRows(List.of(button));
+        GuiActionRunner.execute(() -> {
+            DockingDesktop desktop = Objects.requireNonNull(Core.getMainWindow()).getDesktop();
+            desktop.maximize(desktop.getContext().getDockableByKey(ActionPanelModule.DOCK_KEY));
+        });
+        robot().waitForIdle();
+
+        // Rename through the context menu; the id, and so the name, stays.
+        JPopupMenuFixture menu = window.button(ComponentNames.control(button.id())).showPopupMenu();
+        menu.menuItem(ComponentNames.rowMenuEntry(button.id(), "ROW_MENU_RENAME")).click();
+        JOptionPaneFixture prompt = JOptionPaneFinder.findOptionPane().using(robot());
+        prompt.textBox().deleteText().enterText("Info");
+        prompt.okButton().click();
+        robot().waitForIdle();
+        window.button(ComponentNames.control(button.id())).requireText("Info");
+
+        // Duplicate: a second row with its own id right after the original.
+        window.button(ComponentNames.control(button.id())).showPopupMenu()
+                .menuItem(ComponentNames.rowMenuEntry(button.id(), "BTN_DUPLICATE")).click();
+        robot().waitForIdle();
+        List<ActionRow> rows = ActionPanelConfig.getInstance().getRows();
+        assertEquals(2, rows.size());
+        assertEquals(button.id(), rows.get(0).id());
+        assertNotEquals(button.id(), rows.get(1).id());
+        window.button(ComponentNames.control(rows.get(1).id()))
+                .requireText(MessageFormat.format(ActionPanelModule.getString("ROW_COPY_NAME"), "Info"));
     }
 
     private void setRows(List<ActionRow> rows) {

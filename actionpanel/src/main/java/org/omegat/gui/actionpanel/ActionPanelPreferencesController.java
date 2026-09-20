@@ -35,8 +35,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import javax.swing.Box;
@@ -74,8 +72,6 @@ import org.omegat.util.gui.TableSearchField;
  */
 public class ActionPanelPreferencesController extends BasePreferencesController {
 
-    /** Preference key remembering the last icon chooser folder. */
-    static final String ICON_DIRECTORY_PREFERENCE = "action_panel_icon_directory";
     /** Preference key remembering the last export/import folder. */
     static final String EXPORT_DIRECTORY_PREFERENCE = "action_panel_export_directory";
 
@@ -345,12 +341,9 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
     /** Click on a colour cell: open the chooser directly. */
     private void onAssignColor(int modelRow, int modelColumn) {
         int colorIndex = modelColumn - ActionPanelTableModel.COLUMN_TEXT_COLOR;
-        java.awt.Color initial = (java.awt.Color) model.getValueAt(modelRow, modelColumn);
-        java.awt.Color chosen = javax.swing.JColorChooser.showDialog(panel,
-                model.getColumnName(modelColumn), initial != null ? initial : java.awt.Color.GRAY);
-        if (chosen != null) {
-            String hex = String.format("#%02x%02x%02x", chosen.getRed(), chosen.getGreen(),
-                    chosen.getBlue());
+        String hex = RowEditing.chooseColor(panel, model.getColumnName(modelColumn),
+                (java.awt.Color) model.getValueAt(modelRow, modelColumn));
+        if (hex != null) {
             model.setRow(modelRow, model.getRow(modelRow).withColor(colorIndex, hex));
         }
     }
@@ -645,61 +638,10 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
     }
 
     private void onAssignIcon(int modelRow) {
-        JFileChooser chooser = new JFileChooser(
-                Preferences.getPreferenceDefault(ICON_DIRECTORY_PREFERENCE, null));
-        chooser.setDialogTitle(ActionPanelModule.getString("ICON_CHOOSER_TITLE"));
-        chooser.setFileFilter(new FileNameExtensionFilter(
-                ActionPanelModule.getString("ICON_FILTER_DESC"), "svg", "png", "jpg", "jpeg", "gif",
-                "pdf"));
-        if (chooser.showOpenDialog(panel) != JFileChooser.APPROVE_OPTION) {
-            return;
+        String iconRef = RowEditing.chooseIcon(panel);
+        if (iconRef != null) {
+            model.setRow(modelRow, model.getRow(modelRow).withIconRef(iconRef));
         }
-        File chosen = chooser.getSelectedFile();
-        Preferences.setPreference(ICON_DIRECTORY_PREFERENCE, chosen.getParent());
-        Object[] options = { ActionPanelModule.getString("ICON_COPY"),
-                ActionPanelModule.getString("ICON_REFERENCE") };
-        int mode = JOptionPane.showOptionDialog(panel, ActionPanelModule.getString("ICON_COPY_QUESTION"),
-                ActionPanelModule.getString("ICON_CHOOSER_TITLE"), JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
-        if (mode == JOptionPane.CLOSED_OPTION) {
-            return;
-        }
-        String iconRef;
-        if (mode == 0) {
-            try {
-                iconRef = copyIntoIconFolder(chosen);
-            } catch (IOException ex) {
-                Log.log(ex);
-                JOptionPane.showMessageDialog(panel, ex.getLocalizedMessage(), toString(),
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-        } else {
-            iconRef = chosen.getAbsolutePath();
-        }
-        model.setRow(modelRow, model.getRow(modelRow).withIconRef(iconRef));
-    }
-
-    /** Copy into the icon folder, dodging name collisions with a suffix. */
-    static String copyIntoIconFolder(File chosen) throws IOException {
-        File folder = ActionPanelConfig.getIconFolder();
-        if (!folder.isDirectory() && !folder.mkdirs()) {
-            throw new IOException("Cannot create " + folder);
-        }
-        String name = chosen.getName();
-        String base = name;
-        String extension = "";
-        int dot = name.lastIndexOf('.');
-        if (dot > 0) {
-            base = name.substring(0, dot);
-            extension = name.substring(dot);
-        }
-        File target = new File(folder, name);
-        for (int i = 2; target.exists(); i++) {
-            target = new File(folder, base + "-" + i + extension);
-        }
-        Files.copy(chosen.toPath(), target.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
-        return ActionPanelConfig.ICON_FOLDER + "/" + target.getName();
     }
 
     private void onAssignAction(int modelRow, MouseEvent e) {

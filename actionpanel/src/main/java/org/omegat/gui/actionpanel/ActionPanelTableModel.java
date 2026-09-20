@@ -96,11 +96,11 @@ public class ActionPanelTableModel extends AbstractTableModel {
         return index;
     }
 
-    /** Append copies of the given rows; returns the first new index. */
+    /** Append copies of the given rows, named as copies; returns the first new index. */
     public int duplicateRows(int[] indices) {
         int first = rows.size();
         for (int index : indices) {
-            rows.add(rows.get(index).withFreshId());
+            rows.add(RowEditing.copyOf(rows.get(index)));
         }
         fireTableRowsInserted(first, rows.size() - 1);
         return first;
@@ -264,12 +264,12 @@ public class ActionPanelTableModel extends AbstractTableModel {
         case COLUMN_SHORTCUT:
             return shortcutText(row.action());
         case COLUMN_TEXT_COLOR:
-            return ActionPanelView.decode(row.textColor());
+            return RowEditing.decode(row.textColor());
         case COLUMN_BACKGROUND_COLOR:
-            return ActionPanelView.decode(row.backgroundColor());
+            return RowEditing.decode(row.backgroundColor());
         case COLUMN_BORDER_COLOR:
         default:
-            return ActionPanelView.decode(row.borderColor());
+            return RowEditing.decode(row.borderColor());
         }
     }
 
