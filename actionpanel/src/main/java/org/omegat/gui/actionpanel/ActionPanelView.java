@@ -67,6 +67,8 @@ import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 import org.jspecify.annotations.Nullable;
 
@@ -206,6 +208,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             applyGlobalStyle(control, globalFont);
             applyRowColors(row, control);
             installDragReorder(control);
+            installContextMenu(row, control);
             displayRows.add(row);
             rowControls.add(control);
             add(control);
@@ -721,6 +724,79 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         List<ActionRow> rows = new ArrayList<>(ActionPanelConfig.getInstance().getRows());
         rows.addAll(newRows);
         ActionPanelConfig.getInstance().setRows(rows);
+    }
+
+    /**
+     * The row's context menu as Swing component popup: reachable by right
+     * click on the control or any child (labels, the checkbox inside its
+     * wrapper, the combobox itself) and by the keyboard's context menu key.
+     * Entries refresh their enabled state each time the menu opens.
+     */
+    private void installContextMenu(ActionRow row, JComponent control) {
+        JPopupMenu menu = buildRowMenu(row);
+        if (menu == null) {
+            return;
+        }
+        control.setComponentPopupMenu(menu);
+        inheritPopupMenu(control);
+    }
+
+    private static void inheritPopupMenu(JComponent parent) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof JComponent component) {
+                component.setInheritsPopupMenu(true);
+                inheritPopupMenu(component);
+            }
+        }
+    }
+
+    /**
+     * The context menu of a row: entries specific to its action type first,
+     * generic entries after a separator once there are any. Null while the
+     * menu would be empty, so such a row shows none.
+     */
+    private @Nullable JPopupMenu buildRowMenu(ActionRow row) {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setName(ComponentNames.rowMenu(row.id()));
+        addTypeSpecificEntries(menu, row);
+        return menu.getComponentCount() == 0 ? null : menu;
+    }
+
+    private void addTypeSpecificEntries(JPopupMenu menu, ActionRow row) {
+        if (row.action() instanceof SearchActionSpec search) {
+            JMenuItem filter = rowMenuItem(row, "ROW_MENU_APPLY_FILTER");
+            filter.addActionListener(e -> ActionInvoker.applySearchFilter(search, this,
+                    updated -> updateRowAction(row, updated)));
+            menu.addPopupMenuListener(new PopupMenuListener() {
+                @Override
+                public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                    filter.setEnabled(Core.getProject().isProjectLoaded() && !search.query().isEmpty());
+                }
+
+                @Override
+                public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+                }
+
+                @Override
+                public void popupMenuCanceled(PopupMenuEvent e) {
+                }
+            });
+            menu.add(filter);
+            JMenuItem edit = rowMenuItem(row, "ROW_MENU_EDIT_SEARCH");
+            edit.addActionListener(e -> {
+                ActionSpec updated = SearchActionWizard.show(this, search.replace(), search);
+                if (updated != null) {
+                    updateRowAction(row, updated);
+                }
+            });
+            menu.add(edit);
+        }
+    }
+
+    private static JMenuItem rowMenuItem(ActionRow row, String bundleKey) {
+        JMenuItem item = new JMenuItem(ActionPanelModule.getString(bundleKey));
+        item.setName(ComponentNames.rowMenuEntry(row.id(), bundleKey));
+        return item;
     }
 
     /**

@@ -65,6 +65,7 @@ import org.omegat.gui.actionpanel.ActionSpec.UrlActionSpec;
 import org.omegat.gui.editor.autotext.Autotext;
 import org.omegat.gui.scripting.ScriptItem;
 import org.omegat.gui.scripting.ScriptRunner;
+import org.omegat.gui.search.SearchWindowController;
 import org.omegat.gui.search.SearchWindowManager;
 import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.Log;
@@ -139,14 +140,35 @@ public final class ActionInvoker {
     }
 
     /**
+     * Run a saved search and hand its result to the editor filter: the
+     * search window opens, searches, filters and closes again. The preset
+     * version check runs like for a plain invocation. An empty query has
+     * nothing to filter by: beep.
+     */
+    public static void applySearchFilter(SearchActionSpec search, @Nullable Component parent,
+            @Nullable Consumer<ActionSpec> onUpdateSpec) {
+        if (search.query().isEmpty()) {
+            Toolkit.getDefaultToolkit().beep();
+            return;
+        }
+        invokeSearch(search, parent, onUpdateSpec, true);
+    }
+
+    private static void invokeSearch(SearchActionSpec search, @Nullable Component parent,
+            @Nullable Consumer<ActionSpec> onUpdateSpec) {
+        invokeSearch(search, parent, onUpdateSpec, false);
+    }
+
+    /**
      * Run a search preset as the complete search window state. When the
      * stored option set differs from the current one (options added or
      * removed since the preset was saved), a dialog warns and offers to
      * revise the preset in the wizard right away, run it with coded defaults
-     * for the unknown options, or cancel.
+     * for the unknown options, or cancel. With {@code filter} the window
+     * hands its result to the editor filter and closes.
      */
     private static void invokeSearch(SearchActionSpec search, @Nullable Component parent,
-            @Nullable Consumer<ActionSpec> onUpdateSpec) {
+            @Nullable Consumer<ActionSpec> onUpdateSpec, boolean filter) {
         Map<String, String> current = SearchActionWizard.captureSearchOptions();
         java.util.Set<String> added = new java.util.TreeSet<>(current.keySet());
         added.removeAll(search.options().keySet());
@@ -184,8 +206,14 @@ public final class ActionInvoker {
             }
         }
         SearchActionWizard.applyPresetOptions(search.options(), current.keySet());
-        SearchWindowManager.createSearchWindow(
-                search.replace() ? SearchMode.REPLACE : SearchMode.SEARCH, search.query(), true);
+        SearchWindowController window = SearchWindowManager.createSearchWindow(
+                search.replace() ? SearchMode.REPLACE : SearchMode.SEARCH, search.query(), false);
+        if (filter) {
+            window.filterOnNextResult();
+        }
+        if (!search.query().isEmpty()) {
+            window.startSearch();
+        }
     }
 
     /** Readable option names for the conflict dialog. */
