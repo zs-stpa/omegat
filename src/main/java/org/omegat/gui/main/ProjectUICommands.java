@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -66,6 +67,7 @@ import org.omegat.core.data.ProjectProperties;
 import org.omegat.core.data.ProjectSettingsStorage;
 import org.omegat.core.data.RuntimePreferenceStore;
 import org.omegat.core.data.TeamSetting;
+import org.omegat.core.data.TeamSettingDiffReport;
 import org.omegat.core.data.TeamSettingsRegistry;
 import org.omegat.core.events.IProjectEventListener;
 import org.omegat.core.segmentation.Segmenter;
@@ -372,9 +374,16 @@ public final class ProjectUICommands {
             String[] options = { OStrings.getString("TEAM_SETTING_SHARE"),
                     OStrings.getString("TEAM_SETTING_TAKE_TEAM"),
                     OStrings.getString("TEAM_SETTING_KEEP_THIS_TIME") };
+            String question = OStrings.getString("TEAM_SETTING_DIVERGED_MESSAGE", setting.getDisplayName(),
+                    setting.describe(localValue), setting.describe(teamValue));
+            // For a whole configuration file the dialog values only name the
+            // versions; a button under the question opens a line diff of the
+            // two files in the system browser without closing the dialog.
+            Object message = setting.isFileBacked()
+                    ? new Object[] { question, showDifferencesButton(setting, localValue, teamValue) }
+                    : question;
             int answer = JOptionPane.showOptionDialog(Core.getMainWindow().getApplicationFrame(),
-                    OStrings.getString("TEAM_SETTING_DIVERGED_MESSAGE", setting.getDisplayName(),
-                            setting.describe(localValue), setting.describe(teamValue)),
+                    message,
                     OStrings.getString("TEAM_SETTING_DIVERGED_TITLE"), JOptionPane.DEFAULT_OPTION,
                     JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
             if (answer != 0 && answer != 1 && answer != 2) {
@@ -418,6 +427,28 @@ public final class ProjectUICommands {
                 }
             }.execute();
         }
+    }
+
+    /**
+     * Button that writes the HTML report of the line differences between
+     * the local and the team version of a file-backed setting to the log
+     * directory and opens it in the system browser. The report outlives
+     * the dialog, and the button leaves the dialog open, so the versions
+     * can be compared before answering the question.
+     */
+    private static JButton showDifferencesButton(TeamSetting setting, @Nullable String localValue,
+            @Nullable String teamValue) {
+        JButton button = new JButton(OStrings.getString("TEAM_SETTING_SHOW_DIFF"));
+        button.addActionListener(e -> {
+            try {
+                File report = TeamSettingDiffReport.write(setting, localValue, teamValue);
+                DesktopWrapper.browse(report.toURI());
+            } catch (Exception ex) {
+                Log.logErrorRB(ex, "TEAM_SETTING_DIFF_ERROR");
+                Core.getMainWindow().displayErrorRB(ex, "TEAM_SETTING_DIFF_ERROR");
+            }
+        });
+        return button;
     }
 
     /** Session values of all registered team settings, keyed by setting key. */
