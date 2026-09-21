@@ -271,6 +271,8 @@ public final class TeamSetting {
      * ({@link #ofStoredFile}) instead of a key in the shared sidecar file.
      * Only for such a setting may sharing a null value delete files in the
      * team repositories - the sidecar file also carries other settings.
+     * The raw value of such a setting is whole-file content, so two of its
+     * values can be compared line by line ({@link TeamSettingDiffReport}).
      */
     public boolean isFileBacked() {
         return storage.fileBacked();
