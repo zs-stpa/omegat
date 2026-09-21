@@ -29,12 +29,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
 
 import javax.swing.JMenuItem;
 
+import org.assertj.swing.core.KeyPressInfo;
 import org.assertj.swing.edt.GuiActionRunner;
 import org.assertj.swing.finder.JOptionPaneFinder;
 import org.assertj.swing.fixture.JCheckBoxFixture;
@@ -119,6 +122,14 @@ public class ActionPanelTest extends TestCoreGUI {
         box.click();
         robot().waitForIdle();
         assertEquals(!before, (boolean) GuiActionRunner.execute(item::isSelected));
+
+        // The positional shortcut of the first row toggles it back, from
+        // anywhere in the main window; here from the editor's intro pane.
+        window.textBox("IntroPane").focus();
+        window.pressAndReleaseKey(KeyPressInfo.keyCode(KeyEvent.VK_1)
+                .modifiers(InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        robot().waitForIdle();
+        assertEquals(before, (boolean) GuiActionRunner.execute(item::isSelected));
 
         // Renaming and reordering keep the id, so the same names still work.
         setRows(List.of(slider, button, toggle.withName("Renamed")));
