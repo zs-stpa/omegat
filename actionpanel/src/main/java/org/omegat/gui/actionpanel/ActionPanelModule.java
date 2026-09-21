@@ -25,6 +25,8 @@
 
 package org.omegat.gui.actionpanel;
 
+import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.SwingUtilities;
@@ -40,6 +42,8 @@ import org.omegat.core.events.IApplicationEventListener;
 import org.omegat.gui.main.DockableScrollPane;
 import org.omegat.gui.main.IMainWindow;
 import org.omegat.gui.preferences.PreferencesControllers;
+import org.omegat.gui.shortcuts.PropertiesShortcuts;
+import org.omegat.util.Log;
 import org.omegat.util.Preferences;
 
 /**
@@ -55,6 +59,11 @@ public final class ActionPanelModule {
     public static final String DOCK_KEY = "ACTION_PANEL";
     /** Preference flag: set once the panel was added to a layout. */
     public static final String INITIALIZED_PREFERENCE = "action_panel_initialized";
+    /** Prefix of the positional shortcut keys, followed by the 1-based row position. */
+    public static final String ROW_SHORTCUT_PREFIX = "actionPanelRow";
+    /** Rows with a positional shortcut: {@code actionPanelRow1} to {@code actionPanelRow10}. */
+    public static final int ROW_SHORTCUT_COUNT = 10;
+    static final String SHORTCUTS_FILE = "/org/omegat/gui/actionpanel/ActionPanelShortcuts.properties";
 
     private static final ResourceBundle BUNDLE = ResourceBundle
             .getBundle("org.omegat.gui.actionpanel.Bundle");
@@ -69,8 +78,30 @@ public final class ActionPanelModule {
         return BUNDLE.getString(key);
     }
 
+    /** Shortcut key of the row at a 1-based display position. */
+    public static String rowShortcutKey(int position) {
+        return ROW_SHORTCUT_PREFIX + position;
+    }
+
+    /** Label of a row shortcut key for the shortcuts page; null for other keys. */
+    static @Nullable String shortcutLabel(String key) {
+        if (!key.startsWith(ROW_SHORTCUT_PREFIX)) {
+            return null;
+        }
+        return MessageFormat.format(getString("SHORTCUT_ROW_LABEL"), key.substring(ROW_SHORTCUT_PREFIX.length()));
+    }
+
     public static void loadPlugins() {
         PreferencesControllers.addSupplier(ActionPanelPreferencesController::new);
+        try {
+            // Positional shortcuts join the editor set: listed and rebindable
+            // on the shortcuts page, shown under the panel's own name.
+            PropertiesShortcuts.getEditorShortcuts().contribute(SHORTCUTS_FILE,
+                    ActionPanelModule.class.getClassLoader(), getString("ACTION_PANEL_TITLE"),
+                    ActionPanelModule::shortcutLabel);
+        } catch (IOException e) {
+            Log.log(e);
+        }
         listener = new IApplicationEventListener() {
             @Override
             public void onApplicationStartup() {
@@ -85,6 +116,7 @@ public final class ActionPanelModule {
     }
 
     public static void unloadPlugins() {
+        PropertiesShortcuts.getEditorShortcuts().uncontribute(SHORTCUTS_FILE);
         if (listener != null) {
             CoreEvents.unregisterApplicationEventListener(listener);
             listener = null;

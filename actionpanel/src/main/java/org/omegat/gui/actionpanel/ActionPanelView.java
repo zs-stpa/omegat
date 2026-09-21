@@ -37,6 +37,7 @@ import java.awt.KeyboardFocusManager;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -48,11 +49,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
@@ -66,6 +69,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JRootPane;
 import javax.swing.JSlider;
 import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
@@ -90,6 +94,7 @@ import org.omegat.gui.actionpanel.ActionSpec.PreferenceActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SnippetActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.UnknownActionSpec;
+import org.omegat.gui.main.IMainWindow;
 import org.omegat.gui.preferences.PreferencesWindowController;
 import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.Preferences;
@@ -133,6 +138,8 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
     private transient @Nullable JComponent dragRemoveMark;
     /** What the current drag would do, for the painted markers. */
     private transient DragEffect dragEffect = DragEffect.MOVE;
+    /** Display index of the row under construction, for its tooltip. */
+    private transient int buildingIndex;
     /** Modifier watcher of the running drag, so feedback follows the keys. */
     private transient @Nullable KeyEventDispatcher dragKeys;
 
@@ -184,6 +191,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         CoreEvents.unregisterColorsChangedEventListener(colorsListener);
         itemListenerCleanups.forEach(Runnable::run);
         itemListenerCleanups.clear();
+        unbindRowShortcuts();
     }
 
     @Override
@@ -239,6 +247,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             add(hint);
         }
         for (ActionRow row : rows) {
+            buildingIndex = displayRows.size();
             JComponent control = createControl(row);
             applyGlobalStyle(control, globalFont);
             applyRowColors(row, control);
@@ -248,8 +257,107 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             rowControls.add(control);
             add(control);
         }
+        bindRowShortcuts();
         revalidate();
         repaint();
+    }
+
+    /**
+     * Ctrl+Shift+digit (rebindable on the shortcuts page) activates the row
+     * at that display position, from anywhere in the main window: the
+     * bindings live on the frame's root pane and stay live while the pane is
+     * minimized or closed, as a shortcut should. Rebound on every rebuild,
+     * so shortcut edits apply at once.
+     */
+    private void bindRowShortcuts() {
+        JRootPane root = mainRootPane();
+        if (root == null) {
+            return;
+        }
+        unbindRowShortcuts();
+        String[] keys = new String[ActionPanelModule.ROW_SHORTCUT_COUNT];
+        for (int i = 0; i < keys.length; i++) {
+            keys[i] = ActionPanelModule.rowShortcutKey(i + 1);
+            final int index = i;
+            root.getActionMap().put(keys[i], new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    activateRow(index);
+                }
+            });
+        }
+        PropertiesShortcuts.getEditorShortcuts().bindKeyStrokes(root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW),
+                keys);
+    }
+
+    private void unbindRowShortcuts() {
+        JRootPane root = mainRootPane();
+        if (root == null) {
+            return;
+        }
+        InputMap inputMap = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        KeyStroke[] strokes = inputMap.keys() == null ? new KeyStroke[0] : inputMap.keys();
+        for (int i = 1; i <= ActionPanelModule.ROW_SHORTCUT_COUNT; i++) {
+            String key = ActionPanelModule.rowShortcutKey(i);
+            root.getActionMap().remove(key);
+            for (KeyStroke stroke : strokes) {
+                if (key.equals(inputMap.get(stroke))) {
+                    inputMap.remove(stroke);
+                }
+            }
+        }
+    }
+
+    private static @Nullable JRootPane mainRootPane() {
+        IMainWindow mainWindow = Core.getMainWindow();
+        return mainWindow == null || mainWindow.getApplicationFrame() == null ? null
+                : mainWindow.getApplicationFrame().getRootPane();
+    }
+
+    /**
+     * Activate the row at a display position as a click would: buttons and
+     * checkboxes are clicked, also while the pane is hidden; a combobox opens
+     * its list, which needs the pane on screen. A slider has no single
+     * activation and beeps, as do an empty position and a hidden combobox.
+     */
+    void activateRow(int displayIndex) {
+        if (displayIndex < 0 || displayIndex >= rowControls.size()) {
+            Toolkit.getDefaultToolkit().beep();
+            return;
+        }
+        JComponent control = interactiveControl(rowControls.get(displayIndex));
+        if (control instanceof AbstractButton button && button.isEnabled()) {
+            button.doClick();
+        } else if (control instanceof JComboBox<?> combo && combo.isEnabled() && combo.isShowing()) {
+            combo.setPopupVisible(true);
+        } else {
+            Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    /** The interactive element of a row: the control itself or the named child of its wrapper. */
+    private static JComponent interactiveControl(JComponent rowComponent) {
+        String name = rowComponent.getName();
+        if (name != null && name.endsWith(ComponentNames.CONTROL_SUFFIX)) {
+            return rowComponent;
+        }
+        for (Component child : rowComponent.getComponents()) {
+            if (child instanceof JComponent inner && inner.getName() != null
+                    && inner.getName().endsWith(ComponentNames.CONTROL_SUFFIX)) {
+                return inner;
+            }
+        }
+        return rowComponent;
+    }
+
+    /** Keystroke text of the positional shortcut of a display index, or null when unbound. */
+    private static @Nullable String rowShortcutText(int displayIndex) {
+        if (displayIndex >= ActionPanelModule.ROW_SHORTCUT_COUNT) {
+            return null;
+        }
+        KeyStroke stroke = ShortcutLookup.find(PropertiesShortcuts.getEditorShortcuts(),
+                ActionPanelModule.rowShortcutKey(displayIndex + 1));
+        return stroke == null ? null : StaticUIUtils.getKeyStrokeText(stroke);
     }
 
     /** Global font on every control; panel foreground on borderless text. */
@@ -627,18 +735,30 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
         }
     }
 
-    /** The full action as tooltip: the name is already on the button. */
+    /**
+     * The full action as tooltip: the name is already on the button. Lists
+     * the action's own shortcut and the positional one of the row under
+     * construction, if any.
+     */
     private String tooltip(ActionRow row) {
         String description = ActionPanelTableModel.describeAction(row.action(), catalog);
         if (description.isEmpty()) {
             description = row.name();
         }
-        String shortcut = currentShortcut(row.action());
-        if (shortcut == null) {
+        List<String> shortcuts = new ArrayList<>();
+        String own = currentShortcut(row.action());
+        if (own != null) {
+            shortcuts.add(own);
+        }
+        String positional = rowShortcutText(buildingIndex);
+        if (positional != null) {
+            shortcuts.add(positional);
+        }
+        if (shortcuts.isEmpty()) {
             return description;
         }
         return MessageFormat.format(ActionPanelModule.getString("TOOLTIP_FORMAT"), description,
-                shortcut);
+                String.join(", ", shortcuts));
     }
 
     private @Nullable String currentShortcut(@Nullable ActionSpec spec) {
