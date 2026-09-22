@@ -256,6 +256,19 @@ public class GlossaryManager implements DirectoryMonitor.Callback {
         return result;
     }
 
+    /**
+     * Snapshot of the loaded local glossaries: origin path (as carried by
+     * {@link GlossaryEntry#getOrigins}) to number of entries, sorted by
+     * path.
+     */
+    public Map<String, Integer> getLocalGlossaryCounts() {
+        Map<String, Integer> counts = new TreeMap<>();
+        synchronized (this) {
+            glossaries.forEach((path, entries) -> counts.put(path, entries.size()));
+        }
+        return counts;
+    }
+
     private void addExternalGlossaryEntries(List<GlossaryEntry> result, String src) {
         CoreState coreState = CoreState.getInstance();
         Language source = coreState.getProject().getProjectProperties().getSourceLanguage();
@@ -291,6 +304,23 @@ public class GlossaryManager implements DirectoryMonitor.Callback {
                 coreState.getProject().getProjectProperties().getSourceLanguage());
 
         return searcher.searchSourceMatches(ste, entries);
+    }
+
+    /**
+     * Get the local glossaries' entries with source terms found in the
+     * segment. Unlike {@link #searchSourceMatches(SourceTextEntry)} this
+     * never queries external glossary providers, so it is cheap enough to
+     * run over every segment of a project.
+     */
+    public List<GlossaryEntry> searchSourceLocalMatches(SourceTextEntry ste) {
+        CoreState coreState = CoreState.getInstance();
+        ITokenizer tok = coreState.getProject().getSourceTokenizer();
+        if (tok == null) {
+            return Collections.emptyList();
+        }
+        GlossarySearcher searcher = buildSearcher(tok,
+                coreState.getProject().getProjectProperties().getSourceLanguage());
+        return searcher.searchSourceMatches(ste, getLocalEntries());
     }
 
     /**
