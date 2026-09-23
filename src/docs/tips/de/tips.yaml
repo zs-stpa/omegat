@@ -92,3 +92,5 @@ tips:
   name: "Segmente nach Zahlenwert sortieren"
 - file: "share_colour_scheme.html"
   name: "Farbschema weitergeben"
+- file: "editing_shortcuts.html"
+  name: "Schneller editieren"
