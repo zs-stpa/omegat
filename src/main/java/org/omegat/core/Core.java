@@ -43,6 +43,7 @@ import org.omegat.core.data.EntryKey;
 import org.omegat.core.data.IProject;
 import org.omegat.core.data.NotLoadedProject;
 import org.omegat.core.machinetranslators.MachineTranslatorsManager;
+import org.omegat.core.matching.MatchEquivalence;
 import org.omegat.core.segmentation.Segmenter;
 import org.omegat.core.spellchecker.ISpellChecker;
 import org.omegat.core.spellchecker.SpellCheckerManager;
@@ -273,6 +274,7 @@ public final class Core {
         MarkerController.init();
         LanguageToolWrapper.init();
         TagValidation.registerCheckNumbersTeamSetting();
+        MatchEquivalence.registerTeamSetting();
 
         CoreState coreState = CoreState.getInstance();
         coreState.setSegmenter(new Segmenter(Preferences.getSRX()));
@@ -306,6 +308,7 @@ public final class Core {
     public static void initializeConsole() {
         CoreState coreState = CoreState.getInstance();
         TagValidation.registerCheckNumbersTeamSetting();
+        MatchEquivalence.registerTeamSetting();
         coreState.setTagValidation(new TagValidationTool());
         coreState.setProject(new NotLoadedProject());
         coreState.setMainWindow(new ConsoleWindow());
