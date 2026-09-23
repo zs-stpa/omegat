@@ -28,6 +28,7 @@
 
 package org.omegat.gui.preferences.view;
 
+import java.util.EnumSet;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -39,6 +40,7 @@ import org.omegat.gui.editor.ModificationInfoManager;
 import org.omegat.gui.preferences.BasePreferencesController;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
+import org.omegat.util.gui.Styles;
 
 /**
  * @author Maxym Mykhalchuk
@@ -48,6 +50,8 @@ import org.omegat.util.Preferences;
 public class ViewOptionsController extends BasePreferencesController {
 
     private ViewOptionsPanel panel;
+    private boolean initialAllBold;
+    private boolean initialActiveBold;
 
     @Override
     public JComponent getGui() {
@@ -79,10 +83,12 @@ public class ViewOptionsController extends BasePreferencesController {
 
     @Override
     protected void initFromPrefs() {
-        panel.viewSourceAllBold.setSelected(Preferences.isPreferenceDefault(Preferences.VIEW_OPTION_SOURCE_ALL_BOLD,
-                Preferences.VIEW_OPTION_SOURCE_ALL_BOLD_DEFAULT));
-        panel.viewSourceActiveBold.setSelected(Preferences.isPreferenceDefault(
-                Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD, Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD_DEFAULT));
+        // The two checkboxes drive the same configurable text style flags
+        // as the B column of the colors table.
+        initialAllBold = Styles.EditorColor.COLOR_SOURCE.is(Styles.TextStyle.BOLD);
+        initialActiveBold = Styles.EditorColor.COLOR_ACTIVE_SOURCE.is(Styles.TextStyle.BOLD);
+        panel.viewSourceAllBold.setSelected(initialAllBold);
+        panel.viewSourceActiveBold.setSelected(initialActiveBold);
 
         panel.markFirstNonUnique.setSelected(Preferences.isPreference(Preferences.VIEW_OPTION_UNIQUE_FIRST));
 
@@ -107,8 +113,10 @@ public class ViewOptionsController extends BasePreferencesController {
 
     @Override
     public void restoreDefaults() {
-        panel.viewSourceAllBold.setSelected(Preferences.VIEW_OPTION_SOURCE_ALL_BOLD_DEFAULT);
-        panel.viewSourceActiveBold.setSelected(Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD_DEFAULT);
+        panel.viewSourceAllBold.setSelected(
+                Styles.EditorColor.COLOR_SOURCE.getDefaultTextStyle().contains(Styles.TextStyle.BOLD));
+        panel.viewSourceActiveBold.setSelected(Styles.EditorColor.COLOR_ACTIVE_SOURCE
+                .getDefaultTextStyle().contains(Styles.TextStyle.BOLD));
 
         panel.markFirstNonUnique.setSelected(Preferences.isPreference(Preferences.VIEW_OPTION_UNIQUE_FIRST));
 
@@ -142,10 +150,36 @@ public class ViewOptionsController extends BasePreferencesController {
         panel.viewSourceActiveBold.setEnabled(!allBold);
     }
 
+    private static void applyBoldFlag(Styles.EditorColor entry, String legacyKey, boolean bold) {
+        EnumSet<Styles.TextStyle> style = entry.getTextStyle().isEmpty()
+                ? EnumSet.noneOf(Styles.TextStyle.class)
+                : EnumSet.copyOf(entry.getTextStyle());
+        if (bold) {
+            style.add(Styles.TextStyle.BOLD);
+        } else {
+            style.remove(Styles.TextStyle.BOLD);
+        }
+        entry.setTextStyle(style);
+        // Keep the legacy key in step: an older OmegaT sharing this
+        // configuration directory still reads it (the style key wins here
+        // regardless).
+        Preferences.setPreference(legacyKey, bold);
+    }
+
     @Override
     public void persist() {
-        Preferences.setPreference(Preferences.VIEW_OPTION_SOURCE_ALL_BOLD, panel.viewSourceAllBold.isSelected());
-        Preferences.setPreference(Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD, panel.viewSourceActiveBold.isSelected());
+        // Only write flags the user changed HERE: the colors table stages
+        // the same flags in this dialog, and the panes persist in
+        // unspecified order - an untouched checkbox must not undo a table
+        // edit.
+        if (panel.viewSourceAllBold.isSelected() != initialAllBold) {
+            applyBoldFlag(Styles.EditorColor.COLOR_SOURCE, Preferences.VIEW_OPTION_SOURCE_ALL_BOLD,
+                    panel.viewSourceAllBold.isSelected());
+        }
+        if (panel.viewSourceActiveBold.isSelected() != initialActiveBold) {
+            applyBoldFlag(Styles.EditorColor.COLOR_ACTIVE_SOURCE,
+                    Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD, panel.viewSourceActiveBold.isSelected());
+        }
         Preferences.setPreference(Preferences.VIEW_OPTION_UNIQUE_FIRST, panel.markFirstNonUnique.isSelected());
         Preferences.setPreference(Preferences.VIEW_OPTION_PPT_SIMPLIFY, panel.simplifyPPTooltips.isSelected());
         Preferences.setPreference(Preferences.VIEW_OPTION_TEMPLATE_ACTIVE, panel.templateActivator.isSelected());

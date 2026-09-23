@@ -75,6 +75,7 @@ public class ComesFromMTMarker implements IMarker {
             // without restarting the application
             m.painter = new TransparentHighlightPainter(
                     Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_MT.getColor(), 0.5F);
+            m.attributes = Styles.createTextStyleAttributeSet(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_MT);
             return Collections.singletonList(m);
         }
     }

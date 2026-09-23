@@ -56,6 +56,7 @@ public class AltTranslationsMarker extends AbstractMarker {
             // without restarting the application
             m.painter = new TransparentHighlightPainter(
                     Styles.EditorColor.COLOR_MARK_ALT_TRANSLATION.getColor(), 0.5F);
+            m.attributes = Styles.createTextStyleAttributeSet(Styles.EditorColor.COLOR_MARK_ALT_TRANSLATION);
             return Collections.singletonList(m);
         }
 

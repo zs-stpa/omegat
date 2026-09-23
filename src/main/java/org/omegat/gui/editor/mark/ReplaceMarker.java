@@ -68,6 +68,7 @@ public class ReplaceMarker implements IMarker {
         for (SearchMatch s : matches) {
             Mark m = new Mark(Mark.ENTRY_PART.TRANSLATION, s.getStart(), s.getEnd());
             m.painter = highlightPainter;
+            m.attributes = Styles.createTextStyleAttributeSet(Styles.EditorColor.COLOR_REPLACE);
             r.add(m);
         }
         return Collections.unmodifiableList(r);

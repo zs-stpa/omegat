@@ -363,7 +363,10 @@ public class MarkerController {
                 tooltip = new Tooltip(doc, startOffset + m.startOffset, startOffset + m.endOffset,
                         m.toolTipText);
             }
-            if (m.attributes != null) {
+            // Empty sets still split document elements and fire change
+            // events in setCharacterAttributes - skip them, markers with
+            // unconfigured text styles deliver exactly that by default.
+            if (m.attributes != null && m.attributes.getAttributeCount() > 0) {
                 doc.setCharacterAttributes(startOffset + m.startOffset, m.endOffset - m.startOffset,
                         m.attributes, false);
             }
