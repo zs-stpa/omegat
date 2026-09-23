@@ -567,13 +567,13 @@ public class SegmentBuilder {
         if (!hasBeenCreated()) {
             return;
         }
-        if (posSourceBeg != null) {
-            reapplyPartAlignment(posSourceBeg.getOffset(),
-                    posSourceBeg.getOffset() + posSourceLength, controller.sourceLangIsRTL, true);
+        if (posSourceBegP1 != null) {
+            reapplyPartAlignment(getStartSourcePosition(),
+                    getStartSourcePosition() + posSourceLength, controller.sourceLangIsRTL, true);
         }
-        if (posTranslationBeg != null) {
-            reapplyPartAlignment(posTranslationBeg.getOffset(),
-                    posTranslationBeg.getOffset() + posTranslationLength,
+        if (posTranslationBegP1 != null) {
+            reapplyPartAlignment(getStartTranslationPosition(),
+                    getStartTranslationPosition() + posTranslationLength,
                     controller.targetLangIsRTL, false);
         }
         if (active && doc.activeTranslationBeginM1 != null && doc.activeTranslationEndP1 != null) {

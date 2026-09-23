@@ -1313,9 +1313,9 @@ final class SegmentMetadataGutter extends JComponent {
         // Side by side, both parts start level, so the target pair moves
         // into the second half of the doubled column.
         int targetX = stackedTexts() ? x : x + columnWidth / 2 + 1;
-        if (builder.getSourceText() != null && builder.posSourceBeg != null) {
-            paintColorPair(g2, x, lineTop(builder.posSourceBeg.getOffset(), rowTop), fm, outline,
-                    builder.posSourceBeg.getOffset(), sourceRange(builder));
+        if (builder.getSourceText() != null && builder.posSourceBegP1 != null) {
+            paintColorPair(g2, x, lineTop(builder.getStartSourcePosition(), rowTop), fm, outline,
+                    builder.getStartSourcePosition(), sourceRange(builder));
         }
         int translationStart = translationStartOffset(builder);
         if (translationStart >= 0) {
@@ -1380,8 +1380,8 @@ final class SegmentMetadataGutter extends JComponent {
         // The smaller of the two part tops counts: with the swapped stacked
         // order the translation block sits above the source block.
         int top = Integer.MAX_VALUE;
-        if (builder.getSourceText() != null && builder.posSourceBeg != null) {
-            top = lineTop(builder.posSourceBeg.getOffset(), fallback);
+        if (builder.getSourceText() != null && builder.posSourceBegP1 != null) {
+            top = lineTop(builder.getStartSourcePosition(), fallback);
         }
         int translationStart = translationStartOffset(builder);
         if (translationStart >= 0) {
@@ -1550,8 +1550,8 @@ final class SegmentMetadataGutter extends JComponent {
      */
     private String colorNames(SegmentBuilder builder) {
         List<String> lines = new ArrayList<>();
-        if (builder.getSourceText() != null && builder.posSourceBeg != null) {
-            String names = partColorNames(builder.posSourceBeg.getOffset(), sourceRange(builder));
+        if (builder.getSourceText() != null && builder.posSourceBegP1 != null) {
+            String names = partColorNames(builder.getStartSourcePosition(), sourceRange(builder));
             if (!names.isEmpty()) {
                 lines.add(OStrings.getString("GUI_EDITORWINDOW_GUTTER_TOOLTIP_SOURCE") + ": "
                         + names);
