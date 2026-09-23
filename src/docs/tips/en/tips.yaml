@@ -82,3 +82,5 @@ tips:
   name: Reorder segments with the sort bar
 - file: sort_bar_numeric.html
   name: Sort segments by numeric value
+- file: share_colour_scheme.html
+  name: Share your colour scheme
