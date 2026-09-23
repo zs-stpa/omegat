@@ -25,6 +25,7 @@
 
 package org.omegat.gui.scripting;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.gui.scripting.runner.AbstractScriptRunner;
 
 import java.io.IOException;
@@ -111,8 +112,8 @@ public final class ScriptRunner {
      * @throws IOException when I/O error occurred.
      * @throws ScriptException when script engine raises error.
      */
-    public static String executeScript(String script, ScriptItem item,
-                                       Map<String, Object> additionalBindings) throws IOException, ScriptException {
+    public static String executeScript(@Nullable String script, ScriptItem item,
+            @Nullable Map<String, Object> additionalBindings) throws IOException, ScriptException {
         return AbstractScriptRunner.getActiveRunner().executeScript(script, item, additionalBindings);
     }
 

@@ -34,6 +34,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.data.SourceTextEntry;
@@ -52,8 +53,8 @@ public class FontFallbackMarker implements IMarker {
     }
 
     @Override
-    public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText,
-            boolean isActive) throws Exception {
+    public List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String translationText, boolean isActive) throws Exception {
 
         if (!isEnabled()) {
             return null;

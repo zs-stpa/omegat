@@ -25,6 +25,8 @@
 
 package org.omegat.gui.notes;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Interface for access to notes pane.
  *
@@ -34,8 +36,9 @@ public interface INotes {
     /**
      * Get note's text, which may be edited.
      *
-     * @return new note's text
+     * @return new note's text, or null if there is no note
      */
+    @Nullable
     String getNoteText();
 
     /**
@@ -44,7 +47,7 @@ public interface INotes {
      * @param note
      *            note's text, or null if note doesn't exist
      */
-    void setNoteText(String note);
+    void setNoteText(@Nullable String note);
 
     /**
      * Clear pane.

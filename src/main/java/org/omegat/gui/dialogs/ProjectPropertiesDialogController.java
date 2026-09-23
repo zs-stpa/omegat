@@ -49,6 +49,7 @@ import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.data.ProjectProperties;
 import org.omegat.core.segmentation.SRX;
 import org.omegat.externalfinder.ExternalFinder;
@@ -81,7 +82,7 @@ public class ProjectPropertiesDialogController {
     private Filters filters;
 
     /** Project ExternalFinder config */
-    private ExternalFinderConfiguration externalFinderConfig;
+    private @Nullable ExternalFinderConfiguration externalFinderConfig;
 
     /**
      * Project team repositories mapping. Buffered like the SRX and filter
@@ -116,7 +117,7 @@ public class ProjectPropertiesDialogController {
     /**
      * Return new properties or null if dialog cancelled.
      */
-    public ProjectProperties getResult() {
+    public @Nullable ProjectProperties getResult() {
         return dialogCancelled ? null : projectProperties;
     }
 
@@ -309,7 +310,7 @@ public class ProjectPropertiesDialogController {
      *            true when the field holds a file path whose containing folder
      *            should be opened instead
      */
-    private static File getOpenButtonTarget(JTextField field, boolean openParent) {
+    private static @Nullable File getOpenButtonTarget(JTextField field, boolean openParent) {
         String path = field.getText();
         if (StringUtil.isEmpty(path)) {
             return null;
@@ -685,7 +686,7 @@ public class ProjectPropertiesDialogController {
         dialog.setVisible(false);
     }
 
-    public static ProjectProperties showDialog(Frame parent, ProjectProperties projectProperties,
+    public static @Nullable ProjectProperties showDialog(Frame parent, ProjectProperties projectProperties,
             String projFileName, ProjectPropertiesDialog.Mode dialogTypeValue) {
         if (dialogTypeValue == null) {
             throw new RuntimeException("Unexpected null argument");

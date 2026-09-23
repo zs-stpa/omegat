@@ -27,6 +27,7 @@ package org.omegat.gui.editor.mark;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.data.SourceTextEntry;
 import org.omegat.gui.editor.SegmentBuilder;
 
@@ -40,12 +41,12 @@ public class EntryMarks {
     public SegmentBuilder builder;
     public final int markerIndex;
     private final long entryVersion;
-    public List<Mark> result;
+    public @Nullable List<Mark> result;
     public final SourceTextEntry ste;
     /** May be null if source not displayed */
-    public final String sourceText;
+    public final @Nullable String sourceText;
     /** May be null if not translated */
-    public final String translationText;
+    public final @Nullable String translationText;
     public final boolean isActive;
 
     public EntryMarks(SegmentBuilder builder, long entryVersion, int markerIndex) {
