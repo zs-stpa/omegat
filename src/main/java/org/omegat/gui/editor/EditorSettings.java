@@ -29,11 +29,15 @@
 package org.omegat.gui.editor;
 
 import java.awt.event.KeyEvent;
+import java.beans.PropertyChangeListener;
 
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.text.AttributeSet;
 
 import org.omegat.core.Core;
 import org.omegat.core.data.SourceTextEntry.DUPLICATE;
+import org.omegat.core.spellchecker.ISpellChecker;
 import org.omegat.core.spellchecker.SpellCheckerMarker;
 import org.omegat.util.Preferences;
 import org.omegat.util.gui.Styles;
@@ -81,6 +85,32 @@ public class EditorSettings implements IEditorSettings {
     private static final boolean MARK_AUTOPOPULATED_DEFAULT = true;
     private static final boolean MARK_GLOSSARY_MATCHES_DEFAULT = true;
 
+    /**
+     * Preferences whose change redraws the document. Both lists are what the
+     * View and Tag Processing preference pages write; a contract test keeps
+     * them in step with the pages. The redraw always goes through
+     * {@link #updateViewPreferences()}, a superset of
+     * {@link #updateTagValidationPreferences()}, which stays for API callers.
+     */
+    static final String[] VIEW_KEYS = { Preferences.VIEW_OPTION_SOURCE_ALL_BOLD,
+            Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD, Preferences.VIEW_OPTION_UNIQUE_FIRST,
+            Preferences.VIEW_OPTION_PPT_SIMPLIFY, Preferences.VIEW_OPTION_TEMPLATE_ACTIVE,
+            Preferences.VIEW_OPTION_MOD_INFO_TEMPLATE, Preferences.VIEW_OPTION_MOD_INFO_TEMPLATE_WO_DATE };
+
+    static final String[] TAG_VALIDATION_KEYS = { Preferences.DONT_CHECK_PRINTF_TAGS,
+            Preferences.CHECK_SIMPLE_PRINTF_TAGS, Preferences.CHECK_ALL_PRINTF_TAGS,
+            Preferences.CHECK_JAVA_PATTERN_TAGS, Preferences.CHECK_CUSTOM_PATTERN, Preferences.CHECK_REMOVE_PATTERN,
+            Preferences.LOOSE_TAG_ORDERING, Preferences.TAGS_VALID_REQUIRED };
+
+    /** Debounce: a page saved key by key from a worker thread redraws once. */
+    private static final int REDRAW_DELAY_MS = 50;
+
+    private final Timer redrawTimer = new Timer(REDRAW_DELAY_MS, e -> {
+        if (isLiveEditor()) {
+            updateViewPreferences();
+        }
+    });
+
     protected EditorSettings(final EditorController parent) {
         this.parent = parent;
 
@@ -116,6 +146,51 @@ public class EditorSettings implements IEditorSettings {
         markLanguageChecker = !Preferences.isPreferenceDefault(Preferences.LT_DISABLED,
                 Preferences.LT_DISABLED_DEFAULT);
         doFontFallback = Preferences.isPreference(Preferences.FONT_FALLBACK);
+
+        subscribeToPreferences();
+    }
+
+    /**
+     * The editor follows its preferences itself: whoever sets one (the
+     * preferences dialog, a script, a plugin) gets the redraw for free and
+     * needs no knowledge of this class. Changes may arrive on any thread;
+     * the reaction always runs on the Swing thread, and several changes in
+     * a row (the dialog saves a whole page at once) redraw only once.
+     */
+    private void subscribeToPreferences() {
+        redrawTimer.setRepeats(false);
+        PropertyChangeListener redraw = e -> redrawTimer.restart();
+        for (String key : VIEW_KEYS) {
+            Preferences.addPropertyChangeListener(key, redraw);
+        }
+        for (String key : TAG_VALIDATION_KEYS) {
+            Preferences.addPropertyChangeListener(key, redraw);
+        }
+        Preferences.addPropertyChangeListener(Preferences.USE_TAB_TO_ADVANCE,
+                e -> useTabForAdvance = Preferences.isPreference(Preferences.USE_TAB_TO_ADVANCE));
+        Preferences.addPropertyChangeListener(Preferences.ALLOW_AUTO_SPELLCHECKING, e -> {
+            if (!isLiveEditor()) {
+                return;
+            }
+            boolean enabled = Preferences.isPreference(Preferences.ALLOW_AUTO_SPELLCHECKING);
+            if (enabled && Core.getProject().isProjectLoaded()) {
+                // Dictionaries may have changed while checking was off. Loading
+                // them is slow, so it stays on the caller's thread (the
+                // preferences dialog saves from a worker), not on the EDT.
+                ISpellChecker spellChecker = Core.getSpellChecker();
+                spellChecker.destroy();
+                spellChecker.initialize();
+            }
+            SwingUtilities.invokeLater(() -> setAutoSpellChecking(enabled));
+        });
+    }
+
+    /**
+     * Listeners are never removed; instances left behind (tests, a replaced
+     * editor) must not act on the shared preferences.
+     */
+    private boolean isLiveEditor() {
+        return parent != null && Core.getEditor() == parent;
     }
 
     public char getAdvancerChar() {
@@ -131,7 +206,7 @@ public class EditorSettings implements IEditorSettings {
     }
 
     public void setUseTabForAdvance(boolean useTabForAdvance) {
-        this.useTabForAdvance = useTabForAdvance;
+        // The field follows the preference through the listener.
         Preferences.setPreference(Preferences.USE_TAB_TO_ADVANCE, useTabForAdvance);
     }
 
