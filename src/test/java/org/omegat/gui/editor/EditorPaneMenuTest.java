@@ -26,7 +26,9 @@
 package org.omegat.gui.editor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +39,8 @@ import javax.swing.JSeparator;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.omegat.core.Core;
+import org.omegat.core.data.NotLoadedProject;
 import org.omegat.util.OStrings;
 import org.omegat.util.TestPreferencesInitializer;
 
@@ -53,16 +57,18 @@ public class EditorPaneMenuTest {
     @Before
     public final void setUp() throws Exception {
         TestPreferencesInitializer.init();
+        Core.setProject(new NotLoadedProject());
         refreshes = new AtomicInteger();
         popup = new JPopupMenu();
-        new EditorPaneMenu(refreshes::incrementAndGet, column -> 60, () -> 120, () -> 14)
-                .populatePaneMenu(popup);
+        new EditorPaneMenu(mock(EditorController.class), refreshes::incrementAndGet,
+                column -> 60, () -> 120, () -> 14).populatePaneMenu(popup);
+        // the configuration dialog, a separator, the preferences shortcut,
+        // the CSV export
+        assertEquals(4, popup.getComponentCount());
     }
 
     @Test
     public void testOffersThePreferencesShortcut() {
-        // the configuration dialog, a separator, the preferences shortcut
-        assertEquals(3, popup.getComponentCount());
         assertTrue(popup.getComponent(1) instanceof JSeparator);
         JMenuItem prefs = (JMenuItem) popup.getComponent(2);
         assertEquals(OStrings.getString("GUI_EDITORWINDOW_OPEN_PREFS"), prefs.getText());
@@ -72,5 +78,14 @@ public class EditorPaneMenuTest {
         JMenuItem configure = (JMenuItem) popup.getComponent(0);
         assertEquals(OStrings.getString("GUI_EDITORWINDOW_GUTTER_CONFIGURE"), configure.getText());
         assertEquals(1, configure.getActionListeners().length);
+    }
+
+    @Test
+    public void testOffersTheCsvExport() {
+        JMenuItem export = (JMenuItem) popup.getComponent(3);
+        assertEquals(OStrings.getString("GUI_EDITORWINDOW_EXPORT_CSV"), export.getText());
+        // No loaded project, nothing to export.
+        assertFalse(export.isEnabled());
+        assertEquals(1, export.getActionListeners().length);
     }
 }
