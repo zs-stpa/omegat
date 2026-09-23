@@ -251,6 +251,7 @@ dependencies {
     testAcceptanceImplementation(libs.bundles.jackson)
     testAcceptanceImplementation(libs.bundles.lucene)
     testAcceptanceImplementation(project(':aligner'))
+    testAcceptanceImplementation(project(':actionpanel'))
 
     testIntegrationImplementation sourceSets.main.output, sourceSets.test.output
     testIntegrationImplementation(testFixtures(project(':')))

@@ -32,11 +32,9 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-import org.omegat.core.Core;
 import org.omegat.core.statistics.StatisticsSettings;
 import org.omegat.gui.preferences.BasePreferencesController;
 import org.omegat.util.OStrings;
@@ -180,9 +178,5 @@ public class TagProcessingOptionsController extends BasePreferencesController {
         Preferences.setPreference(Preferences.TAGS_VALID_REQUIRED, panel.cbTagsValidRequired.isSelected());
         StatisticsSettings.setCountingProtectedText(panel.cbCountingProtectedText.isSelected());
         StatisticsSettings.setCountingCustomTags(panel.cbCountingProtectedText.isSelected());
-        PatternConsts.updatePlaceholderPattern();
-        PatternConsts.updateRemovePattern();
-        PatternConsts.updateCustomTagPattern();
-        SwingUtilities.invokeLater(() -> Core.getEditor().getSettings().updateTagValidationPreferences());
     }
 }
