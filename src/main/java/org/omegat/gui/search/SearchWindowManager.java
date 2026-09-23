@@ -31,7 +31,6 @@ import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.OStrings;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.StaticUIUtils;
-import org.omegat.util.StringUtil;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
