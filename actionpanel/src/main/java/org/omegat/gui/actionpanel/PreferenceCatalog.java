@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
@@ -197,15 +198,19 @@ public final class PreferenceCatalog {
     }
 
     /** Coded default of a catalogued toggle, for tests and callers. */
-    static @Nullable Boolean codedDefault(String key) {
+    static Optional<Boolean> codedDefault(String key) {
         Def def = BY_KEY.get(key);
         if (def == null || !KIND_TOGGLE.equals(def.spec().kind())) {
-            return null;
+            return Optional.empty();
         }
-        return Boolean.parseBoolean(def.spec().values().get(0));
+        return Optional.of(Boolean.parseBoolean(def.spec().values().get(0)));
     }
 
-    /** Coded default of a catalogued slider, for tests and callers. */
+    /**
+     * Coded default of a catalogued slider, for tests and callers. Nullable
+     * instead of OptionalInt only because SpotBugs flags null Booleans, not
+     * null Integers - see codedDefault.
+     */
     static @Nullable Integer codedIntDefault(String key) {
         Def def = BY_KEY.get(key);
         if (def == null || !KIND_SLIDER.equals(def.spec().kind())) {

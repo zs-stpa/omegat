@@ -279,6 +279,7 @@
         <Or>
             <Class name="org.omegat.filters2.master.FilterMaster"/>
             <Class name="org.omegat.filters2.mozdtd.MozillaDTDFilter"/>
+            <Class name="org.omegat.gui.actionpanel.ActionPanelConfig"/>
             <Class name="org.omegat.gui.dialogs.FilenamePatternsEditorController"/>
             <Class name="org.omegat.gui.editor.ViewLabel"/>
             <Class name="org.omegat.util.OStrings"/>
