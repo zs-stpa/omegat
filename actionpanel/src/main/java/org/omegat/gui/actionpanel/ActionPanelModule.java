@@ -147,12 +147,23 @@ public final class ActionPanelModule {
         // for it, and minimize it on its very first appearance only, so a
         // user-chosen placement is never overridden afterwards.
         SwingUtilities.invokeLater(() -> {
-            if (pane.getDockKey().getLocation() == DockableState.Location.CLOSED) {
+            boolean freshlyDocked = pane.getDockKey().getLocation() == DockableState.Location.CLOSED;
+            if (freshlyDocked) {
                 desktop.addDockable(pane);
             }
+            // Minimize only a pane the layout did not place: a position
+            // restored from the layout is the user's and stays, even when
+            // the preference got lost. The flag is written through to disk
+            // at once - preferences are otherwise flushed only at project
+            // saves, dialog confirmations and clean exit, so a session
+            // killed before any of those re-minimized the pane on every
+            // start.
             if (!Preferences.existsPreference(INITIALIZED_PREFERENCE)) {
-                desktop.setAutoHide(pane, true);
+                if (freshlyDocked) {
+                    desktop.setAutoHide(pane, true);
+                }
                 Preferences.setPreference(INITIALIZED_PREFERENCE, true);
+                Preferences.save();
             }
         });
     }
