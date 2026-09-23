@@ -148,7 +148,7 @@ public class PreferenceCatalogTest {
             } catch (NoSuchFieldException e) {
                 continue;
             }
-            Boolean codedBoolean = PreferenceCatalog.codedDefault(key);
+            Boolean codedBoolean = PreferenceCatalog.codedDefault(key).orElse(null);
             Integer codedInt = PreferenceCatalog.codedIntDefault(key);
             if (constant.getType() == boolean.class && codedBoolean != null) {
                 assertEquals(field.getName(), constant.get(null), codedBoolean);

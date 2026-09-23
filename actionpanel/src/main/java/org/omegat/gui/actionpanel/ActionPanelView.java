@@ -1049,37 +1049,6 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                 JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION;
     }
 
-    private void addTypeSpecificEntries(JPopupMenu menu, ActionRow row) {
-        if (row.action() instanceof SearchActionSpec search) {
-            JMenuItem filter = rowMenuItem(row, "ROW_MENU_APPLY_FILTER");
-            filter.addActionListener(e -> ActionInvoker.applySearchFilter(search, this,
-                    updated -> updateRowAction(row, updated)));
-            menu.addPopupMenuListener(new PopupMenuListener() {
-                @Override
-                public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                    filter.setEnabled(Core.getProject().isProjectLoaded() && !search.query().isEmpty());
-                }
-
-                @Override
-                public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-                }
-
-                @Override
-                public void popupMenuCanceled(PopupMenuEvent e) {
-                }
-            });
-            menu.add(filter);
-            JMenuItem edit = rowMenuItem(row, "ROW_MENU_EDIT_SEARCH");
-            edit.addActionListener(e -> {
-                ActionSpec updated = SearchActionWizard.show(this, search.replace(), search);
-                if (updated != null) {
-                    updateRowAction(row, updated);
-                }
-            });
-            menu.add(edit);
-        }
-    }
-
     private static JMenuItem rowMenuItem(ActionRow row, String bundleKey) {
         JMenuItem item = new JMenuItem(ActionPanelModule.getString(bundleKey));
         item.setName(ComponentNames.rowMenuEntry(row.id(), bundleKey));
