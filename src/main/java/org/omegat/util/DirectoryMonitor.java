@@ -54,6 +54,17 @@ public class DirectoryMonitor extends Thread {
     protected static final long LOOKUP_PERIOD = 1000;
 
     /**
+     * Directories whose content a monitor never reports: version control
+     * bookkeeping and the team project checkout mirror, as in the directory
+     * entries of {@link org.omegat.core.data.ProjectProperties}'
+     * DEFAULT_EXCLUDES for the source tree. Without this, a
+     * glossary, dictionary or tm folder that contains the .repositories
+     * checkout loads every file of the mirror a second time.
+     */
+    static final Set<String> SKIPPED_DIR_NAMES = Set.of(".svn", "CVS", ".cvs", ".git", ".hg",
+            ".repositories");
+
+    /**
      * Create monitor.
      *
      * @param dir
@@ -80,6 +91,44 @@ public class DirectoryMonitor extends Thread {
 
     public File getDir() {
         return dir;
+    }
+
+    /**
+     * Whether this monitor would report the file: it lies under the
+     * monitored root and not inside a skipped directory. Lets callback
+     * owners validate paths handed to them directly (the team rebase
+     * passes repository-side paths), so foreign files never enter their
+     * bookkeeping. The root comparison uses normalized absolute paths;
+     * the skip walk runs on the original parent chain, so bound equality
+     * assumes the same path representation as the monitored root.
+     */
+    public boolean accepts(File file) {
+        return file.toPath().toAbsolutePath().normalize()
+                .startsWith(dir.toPath().toAbsolutePath().normalize()) && !isUnderSkippedDirectory(file);
+    }
+
+    /**
+     * Whether the file lies under one of the skipped directories; the walk
+     * is bounded by the monitored root, so the root's own location never
+     * disqualifies its content.
+     */
+    boolean isUnderSkippedDirectory(File file) {
+        return isUnderSkippedDirectory(file, dir);
+    }
+
+    /**
+     * Whether the file lies under a skipped directory, the parent walk
+     * bounded by the given directory. A null bound walks to the filesystem
+     * root - the variant for callers without a monitor.
+     */
+    public static boolean isUnderSkippedDirectory(File file, File bound) {
+        for (File parent = file.getParentFile(); parent != null && !parent.equals(bound); parent = parent
+                .getParentFile()) {
+            if (SKIPPED_DIR_NAMES.contains(parent.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -146,7 +195,7 @@ public class DirectoryMonitor extends Thread {
         }
 
         // find new files
-        List<File> foundFiles = FileUtil.findFiles(dir, pathname -> true, 
+        List<File> foundFiles = FileUtil.findFiles(dir, pathname -> !isUnderSkippedDirectory(pathname),
                 (f1, f2) -> f1.toString().toLowerCase().compareTo(f2.toString().toLowerCase()));
 
         for (File f : foundFiles) {
