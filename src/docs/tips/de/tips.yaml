@@ -84,3 +84,5 @@ tips:
   name: "MT-4tw-4"
 - file: "numbers_checked_in_every_system.html"
   name: "Zahlen werden in jedem Zahlsystem geprüft"
+- file: "number_autoconvert.html"
+  name: "Zahlensegmente automatisch ausfüllen"
