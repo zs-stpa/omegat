@@ -4,17 +4,14 @@ trigger:
       - master
       - releases/*
       - refs/tags/v*
+      - mr/*
     exclude:
       - release/*
       - standard
 
-pr:
-  branches:
-    include:
-      - master
-      - releases/*
-    exclude:
-      - standard
+# Pull request triggers do not apply to Azure Repos; merge requests on
+# SourceForge are synced to mr/* branches and built by the CI trigger above.
+pr: none
 
 schedules:
   - cron: '0 12 * * 6'
@@ -53,9 +50,12 @@ stages:
             files=$(git diff-tree --no-commit-id --name-only -r origin/master..HEAD)
           fi
           doc_changed=false
+          dev_doc_changed=false
           non_doc_changed=false
           for file in $files; do
-            if [[ $file =~ ^src_docs || $file =~ ^tipoftheday/.*\.(html|yaml)$ ]]; then
+            if [[ $file =~ ^src/docs/developer/ || $file == src/docs/requirements.txt ]]; then
+              dev_doc_changed=true
+            elif [[ $file =~ ^src/docs ]]; then
               doc_changed=true
             elif [[ ! ($file =~ ^\. || $file =~ ^ci/ || $file =~ \.ya?ml$ ) ]]; then
               non_doc_changed=true
@@ -70,13 +70,26 @@ stages:
     condition: eq(dependencies.CheckChanges.outputs['checkChanges.changeDoc'], 'true')
     pool:
       vmImage: 'ubuntu-24.04'
-      steps:
+    steps:
       - checkout: self
         clean: true
         fetchDepth: 1
         fetchTags: true
         lfs: false
       - template: ci/azure-pipelines/build_doc_steps.yml
+  - job: BuildDeveloperDocument
+    displayName: Build Developer Document
+    dependsOn: CheckChanges
+    condition: eq(dependencies.CheckChanges.outputs['checkChanges.devDocChanged'], 'true')
+    pool:
+      vmImage: 'ubuntu-24.04'
+    steps:
+      - checkout: self
+        clean: true
+        fetchDepth: 1
+        fetchTags: true
+        lfs: false
+      - template: ci/azure-pipelines/build_dev_doc_steps.yml
   - job: testOnLinux
     displayName: on Linux
     dependsOn: CheckChanges

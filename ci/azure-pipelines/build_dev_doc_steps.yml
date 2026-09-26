@@ -1,0 +1,19 @@
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.14'     # keep in sync with .readthedocs.yaml
+  - task: Cache@2
+    displayName: 'Cache pip'
+    inputs:
+      key: 'pip | "$(Agent.OS)" | src/docs/requirements.txt'
+      restoreKeys: |
+        pip | "$(Agent.OS)"
+      path: '$(Pipeline.Workspace)/.pip'
+  - script: python3 ci/check-docs-assets.py
+    condition: ${{ parameters.condition }}
+    displayName: 'Check documentation assets are referenced'
+  - bash: |
+      set -euo pipefail
+      pip install --cache-dir "$(Pipeline.Workspace)/.pip" -r src/docs/requirements.txt
+      sphinx-build -b html --keep-going src/docs/developer "$(Build.ArtifactStagingDirectory)/developer"
+    displayName: Sphinx build
