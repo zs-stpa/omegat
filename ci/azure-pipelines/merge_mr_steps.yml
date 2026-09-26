@@ -1,0 +1,22 @@
+# Merge a SourceForge merge request into the checked-out target branch.
+# Place after "checkout: self" in each job. Does nothing when mr is empty.
+parameters:
+  - name: mr
+    type: string
+    default: ''
+
+steps:
+  - ${{ if ne(parameters.mr, '') }}:
+      - bash: |
+          set -euo pipefail
+          read -r FORK BRANCH < <(python3 ci/sf-mr-source.py "$MR")
+          echo "Merge request #$MR: $FORK $BRANCH"
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --no-tags --unshallow origin
+          fi
+          git -c user.name="OmegaT CI" -c user.email="ci@omegat.invalid" fetch --no-tags "$FORK" "$BRANCH"
+          git -c user.name="OmegaT CI" -c user.email="ci@omegat.invalid" merge --no-ff --no-edit FETCH_HEAD
+          git log --oneline -3
+        displayName: 'Merge SourceForge MR #${{ parameters.mr }}'
+        env:
+          MR: ${{ parameters.mr }}

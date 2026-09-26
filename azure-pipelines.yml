@@ -1,10 +1,15 @@
+parameters:
+  - name: mr
+    displayName: SourceForge merge request number (leave blank for a normal run)
+    type: string
+    default: ''
+
 trigger:
   branches:
     include:
       - master
       - releases/*
       - refs/tags/v*
-      - mr/*
     exclude:
       - release/*
       - standard
@@ -30,38 +35,48 @@ variables:
 
 stages:
 - stage: TestAndDocCI
-  condition: and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'), ne(variables['isRelease'], true))
+  condition: and(ne(variables['isRelease'], true), or(ne('${{ parameters.mr }}', ''), and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'))))
   jobs:
   - job: CheckChanges
     displayName: Check commit changes
     steps:
       - checkout: self
         clean: true
-        fetchDepth: 10
+        fetchDepth: 0
+        fetchFilter: blob:none
         fetchTags: true
         lfs: false
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - bash: |
-          if [[ "${{ variables['Build.SourceBranch'] }}" == "refs/heads/master" ]]; then
-            # check latest commit
-            files=$(git diff-tree --no-commit-id --name-only -r HEAD)
-          else
-            # pull-request changes
-            git fetch origin master
-            files=$(git diff-tree --no-commit-id --name-only -r origin/master..HEAD)
-          fi
           doc_changed=false
           dev_doc_changed=false
           non_doc_changed=false
-          for file in $files; do
-            if [[ $file =~ ^src/docs/developer/ || $file == src/docs/requirements.txt ]]; then
-              dev_doc_changed=true
-            elif [[ $file =~ ^src/docs ]]; then
-              doc_changed=true
-            elif [[ ! ($file =~ ^\. || $file =~ ^ci/ || $file =~ \.ya?ml$ ) ]]; then
-              non_doc_changed=true
-            fi
-          done
+          if [[ -n "${{ parameters.mr }}" ]]; then
+            # merge request: classify the changes brought in by the merge
+            files=$(git diff --name-only HEAD^1 HEAD)
+            echo "Changed files:"; echo "$files"
+            for file in $files; do
+              if [[ $file =~ ^src/docs/developer/ || $file == src/docs/requirements.txt ]]; then
+                dev_doc_changed=true
+              elif [[ $file =~ ^src/docs ]]; then
+                doc_changed=true
+              elif [[ ! ($file =~ ^\. || $file =~ ^ci/ || $file =~ \.ya?ml$ ) ]]; then
+                non_doc_changed=true
+              fi
+            done
+          else
+            # branch push (master, releases/*): a sync may deliver several
+            # commits at once, so run everything
+            echo "Branch push: running all jobs"
+            doc_changed=true
+            dev_doc_changed=true
+            non_doc_changed=true
+          fi
+          echo "changeDoc=$doc_changed changeDevDoc=$dev_doc_changed changeNonDoc=$non_doc_changed"
           echo "##vso[task.setvariable variable=changeDoc;isOutput=true]$doc_changed"
+          echo "##vso[task.setvariable variable=changeDevDoc;isOutput=true]$dev_doc_changed"
           echo "##vso[task.setvariable variable=changeNonDoc;isOutput=true]$non_doc_changed"
         name: checkChanges
   - job: BuildDocument
@@ -76,6 +91,9 @@ stages:
         fetchDepth: 1
         fetchTags: true
         lfs: false
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - template: ci/azure-pipelines/build_doc_steps.yml
   - job: BuildDeveloperDocument
     displayName: Build Developer Document
@@ -89,6 +107,9 @@ stages:
         fetchDepth: 1
         fetchTags: true
         lfs: false
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - template: ci/azure-pipelines/build_dev_doc_steps.yml
   - job: testOnLinux
     displayName: on Linux
@@ -100,6 +121,9 @@ stages:
       - checkout: self
         fetchDepth: 1
         fetchTags: false
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - template: ci/azure-pipelines/test_steps.yml
   - job: testOnWindows
     displayName: on Windows
@@ -109,7 +133,10 @@ stages:
       vmImage: 'windows-latest'
     steps:
       - checkout: self
-        fetchDepth: 2
+        fetchDepth: 1
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - template: ci/azure-pipelines/test_steps.yml
   - job: testOnMac
     displayName: on mac
@@ -121,10 +148,13 @@ stages:
       - checkout: self
         fetchDepth: 1
         fetchTags: false
+      - template: ci/azure-pipelines/merge_mr_steps.yml
+        parameters:
+          mr: ${{ parameters.mr }}
       - template: ci/azure-pipelines/test_steps.yml
 
 - stage: Weekly
-  condition: or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual'))
+  condition: and(eq('${{ parameters.mr }}', ''), or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual')))
   jobs:
   - job: CheckForWeekly
     displayName: Test and Check
