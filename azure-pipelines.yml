@@ -1,6 +1,18 @@
+# Submission mode: queue a manual run on the target branch (master or
+# releases/*) and give all three submission parameters. The run then tests the
+# submission merged onto that branch and publishes nothing.
+# Leave all three blank for a normal run.
 parameters:
-  - name: mr
-    displayName: SourceForge merge request number (leave blank for a normal run)
+  - name: subRepo
+    displayName: 'Submission: repository URL (https)'
+    type: string
+    default: ''
+  - name: subBranch
+    displayName: 'Submission: branch'
+    type: string
+    default: ''
+  - name: subCommit
+    displayName: 'Submission: tip commit (full 40-character hash)'
     type: string
     default: ''
 
@@ -14,8 +26,9 @@ trigger:
       - release/*
       - standard
 
-# Pull request triggers do not apply to Azure Repos; merge requests on
-# SourceForge are synced to mr/* branches and built by the CI trigger above.
+# Pull request triggers do not apply to Azure Repos. External submissions
+# (request-pull mails, SourceForge merge requests) are validated by a manual
+# run in submission mode; see the parameters above.
 pr: none
 
 schedules:
@@ -35,7 +48,7 @@ variables:
 
 stages:
 - stage: TestAndDocCI
-  condition: and(ne(variables['isRelease'], true), or(ne('${{ parameters.mr }}', ''), and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'))))
+  condition: and(ne(variables['isRelease'], true), or(ne('${{ parameters.subCommit }}', ''), and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'))))
   jobs:
   - job: CheckChanges
     displayName: Check commit changes
@@ -46,15 +59,21 @@ stages:
         fetchFilter: blob:none
         fetchTags: true
         lfs: false
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
       - bash: |
           doc_changed=false
           dev_doc_changed=false
           non_doc_changed=false
-          if [[ -n "${{ parameters.mr }}" ]]; then
-            # merge request: classify the changes brought in by the merge
+          if [[ -n "$SUB_COMMIT" ]]; then
+            # submission: label the run, then classify the changes brought in by the merge
+            target="${BUILD_SOURCEBRANCH#refs/heads/}"
+            echo "##vso[build.updatebuildnumber]sub-${target//\//-}-${SUB_COMMIT:0:12}-${BUILD_BUILDID}"
+            echo "##vso[build.addbuildtag]submission"
+            echo "##vso[build.addbuildtag]base-$(git rev-parse --short=12 HEAD^1)"
             files=$(git diff --name-only HEAD^1 HEAD)
             echo "Changed files:"; echo "$files"
             for file in $files; do
@@ -78,6 +97,8 @@ stages:
           echo "##vso[task.setvariable variable=changeDoc;isOutput=true]$doc_changed"
           echo "##vso[task.setvariable variable=changeDevDoc;isOutput=true]$dev_doc_changed"
           echo "##vso[task.setvariable variable=changeNonDoc;isOutput=true]$non_doc_changed"
+        env:
+          SUB_COMMIT: ${{ parameters.subCommit }}
         name: checkChanges
   - job: BuildDocument
     displayName: Build Document and Publish
@@ -91,10 +112,14 @@ stages:
         fetchDepth: 1
         fetchTags: true
         lfs: false
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/build_doc_steps.yml
+        parameters:
+          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission-docs', 'gradle-docs') }}
   - job: BuildDeveloperDocument
     displayName: Build Developer Document
     dependsOn: CheckChanges
@@ -107,10 +132,14 @@ stages:
         fetchDepth: 1
         fetchTags: true
         lfs: false
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/build_dev_doc_steps.yml
+        parameters:
+          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission-pip', 'pip') }}
   - job: testOnLinux
     displayName: on Linux
     dependsOn: CheckChanges
@@ -121,10 +150,14 @@ stages:
       - checkout: self
         fetchDepth: 1
         fetchTags: false
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
-      - template: ci/azure-pipelines/test_steps.yml
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
+      - template: ci/azure-pipelines/check_steps.yml
+        parameters:
+          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
   - job: testOnWindows
     displayName: on Windows
     dependsOn: CheckChanges
@@ -134,10 +167,14 @@ stages:
     steps:
       - checkout: self
         fetchDepth: 1
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/test_steps.yml
+        parameters:
+          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
   - job: testOnMac
     displayName: on mac
     dependsOn: CheckChanges
@@ -148,13 +185,17 @@ stages:
       - checkout: self
         fetchDepth: 1
         fetchTags: false
-      - template: ci/azure-pipelines/merge_mr_steps.yml
+      - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
-          mr: ${{ parameters.mr }}
+          subRepo: ${{ parameters.subRepo }}
+          subBranch: ${{ parameters.subBranch }}
+          subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/test_steps.yml
+        parameters:
+          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
 
 - stage: Weekly
-  condition: and(eq('${{ parameters.mr }}', ''), or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual')))
+  condition: and(eq('${{ parameters.subCommit }}', ''), or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual')))
   jobs:
   - job: CheckForWeekly
     displayName: Test and Check
@@ -225,7 +266,7 @@ stages:
 
   # Release steps will run on the main and/or release branch with tags.
 - stage: Release
-  condition: eq(variables.isRelease, true)
+  condition: and(eq('${{ parameters.subCommit }}', ''), eq(variables.isRelease, true))
   jobs:
   - job: CheckForRelease
     displayName: Test and Check

@@ -1,3 +1,13 @@
+# cacheKeyPrefix separates caches written by untrusted runs; submission runs
+# pass 'submission-pip' so that no other run restores what they save.
+parameters:
+  - name: cacheKeyPrefix
+    type: string
+    default: pip
+    values:
+      - pip
+      - submission-pip
+
 steps:
   - task: UsePythonVersion@0
     inputs:
@@ -5,12 +15,11 @@ steps:
   - task: Cache@2
     displayName: 'Cache pip'
     inputs:
-      key: 'pip | "$(Agent.OS)" | src/docs/requirements.txt'
+      key: '${{ parameters.cacheKeyPrefix }} | "$(Agent.OS)" | src/docs/requirements.txt'
       restoreKeys: |
         pip | "$(Agent.OS)"
       path: '$(Pipeline.Workspace)/.pip'
   - script: python3 ci/check-docs-assets.py
-    condition: ${{ parameters.condition }}
     displayName: 'Check documentation assets are referenced'
   - bash: |
       set -euo pipefail

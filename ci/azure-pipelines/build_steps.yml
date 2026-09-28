@@ -31,7 +31,7 @@ steps:
     displayName: 'Build docs'
   - task: Gradle@3
     inputs:
-      tasks: 'sourceDistZip distZip mac win'
+      tasks: 'sourceDistZip distZip mac win linux'
       options: '--build-cache -PenvIsCi --scan -PassetDir=$(System.ArtifactsDirectory)/asset'
       jdkVersionOption: '1.21'
     displayName: 'Build distribution packages'

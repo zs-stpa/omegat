@@ -1,8 +1,19 @@
+# cacheKeyPrefix separates caches written by untrusted runs. Submission runs
+# pass 'submission': they may restore trusted 'gradle' caches, but what they
+# save is stored under their own prefix, which no other run restores.
+parameters:
+  - name: cacheKeyPrefix
+    type: string
+    default: gradle
+    values:
+      - gradle
+      - submission
+
 steps:
   - task: Cache@2
     displayName: 'Cache Gradle'
     inputs:
-      key: 'gradle | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | settings.gradle | **/build.gradle'
+      key: '${{ parameters.cacheKeyPrefix }} | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | settings.gradle | **/build.gradle'
       restoreKeys: |
         gradle | "$(Agent.OS)"
         gradle

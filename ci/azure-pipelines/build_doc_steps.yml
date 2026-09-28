@@ -1,16 +1,24 @@
+# cacheKeyPrefix separates caches written by untrusted runs; submission runs
+# pass 'submission-docs' so that no other run restores what they save.
+parameters:
+  - name: cacheKeyPrefix
+    type: string
+    default: gradle-docs
+    values:
+      - gradle-docs
+      - submission-docs
+
 steps:
   - task: Cache@2
     displayName: 'Cache Gradle'
-    condition: ${{ parameters.condition }}
     inputs:
-      key: 'gradle-docs | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | build-logic/build.gradle | build-logic/src/main/groovy/org.omegat.document-conventions.gradle | src/docs/manual | src/docs/xsl | src/docs/style'
+      key: '${{ parameters.cacheKeyPrefix }} | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | build-logic/build.gradle | build-logic/src/main/groovy/org.omegat.document-conventions.gradle | src/docs/manual | src/docs/xsl | src/docs/style'
       restoreKeys: |
         gradle-docs | "$(Agent.OS)"
         gradle | "$(Agent.OS)"
         gradle
       path: '$(GRADLE_USER_HOME)/caches/modules-2'
   - task: Gradle@3
-    condition: ${{ parameters.condition }}
     inputs:
       tasks: 'manualHtmls'
       options: '-PenvIsCi --no-daemon'
