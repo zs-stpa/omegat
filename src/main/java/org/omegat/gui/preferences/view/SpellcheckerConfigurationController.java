@@ -201,14 +201,18 @@ public class SpellcheckerConfigurationController extends BasePreferencesControll
     @Override
     public void persist() {
         boolean isNeedToSpell = panel.autoSpellcheckCheckBox.isSelected();
+        boolean wasOn = Preferences.isPreferenceDefault(Preferences.ALLOW_AUTO_SPELLCHECKING, true);
         Preferences.setPreference(Preferences.ALLOW_AUTO_SPELLCHECKING, isNeedToSpell);
         Preferences.setPreference(Preferences.SPELLCHECKER_DICTIONARY_DIRECTORY,
                 panel.directoryTextField.getText());
-        if (isNeedToSpell && Core.getProject().isProjectLoaded()) {
+        // Switching checking on reloads dictionaries through the editor's
+        // preference listener. Dictionaries installed or removed on this
+        // page while checking stays on are no preference, so reload here.
+        if (wasOn && isNeedToSpell && Core.getProject().isProjectLoaded()) {
             ISpellChecker sc = Core.getSpellChecker();
             sc.destroy();
             sc.initialize();
+            SwingUtilities.invokeLater(() -> Core.getEditor().getSettings().setAutoSpellChecking(true));
         }
-        SwingUtilities.invokeLater(() -> Core.getEditor().getSettings().setAutoSpellChecking(isNeedToSpell));
     }
 }
