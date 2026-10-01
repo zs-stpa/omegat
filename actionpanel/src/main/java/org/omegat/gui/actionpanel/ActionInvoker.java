@@ -29,6 +29,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
@@ -248,7 +250,26 @@ public final class ActionInvoker {
             entry.getItem().doClick();
             return;
         }
+        // Items a plugin wired to its own listener (external searches, for
+        // one) have no handler method behind their command: click them.
+        if (!dispatchesThroughMainMenu(entry.getItem(), Core.getMainWindow().getMainMenu())) {
+            entry.getItem().doClick();
+            return;
+        }
         Core.getMainWindow().getMainMenu().invokeAction(spec.actionCommand(), modifiers);
+    }
+
+    /**
+     * Whether the main menu itself listens to the item, which is how its
+     * action command gets resolved to a handler method by name.
+     */
+    static boolean dispatchesThroughMainMenu(JMenuItem item, Object mainMenu) {
+        for (ActionListener listener : item.getActionListeners()) {
+            if (listener == mainMenu) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
