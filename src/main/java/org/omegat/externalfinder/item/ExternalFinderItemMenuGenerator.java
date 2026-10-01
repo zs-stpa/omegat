@@ -50,6 +50,12 @@ import org.openide.awt.Mnemonics;
 
 public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuGenerator {
 
+    /**
+     * Prefix of the action command of generated menu items, followed by the
+     * item name. Lets menu harvesters address an item without clashing with
+     * the main menu's handler names; the item is triggered by clicking it.
+     */
+    public static final String ACTION_COMMAND_PREFIX = "externalFinder:";
 
     private final ExternalFinderItem.TARGET target;
     private final boolean popup;
@@ -98,6 +104,7 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
             JMenuItem item = new JMenuItem();
             Mnemonics.setLocalizedText(item, finderItem.getName());
             item.setName(finderItem.getName());
+            item.setActionCommand(ACTION_COMMAND_PREFIX + finderItem.getName());
 
             // set keyboard shortcut
             if (!popup) {
