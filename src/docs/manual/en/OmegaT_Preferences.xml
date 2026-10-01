@@ -755,12 +755,17 @@
                   		  the set name will also be displayed in the 
                   <link linkend="panes.editor.context.menu" role="xref">context menu</link> if a string is
                   		  selected.</para>
-               <para>URL searches as well as commands must contain the string
-                  		  
-                  <literal>{target}</literal> to be accepted. The
-                  		  
-                  <literal>{target}</literal> placeholder will be replaced by the string
-                  		  that was selected in the Editor.</para>
+               <para>URL searches as well as commands must contain at least one
+                  		  placeholder. Placeholders are filled in when the search runs:
+                  		  <literal>{target}</literal> is the string selected in the Editor,
+                  		  <literal>{comment}</literal> the comment of the current segment,
+                  		  <literal>{prop:key}</literal> one of its properties by key,
+                  		  <literal>{file}</literal> its source file and
+                  		  <literal>{id}</literal> its identifier. A regex in braces narrows
+                  		  the value, e.g. <literal>{comment:{line=(\d+)}}</literal>: the first
+                  		  match is used, group 1 if the regex has groups. Sets that do not use
+                  		  <literal>{target}</literal> are also available without a selection.
+                  		  The editing dialog lists the placeholders; clicking one inserts it.</para>
                <para>URLs are opened with the default web browser, one per
                   		  tab.</para>
                <example xml:id="dialogs.preferences.external.search.items.url.search.example">

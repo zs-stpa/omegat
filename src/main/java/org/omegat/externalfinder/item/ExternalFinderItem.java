@@ -25,6 +25,8 @@
 
 package org.omegat.externalfinder.item;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,6 +47,11 @@ import org.omegat.util.OStrings;
  */
 public final class ExternalFinderItem {
 
+    /**
+     * @deprecated templates know several placeholders now; see
+     *             {@link PlaceholderTemplate#TARGET} and its siblings.
+     */
+    @Deprecated
     public static final String PLACEHOLDER_TARGET = "{target}";
 
     public enum TARGET {
@@ -100,6 +107,15 @@ public final class ExternalFinderItem {
         }
 
         private final String value;
+
+        /** Encode one placeholder value the way this encoding prescribes. */
+        public String apply(String value) {
+            if (this == NONE) {
+                return value;
+            }
+            String encoded = URLEncoder.encode(value, StandardCharsets.UTF_8);
+            return this == ESCAPE ? encoded.replace("+", "%20") : encoded;
+        }
 
         @Override
         public String toString() {
@@ -158,6 +174,15 @@ public final class ExternalFinderItem {
 
     public boolean isNonAsciiOnly() {
         return isTargetOnly(TARGET.NON_ASCII_ONLY);
+    }
+
+    /**
+     * Whether any URL or command of this item reads the editor selection. An
+     * item that does not can run without a selection.
+     */
+    public boolean usesSelection() {
+        return urls.stream().anyMatch(ExternalFinderItemURL::usesSelection)
+                || commands.stream().anyMatch(ExternalFinderItemCommand::usesSelection);
     }
 
     private boolean isTargetOnly(final TARGET target) {
