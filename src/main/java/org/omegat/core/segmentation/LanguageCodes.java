@@ -27,12 +27,16 @@
 
 package org.omegat.core.segmentation;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.omegat.util.Log;
 import org.omegat.util.OStrings;
 
 /**
@@ -117,7 +121,9 @@ public final class LanguageCodes {
     private static final String CHINESE_PATTERN = "ZH.*";
 
     /**
-     * A Map from language codes to language keys.
+     * A Map from language codes to language keys. When adding a rule set
+     * here, extend the KEY_TO_CODE table of LanguageCodesTest as well, so
+     * its translations are guarded.
      */
     private static final Map<String, String> CODE_KEY_HASH = new HashMap<>();
     private static final Map<String, String> PATTERN_HASH = new HashMap<>();
@@ -180,10 +186,19 @@ public final class LanguageCodes {
         if (name == null) {
             return null;
         }
+        name = name.trim();
         for (Map.Entry<String, String> entry : CODE_KEY_HASH.entrySet()) {
             if (OStrings.getString(entry.getValue()).equals(name)) {
                 return entry.getKey();
             }
+        }
+        // The comparison above only sees the translation of the running UI
+        // language, but the file may have been written under any other one:
+        // rule set names were stored localized up to OmegaT 5.x. Look the
+        // name up in every translation the stable releases ever shipped.
+        String alias = NameAliases.TABLE.get(name);
+        if (alias != null) {
+            return alias;
         }
         // migration heuristics: Germany translation changed in v5.5.
         // See:
@@ -192,6 +207,32 @@ public final class LanguageCodes {
             return LanguageCodes.F_TEXT_CODE;
         }
         return null;
+    }
+
+    /**
+     * Localized rule set names of every translation the stable releases
+     * since OmegaT 3.0 shipped (plus a few known pre-3.0 values), mapped to
+     * the stable codes. Lazily loaded holder; names that ever meant two
+     * different codes are absent from the table on purpose.
+     */
+    private static final class NameAliases {
+        private static final Map<String, String> TABLE = load();
+
+        private static Map<String, String> load() {
+            Properties props = new Properties();
+            try (InputStream in = LanguageCodes.class.getResourceAsStream("rule-name-aliases.properties")) {
+                if (in != null) {
+                    props.load(in);
+                }
+            } catch (IOException | RuntimeException ex) {
+                // A broken table must degrade to "no alias found", never
+                // poison this class with an ExceptionInInitializerError.
+                Log.log(ex);
+            }
+            Map<String, String> table = new HashMap<>();
+            props.stringPropertyNames().forEach(name -> table.put(name, props.getProperty(name)));
+            return Map.copyOf(table);
+        }
     }
 
     public static @Nullable String getLanguageCodeByPattern(String pattern) {
