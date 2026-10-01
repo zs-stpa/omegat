@@ -78,6 +78,8 @@ public class ExternalFinderItemURLEditorController {
         StaticUIUtils.setEscapeClosable(dialog);
 
         panel.commandPanel.setVisible(false);
+        // Below the explanatory text, above the field.
+        panel.urlPanel.add(PlaceholderLinks.create(panel.urlTextArea), 1);
 
         panel.urlTextArea.setText(builder.getURL());
         panel.urlTextArea.getDocument().addDocumentListener(new DocumentListener() {
