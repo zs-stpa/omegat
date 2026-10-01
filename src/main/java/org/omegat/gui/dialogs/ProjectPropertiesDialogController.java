@@ -35,11 +35,11 @@ package org.omegat.gui.dialogs;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -50,7 +50,9 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import org.jspecify.annotations.Nullable;
+
 import org.omegat.core.data.ProjectProperties;
+import org.omegat.core.matching.MatchEquivalence;
 import org.omegat.core.segmentation.SRX;
 import org.omegat.externalfinder.ExternalFinder;
 import org.omegat.externalfinder.gui.ExternalFinderCustomizer;
@@ -63,6 +65,7 @@ import org.omegat.gui.segmentation.SegmentationCustomizer;
 import org.omegat.util.Language;
 import org.omegat.util.OConsts;
 import org.omegat.util.OStrings;
+import org.omegat.util.PatternConsts;
 import org.omegat.util.Preferences;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.OmegaTFileChooser;
@@ -77,18 +80,15 @@ public class ProjectPropertiesDialogController {
 
     /** Project SRX. */
     private SRX srx;
+    private Set<MatchEquivalence> disabledMatchEquivalences = EnumSet.noneOf(MatchEquivalence.class);
+    private boolean matchNumbersEnabled;
+    private boolean matchNumbersRomanEnabled;
 
     /** Project filters. */
     private Filters filters;
 
     /** Project ExternalFinder config */
-    private @Nullable ExternalFinderConfiguration externalFinderConfig;
-
-    /**
-     * Project team repositories mapping. Buffered like the SRX and filter
-     * settings, so edits reach the live project properties on OK only.
-     */
-    private List<RepositoryDefinition> repositories;
+    private ExternalFinderConfiguration externalFinderConfig;
 
     private final List<String> srcExcludes = new ArrayList<>();
 
@@ -96,6 +96,17 @@ public class ProjectPropertiesDialogController {
      * Whether the user canceled the dialog.
      */
     private boolean dialogCancelled;
+    /** The project's custom-tag expression; null means the global preference applies. */
+    private @Nullable String customTagPattern;
+    /** The project's removed-text expression; null means the global preference applies. */
+    private @Nullable String removeTextPattern;
+    /**
+     * Whether the user confirmed the tag definitions editor. The stored
+     * expressions are only rewritten in that case, so a routine OK neither
+     * touches them nor lifts the load-failure guard of a broken
+     * tag_patterns.xml.
+     */
+    private boolean tagPatternsEdited;
 
     private final Frame parent;
     private final ProjectPropertiesDialog dialog;
@@ -107,7 +118,6 @@ public class ProjectPropertiesDialogController {
         this.projectProperties = projectProperties;
         this.srx = projectProperties.getProjectSRX();
         this.filters = projectProperties.getProjectFilters();
-        this.repositories = projectProperties.getRepositories();
         srcExcludes.addAll(projectProperties.getSourceRootExcludes());
         externalFinderConfig = ExternalFinder.getProjectConfig();
         initFromProperties();
@@ -117,7 +127,7 @@ public class ProjectPropertiesDialogController {
     /**
      * Return new properties or null if dialog cancelled.
      */
-    public @Nullable ProjectProperties getResult() {
+    public ProjectProperties getResult() {
         return dialogCancelled ? null : projectProperties;
     }
 
@@ -137,7 +147,9 @@ public class ProjectPropertiesDialogController {
         dialog.sentenceSegmentingCheckBox.setSelected(projectProperties.isSentenceSegmentingEnabled());
         dialog.allowDefaultsCheckBox.setSelected(projectProperties.isSupportDefaultTranslations());
         dialog.removeTagsCheckBox.setSelected(projectProperties.isRemoveTags());
-        dialog.matchNumbersCheckBox.setSelected(projectProperties.isMatchNumbersEnabled());
+        matchNumbersEnabled = projectProperties.isMatchNumbersEnabled();
+        matchNumbersRomanEnabled = projectProperties.isMatchNumbersRomanEnabled();
+        disabledMatchEquivalences = projectProperties.getDisabledMatchEquivalences();
         dialog.checkNumbersCheckBox.setSelected(projectProperties.isCheckNumbersEnabled());
 
         dialog.sourceLocaleField.setSelectedItem(projectProperties.getSourceLanguage());
@@ -147,6 +159,19 @@ public class ProjectPropertiesDialogController {
         dialog.targetTokenizerField.setSelectedItem(projectProperties.getTargetTokenizer());
 
         dialog.externalCommandTextArea.setText(projectProperties.getExternalCommand());
+
+        customTagPattern = projectProperties.getCustomTagPattern();
+        removeTextPattern = projectProperties.getRemoveTextPattern();
+    }
+
+    private static String globalCustomTagPattern() {
+        return Preferences.existsPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                ? Preferences.getPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                : PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT;
+    }
+
+    private static String globalRemoveTextPattern() {
+        return Preferences.getPreference(Preferences.CHECK_REMOVE_PATTERN);
     }
 
     private void initializeActions(ProjectPropertiesDialog.Mode dialogType) {
@@ -154,15 +179,6 @@ public class ProjectPropertiesDialogController {
         StaticUIUtils.setEscapeAction(dialog, new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                doCancel();
-            }
-        });
-        // The window close button must count as Cancel; without this it
-        // leaves dialogCancelled at its initial false and getResult()
-        // reports the properties as confirmed.
-        dialog.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
                 doCancel();
             }
         });
@@ -200,15 +216,36 @@ public class ProjectPropertiesDialogController {
 
         dialog.repositoriesButton.addActionListener(e -> {
             RepositoriesMappingDialog rmd = new RepositoriesMappingDialog(parent, true);
-            List<RepositoryDefinition> r = rmd.show(repositories);
+            List<RepositoryDefinition> r = rmd.show(projectProperties.getRepositories());
             if (r != null) {
-                repositories = r;
+                projectProperties.setRepositories(r);
+            }
+        });
+        dialog.matchEquivalenceButton.addActionListener(e -> {
+            MatchEquivalenceDialog.Result updated = MatchEquivalenceDialog.show(dialog,
+                    disabledMatchEquivalences, matchNumbersEnabled, matchNumbersRomanEnabled,
+                    projectProperties.getSourceLanguage().getLocale(),
+                    projectProperties.getTargetLanguage().getLocale());
+            if (updated != null) {
+                disabledMatchEquivalences = updated.getDisabled();
+                matchNumbersEnabled = updated.isMatchNumbers();
+                matchNumbersRomanEnabled = updated.isMatchNumbersRoman();
             }
         });
         dialog.externalFinderButton.addActionListener(e -> {
             ExternalFinderCustomizer dlg = new ExternalFinderCustomizer(true, externalFinderConfig);
             if (dlg.show(dialog)) {
                 externalFinderConfig = dlg.getResult();
+            }
+        });
+        dialog.tagDefinitionsButton.addActionListener(e -> {
+            TagDefinitionsDialog dlg = new TagDefinitionsDialog(customTagPattern, removeTextPattern,
+                    globalCustomTagPattern(), globalRemoveTextPattern(),
+                    projectProperties.isTagPatternsLoadFailed());
+            if (dlg.show(dialog)) {
+                customTagPattern = dlg.getCustomTagPattern();
+                removeTextPattern = dlg.getRemoveTextPattern();
+                tagPatternsEdited = true;
             }
         });
         dialog.cancelButton.addActionListener(e -> doCancel());
@@ -311,7 +348,7 @@ public class ProjectPropertiesDialogController {
      *            true when the field holds a file path whose containing folder
      *            should be opened instead
      */
-    private static @Nullable File getOpenButtonTarget(JTextField field, boolean openParent) {
+    private static File getOpenButtonTarget(JTextField field, boolean openParent) {
         String path = field.getText();
         if (StringUtil.isEmpty(path)) {
             return null;
@@ -565,7 +602,9 @@ public class ProjectPropertiesDialogController {
         projectProperties.setSentenceSegmentingEnabled(dialog.sentenceSegmentingCheckBox.isSelected());
         projectProperties.setSupportDefaultTranslations(dialog.allowDefaultsCheckBox.isSelected());
         projectProperties.setRemoveTags(dialog.removeTagsCheckBox.isSelected());
-        projectProperties.setMatchNumbersEnabled(dialog.matchNumbersCheckBox.isSelected());
+        projectProperties.setMatchNumbersEnabled(matchNumbersEnabled);
+        projectProperties.setMatchNumbersRomanEnabled(matchNumbersRomanEnabled);
+        projectProperties.setDisabledMatchEquivalences(disabledMatchEquivalences);
         projectProperties.setCheckNumbersEnabled(dialog.checkNumbersCheckBox.isSelected());
         projectProperties.setExportTmLevels(dialog.exportTMOmegaTCheckBox.isSelected(),
                 dialog.exportTMLevel1CheckBox.isSelected(), dialog.exportTMLevel2CheckBox.isSelected());
@@ -662,7 +701,14 @@ public class ProjectPropertiesDialogController {
 
         projectProperties.setProjectSRX(srx);
         projectProperties.setProjectFilters(filters);
-        projectProperties.setRepositories(repositories);
+        if (tagPatternsEdited) {
+            // Only past every validation above: an earlier write would let a
+            // failed-then-abandoned OK lift the load-failure guard of a
+            // broken tag_patterns.xml without the user's decision.
+            projectProperties.setCustomTagPattern(customTagPattern);
+            projectProperties.setRemoveTextPattern(removeTextPattern);
+            projectProperties.resetTagPatternsLoadFailed();
+        }
         projectProperties.getSourceRootExcludes().clear();
         projectProperties.getSourceRootExcludes().addAll(srcExcludes);
 
@@ -688,7 +734,7 @@ public class ProjectPropertiesDialogController {
         dialog.setVisible(false);
     }
 
-    public static @Nullable ProjectProperties showDialog(Frame parent, ProjectProperties projectProperties,
+    public static ProjectProperties showDialog(Frame parent, ProjectProperties projectProperties,
             String projFileName, ProjectPropertiesDialog.Mode dialogTypeValue) {
         if (dialogTypeValue == null) {
             throw new RuntimeException("Unexpected null argument");
