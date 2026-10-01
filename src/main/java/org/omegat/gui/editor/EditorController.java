@@ -470,7 +470,7 @@ public class EditorController implements IEditor {
         markerController.process(loaded);
     }
 
-    private synchronized void loadUp(int count) {
+    synchronized void loadUp(int count) {
         if (firstLoaded <= 0 || m_docSegList == null || firstLoaded >= m_docSegList.length) {
             return;
         }
@@ -480,17 +480,22 @@ public class EditorController implements IEditor {
             SegmentBuilder builder = m_docSegList[i];
             builder.prependSegmentSeparator();
             builder.prependSegmentElement(false, Core.getProject().getTranslationInfo(builder.ste));
-            // We need to re-mark each segment immediately as it's added or else
-            // the marks are placed incorrectly. This probably has to do with
-            // offsets changing as content is prepended, but I (AMK) have not
-            // properly investigated.
-            markerController.reprocessImmediately(builder);
             var omDocument = editor.getOmDocument();
             if (omDocument != null) {
                 insertStartParagraphMark(omDocument, builder, 0);
             }
         }
+        int oldFirst = firstLoaded;
         firstLoaded = loadTo;
+        // The newly loaded segments have never been marked; queue them for the
+        // marker threads like loadDown does.
+        markerController.process(Arrays.copyOfRange(m_docSegList, loadTo, oldFirst));
+        // Re-mark the segment that was on top before, after every insertion at
+        // offset 0 is done: a highlight Position at offset 0 is pinned by
+        // Swing and does not shift with content prepended at 0, so a mark on
+        // the very first character of the topmost segment inflates over each
+        // insertion until its highlight is removed and set again.
+        markerController.reprocessImmediately(m_docSegList[oldFirst]);
     }
 
     private void updateState(SHOW_TYPE showType) {
