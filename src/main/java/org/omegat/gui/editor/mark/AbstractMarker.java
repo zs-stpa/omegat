@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Highlighter.HighlightPainter;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.data.SourceTextEntry;
 
@@ -66,7 +67,8 @@ public abstract class AbstractMarker implements IMarker {
     protected abstract boolean isEnabled();
 
     @Override
-    public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText, boolean isActive)
+    public List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String translationText, boolean isActive)
             throws Exception {
 
         if (!isEnabled()) {

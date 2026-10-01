@@ -64,8 +64,8 @@ public class ComesFromMTMarker implements IMarker {
     }
 
     @Override
-    public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText,
-            boolean isActive) {
+    public List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String translationText, boolean isActive) {
         synchronized (LOCK) {
             if (!isActive || ste != markedSte || translationText == null || !translationText.equals(markedText)) {
                 return null;
