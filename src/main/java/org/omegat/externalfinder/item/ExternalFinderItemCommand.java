@@ -26,10 +26,8 @@
 package org.omegat.externalfinder.item;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.regex.Pattern;
 
+import org.omegat.externalfinder.item.PlaceholderTemplate.Context;
 import org.omegat.util.OStrings;
 
 /**
@@ -113,29 +111,23 @@ public class ExternalFinderItemCommand {
         return true;
     }
 
+    /** Whether the command reads the editor selection; see {@link PlaceholderTemplate}. */
+    public boolean usesSelection() {
+        return PlaceholderTemplate.usesSelection(command);
+    }
+
     public final String[] generateCommand(String findingWords) throws UnsupportedEncodingException {
-        return generateCommand(command, delimiter, encoding, findingWords);
+        return generateCommand(Context.ofSelection(findingWords));
+    }
+
+    public final String[] generateCommand(Context context) {
+        return generateCommand(command, delimiter, encoding, context);
     }
 
     private static String[] generateCommand(String command, String delimiter,
-            ExternalFinderItem.ENCODING encoding, String findingWords) throws UnsupportedEncodingException {
-        String encodedWords;
-        if (encoding == ExternalFinderItem.ENCODING.NONE) {
-            encodedWords = findingWords;
-        } else {
-            encodedWords = URLEncoder.encode(findingWords, StandardCharsets.UTF_8.name());
-            if (encoding == ExternalFinderItem.ENCODING.ESCAPE) {
-                encodedWords = encodedWords.replace("+", "%20");
-            }
-        }
-
-        String[] ret = command.split(Pattern.quote(delimiter));
-        for (int i = 0; i < ret.length; i++) {
-            String s = ret[i];
-            ret[i] = s.replace(ExternalFinderItem.PLACEHOLDER_TARGET, encodedWords);
-        }
-
-        return ret;
+            ExternalFinderItem.ENCODING encoding, Context context) {
+        return PlaceholderTemplate.parse(command).resolveSplit(context, encoding::apply, delimiter)
+                .toArray(new String[0]);
     }
 
     public static final class Builder {
@@ -202,9 +194,9 @@ public class ExternalFinderItemCommand {
                 throw new ExternalFinderValidationException(
                         OStrings.getString("EXTERNALFINDER_COMMAND_ERROR_NOCOMMAND"));
             }
-            if (!command.contains(ExternalFinderItem.PLACEHOLDER_TARGET)) {
-                throw new ExternalFinderValidationException(OStrings.getString(
-                        "EXTERNALFINDER_COMMAND_ERROR_NOTOKEN", ExternalFinderItem.PLACEHOLDER_TARGET));
+            if (!PlaceholderTemplate.parse(command).hasPlaceholders()) {
+                throw new ExternalFinderValidationException(
+                        OStrings.getString("EXTERNALFINDER_PLACEHOLDER_ERROR_NONE"));
             }
             if (target == null) {
                 throw new ExternalFinderValidationException(
@@ -229,10 +221,9 @@ public class ExternalFinderItemCommand {
             }
         }
 
-        public String[] generateSampleCommand() throws UnsupportedEncodingException {
-            String findingWords = target == ExternalFinderItem.TARGET.NON_ASCII_ONLY
-                    ? "f\u00f8\u00f8 b\u00e5r" : "foo bar";
-            return generateCommand(command, delimiter, encoding, findingWords);
+        public String[] generateSampleCommand() {
+            return generateCommand(command, delimiter, encoding,
+                    Context.sample(target == ExternalFinderItem.TARGET.NON_ASCII_ONLY));
         }
     }
 }
