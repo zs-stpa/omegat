@@ -41,19 +41,23 @@ public class ExternalFinderItemPopupMenuConstructor implements IPopupMenuConstru
     public void addItems(JPopupMenu menu, JTextComponent comp, int mousepos,
             boolean isInActiveEntry, boolean isInActiveTranslation, SegmentBuilder sb) {
         final String selection = Core.getEditor().getSelectedText();
-        if (selection == null) {
-            return;
-        }
 
         ExternalFinderItem.TARGET target;
-        if (ExternalFinderItem.isASCII(selection)) {
+        if (selection == null) {
+            // Only items that do not read the selection remain; see the generator.
+            target = ExternalFinderItem.TARGET.BOTH;
+        } else if (ExternalFinderItem.isASCII(selection)) {
             target = ExternalFinderItem.TARGET.ASCII_ONLY;
         } else {
             target = ExternalFinderItem.TARGET.NON_ASCII_ONLY;
         }
 
-        IExternalFinderItemMenuGenerator generator = new ExternalFinderItemMenuGenerator(target, true);
+        IExternalFinderItemMenuGenerator generator = new ExternalFinderItemMenuGenerator(target, true,
+                selection != null);
         List<JMenuItem> newMenuItems = generator.generate();
+        if (newMenuItems.isEmpty()) {
+            return;
+        }
 
         menu.addSeparator();
         MenuItemPager pager = new MenuItemPager(menu);
