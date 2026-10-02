@@ -45,10 +45,13 @@
 
     <ul>
     <li><strong>{target}</strong>: selected editor text. Items using it appear only while text is selected.</li>
-    <li><strong>{comment}</strong>: comment of the current segment, e.g. an XLIFF note.</li>
+    <li><strong>{source}</strong>, <strong>{translation}</strong>: texts of the current segment.</li>
+    <li><strong>{comment}</strong>: comment of the current segment, e.g. an XLIFF note; <strong>{note}</strong>: the translator's note.</li>
     <li><strong>{prop:key}</strong>: property <em>key</em> of the current segment, as listed in the Segment Properties pane.</li>
-    <li><strong>{file}</strong>: source file of the current segment.</li>
-    <li><strong>{id}</strong>: identifier of the current segment.</li>
+    <li><strong>{file}</strong>, <strong>{path}</strong>, <strong>{id}</strong>, <strong>{number}</strong>: where the segment comes from.</li>
+    <li><strong>{status}</strong> (translated, untranslated), <strong>{link}</strong> (ice, 100pc, auto, enforced, empty), <strong>{origin}</strong>,
+    <strong>{author}</strong>, <strong>{date}</strong>, <strong>{creator}</strong>, <strong>{created}</strong> (ISO 8601): the translation record.</li>
+    <li><strong>{duplicate}</strong> (none, first, next), <strong>{duplicates}</strong>, <strong>{alternative}</strong>, <strong>{paragraph}</strong> (true, false).</li>
     </ul>
     <p>A regex in braces narrows a value: <code>{comment:{line=(\d+)}}</code>, <code>{prop:note:{path=(\S+)}}</code>.
     The first match is used, group 1 if the regex has groups, otherwise the whole match; no match gives an empty value.

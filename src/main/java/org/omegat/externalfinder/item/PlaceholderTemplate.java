@@ -25,9 +25,13 @@
 
 package org.omegat.externalfinder.item;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +39,10 @@ import java.util.regex.PatternSyntaxException;
 
 import org.jspecify.annotations.Nullable;
 
+import org.omegat.core.Core;
+import org.omegat.core.data.IProject;
 import org.omegat.core.data.SourceTextEntry;
+import org.omegat.core.data.TMXEntry;
 import org.omegat.util.OStrings;
 
 /**
@@ -43,10 +50,9 @@ import org.omegat.util.OStrings;
  * <p>
  * A placeholder is written as <code>{name}</code>, <code>{name:argument}</code>,
  * <code>{name:{regex}}</code> or <code>{name:argument:{regex}}</code>. The
- * names are {@value #TARGET} (selected editor text), {@value #COMMENT}
- * (comment of the current segment), {@value #PROP} (one property of the
- * current segment, the argument is its key), {@value #FILE} (source file of
- * the current segment) and {@value #ID} (identifier of the current segment).
+ * names are listed in {@link #NAMES}: {@value #TARGET} is the selected editor
+ * text, {@value #PROP} takes a property key as argument, all others describe
+ * the current segment and its translation.
  * <p>
  * A regex narrows the value: the first match is used, group 1 if the regex
  * has groups, otherwise the whole match; no match yields an empty value.
@@ -60,51 +66,123 @@ import org.omegat.util.OStrings;
 public final class PlaceholderTemplate {
 
     public static final String TARGET = "target";
+    public static final String SOURCE = "source";
+    public static final String TRANSLATION = "translation";
     public static final String COMMENT = "comment";
+    public static final String NOTE = "note";
     public static final String PROP = "prop";
     public static final String FILE = "file";
+    public static final String PATH = "path";
     public static final String ID = "id";
+    public static final String NUMBER = "number";
+    public static final String STATUS = "status";
+    public static final String LINK = "link";
+    public static final String ORIGIN = "origin";
+    public static final String AUTHOR = "author";
+    public static final String DATE = "date";
+    public static final String CREATOR = "creator";
+    public static final String CREATED = "created";
+    public static final String DUPLICATE = "duplicate";
+    public static final String DUPLICATES = "duplicates";
+    public static final String ALTERNATIVE = "alternative";
+    public static final String PARAGRAPH = "paragraph";
 
     /** Placeholder names in the order the editor dialog offers them. */
-    public static final List<String> NAMES = List.of(TARGET, COMMENT, PROP, FILE, ID);
+    public static final List<String> NAMES = List.of(TARGET, SOURCE, TRANSLATION, COMMENT, NOTE, PROP, FILE,
+            PATH, ID, NUMBER, STATUS, LINK, ORIGIN, AUTHOR, DATE, CREATOR, CREATED, DUPLICATE, DUPLICATES,
+            ALTERNATIVE, PARAGRAPH);
 
-    /** Values the placeholders of one run draw from. */
+    /** Values the placeholders of one run draw from; missing values resolve to empty text. */
     public static final class Context {
         private final @Nullable String selection;
-        private final @Nullable String comment;
+        private final Map<String, @Nullable String> values;
         private final String @Nullable [] properties;
-        private final @Nullable String file;
-        private final @Nullable String id;
 
-        private Context(@Nullable String selection, @Nullable String comment, String @Nullable [] properties,
-                @Nullable String file, @Nullable String id) {
+        private Context(@Nullable String selection, Map<String, @Nullable String> values,
+                String @Nullable [] properties) {
             this.selection = selection;
-            this.comment = comment;
+            this.values = values;
             this.properties = properties;
-            this.file = file;
-            this.id = id;
         }
 
-        /** Context of a run: the editor selection and the current segment, either may be absent. */
-        public static Context of(@Nullable String selection, @Nullable SourceTextEntry entry) {
-            if (entry == null) {
-                return new Context(selection, null, null, null, null);
+        /**
+         * Context of a run: the editor selection, the current segment and its
+         * translation record from the project; each may be absent.
+         */
+        public static Context of(@Nullable String selection, @Nullable SourceTextEntry entry,
+                @Nullable TMXEntry translation) {
+            Map<String, @Nullable String> values = new LinkedHashMap<>();
+            if (entry != null) {
+                values.put(SOURCE, entry.getSrcText());
+                values.put(COMMENT, entry.getComment());
+                values.put(FILE, entry.getKey().file);
+                values.put(PATH, entry.getKey().path);
+                values.put(ID, entry.getKey().id);
+                values.put(NUMBER, Integer.toString(entry.entryNum()));
+                values.put(DUPLICATE, entry.getDuplicate().name().toLowerCase(Locale.ENGLISH));
+                values.put(DUPLICATES, Integer.toString(entry.getNumberOfDuplicates()));
+                values.put(PARAGRAPH, Boolean.toString(entry.isParagraphStart()));
             }
-            return new Context(selection, entry.getComment(), entry.getRawProperties(), entry.getKey().file,
-                    entry.getKey().id);
+            if (translation != null) {
+                values.put(TRANSLATION, translation.isTranslated() ? translation.translation : "");
+                values.put(NOTE, translation.note);
+                values.put(STATUS, translation.isTranslated() ? "translated" : "untranslated");
+                values.put(LINK, translation.linked == null ? ""
+                        : translation.linked.name().substring(1).toLowerCase(Locale.ENGLISH));
+                values.put(ORIGIN, translation.origin);
+                values.put(AUTHOR, translation.changer);
+                values.put(DATE, isoDate(translation.changeDate));
+                values.put(CREATOR, translation.creator);
+                values.put(CREATED, isoDate(translation.creationDate));
+                values.put(ALTERNATIVE, Boolean.toString(!translation.defaultTranslation));
+            }
+            return new Context(selection, values, entry == null ? null : entry.getRawProperties());
+        }
+
+        /** Context of the editor's current state: selection, current segment and its translation. */
+        public static Context ofEditor() {
+            String selection = Core.getEditor().getSelectedText();
+            SourceTextEntry entry = Core.getEditor().getCurrentEntry();
+            IProject project = Core.getProject();
+            TMXEntry translation = entry != null && project.isProjectLoaded() ? project.getTranslationInfo(entry)
+                    : null;
+            return of(selection, entry, translation);
         }
 
         /** Context with a selection only, for callers that have no segment. */
         public static Context ofSelection(String selection) {
-            return new Context(selection, null, null, null, null);
+            return new Context(selection, Collections.emptyMap(), null);
         }
 
         /** Illustrative values for the sample output of the editor dialog. */
         public static Context sample(boolean nonAscii) {
-            String selection = nonAscii ? "føø bår" : "foo bar";
+            Map<String, @Nullable String> values = new LinkedHashMap<>();
+            values.put(SOURCE, "Sample source");
+            values.put(TRANSLATION, "Sample translation");
+            values.put(COMMENT, "Sample comment");
+            values.put(NOTE, "Sample note");
             // The file carries a directory so the sample shows how slashes encode.
-            return new Context(selection, "Sample comment", new String[] { "note", "Sample comment" },
-                    "dir/sample.txt", "sample-id");
+            values.put(FILE, "dir/sample.txt");
+            values.put(PATH, "/sample/path");
+            values.put(ID, "sample-id");
+            values.put(NUMBER, "42");
+            values.put(STATUS, "translated");
+            values.put(LINK, "ice");
+            values.put(ORIGIN, "sample.tmx");
+            values.put(AUTHOR, "translator");
+            values.put(DATE, "2026-01-02T03:04:05Z");
+            values.put(CREATOR, "creator");
+            values.put(CREATED, "2026-01-01T00:00:00Z");
+            values.put(DUPLICATE, "none");
+            values.put(DUPLICATES, "0");
+            values.put(ALTERNATIVE, "false");
+            values.put(PARAGRAPH, "true");
+            String selection = nonAscii ? "føø bår" : "foo bar";
+            return new Context(selection, values, new String[] { "note", "Sample comment" });
+        }
+
+        private static String isoDate(long epochMillis) {
+            return epochMillis == 0 ? "" : Instant.ofEpochMilli(epochMillis).toString();
         }
 
         public @Nullable String getSelection() {
@@ -113,30 +191,29 @@ public final class PlaceholderTemplate {
 
         @Nullable
         String valueOf(Placeholder placeholder) {
-            return switch (placeholder.name) {
-            case TARGET -> selection;
-            case COMMENT -> comment;
-            case PROP -> property(placeholder.argument);
-            case FILE -> file;
-            case ID -> id;
-            default -> null;
-            };
+            if (TARGET.equals(placeholder.name)) {
+                return selection;
+            }
+            if (PROP.equals(placeholder.name)) {
+                return property(placeholder.argument);
+            }
+            return values.get(placeholder.name);
         }
 
         private @Nullable String property(@Nullable String key) {
             if (properties == null || key == null) {
                 return null;
             }
-            StringBuilder values = new StringBuilder();
+            StringBuilder joined = new StringBuilder();
             for (int i = 0; i + 1 < properties.length; i += 2) {
                 if (key.equals(properties[i])) {
-                    if (values.length() > 0) {
-                        values.append('\n');
+                    if (joined.length() > 0) {
+                        joined.append('\n');
                     }
-                    values.append(properties[i + 1]);
+                    joined.append(properties[i + 1]);
                 }
             }
-            return values.length() == 0 ? null : values.toString();
+            return joined.length() == 0 ? null : joined.toString();
         }
     }
 

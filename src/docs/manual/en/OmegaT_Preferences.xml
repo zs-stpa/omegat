@@ -760,8 +760,10 @@
                   		  <literal>{target}</literal> is the string selected in the Editor,
                   		  <literal>{comment}</literal> the comment of the current segment,
                   		  <literal>{prop:key}</literal> one of its properties by key,
-                  		  <literal>{file}</literal> its source file and
-                  		  <literal>{id}</literal> its identifier. A regex in braces narrows
+                  		  <literal>{file}</literal> its source file,
+                  		  <literal>{id}</literal> its identifier, and so on for every
+                  		  detail the editor shows about a segment: the editing dialog lists
+                  		  them all with a tooltip. A regex in braces narrows
                   		  the value, e.g. <literal>{comment:{line=(\d+)}}</literal>: the first
                   		  match is used, group 1 if the regex has groups. Sets that do not use
                   		  <literal>{target}</literal> are also available without a selection.
