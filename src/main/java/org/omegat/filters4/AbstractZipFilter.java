@@ -46,6 +46,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.filters2.AbstractFilter;
 import org.omegat.filters2.FilterContext;
 import org.omegat.filters2.TranslationException;
@@ -137,13 +138,13 @@ public abstract class AbstractZipFilter extends AbstractFilter {
      * If not null, indicates that we want to see internal XML files in a
      * certain order.
      **/
-    protected Comparator<ZipEntry> getEntryComparator() {
+    protected @Nullable Comparator<ZipEntry> getEntryComparator() {
         return null;
     }
 
     /** Processes a ZIP file. */
     @Override
-    public void processFile(File inFile, File outFile, FilterContext fc)
+    public void processFile(File inFile, @Nullable File outFile, FilterContext fc)
             throws IOException, TranslationException {
         List<ZipEntry> translatableEntries = new LinkedList<>();
         Comparator<ZipEntry> entryComparator = getEntryComparator();
@@ -181,7 +182,7 @@ public abstract class AbstractZipFilter extends AbstractFilter {
      * @throws IOException
      *             if an I/O error occurs while creating the output stream.
      */
-    private ZipOutputStream createZipOutputStream(File outFile) throws IOException {
+    private @Nullable ZipOutputStream createZipOutputStream(@Nullable File outFile) throws IOException {
         return outFile == null ? null : new ZipOutputStream(new FileOutputStream(outFile));
     }
 
@@ -196,14 +197,14 @@ public abstract class AbstractZipFilter extends AbstractFilter {
      * @return a BufferedWriter wrapping the given ZipOutputStream, or null if
      *         the ZipOutputStream is null.
      */
-    private BufferedWriter createWriter(ZipOutputStream zipOutputStream) {
+    private @Nullable BufferedWriter createWriter(@Nullable ZipOutputStream zipOutputStream) {
         return (zipOutputStream == null) ? null
                 : new BufferedWriter(new OutputStreamWriter(zipOutputStream, internalEncoding));
     }
 
-    private void processTranslatableEntry(ZipFile zipFile, ZipOutputStream zipOutputStream,
-            BufferedWriter writer, FilterContext filterContext, List<ZipEntry> translatableEntries,
-            Comparator<ZipEntry> entryComparator, ZipEntry zipEntry) {
+    private void processTranslatableEntry(ZipFile zipFile, @Nullable ZipOutputStream zipOutputStream,
+            @Nullable BufferedWriter writer, FilterContext filterContext, List<ZipEntry> translatableEntries,
+            @Nullable Comparator<ZipEntry> entryComparator, ZipEntry zipEntry) {
         if (entryComparator == null || zipOutputStream != null) {
             translateEntry(zipFile, zipOutputStream, writer, filterContext, zipEntry);
         } else {
@@ -219,43 +220,31 @@ public abstract class AbstractZipFilter extends AbstractFilter {
         zipOutputStream.closeEntry();
     }
 
-    private void finalizeProcessing(ZipFile zipFile, ZipOutputStream zipOutputStream, BufferedWriter writer,
-            FilterContext filterContext, List<ZipEntry> translatableEntries,
-            Comparator<ZipEntry> entryComparator) {
+    private void finalizeProcessing(ZipFile zipFile, @Nullable ZipOutputStream zipOutputStream,
+            @Nullable BufferedWriter writer, FilterContext filterContext,
+            List<ZipEntry> translatableEntries, @Nullable Comparator<ZipEntry> entryComparator) {
         if (entryComparator != null) {
             translatableEntries.sort(entryComparator);
         }
-        if (zipOutputStream == null) {
-            translateEntries(zipFile, filterContext, translatableEntries);
-        } else {
-            for (ZipEntry zipEntry : translatableEntries) {
-                translateEntry(zipFile, zipOutputStream, writer, filterContext, zipEntry);
-            }
+        for (ZipEntry zipEntry : translatableEntries) {
+            translateEntry(zipFile, zipOutputStream, writer, filterContext, zipEntry);
         }
     }
 
-    private void translateEntries(ZipFile zf, FilterContext fc, List<ZipEntry> toTranslate) {
-        for (ZipEntry ze : toTranslate) {
-            try (XMLReader xReader = new XMLReader(zf.getInputStream(ze))) {
-                AbstractXmlFilter xmlfilter = getFilter(ze);
-                try (BufferedReader reader = new BufferedReader(xReader)) {
-                    xmlfilter.processFile(reader, null, fc);
-                }
-            } catch (Exception e) {
-                Log.log(e);
-            }
-        }
-    }
-
-    private void translateEntry(ZipFile zf, ZipOutputStream zipout, BufferedWriter writer, FilterContext fc,
-            ZipEntry ze) {
+    private void translateEntry(ZipFile zf, @Nullable ZipOutputStream zipout, @Nullable BufferedWriter writer,
+            FilterContext fc, ZipEntry ze) {
         try (XMLReader xReader = new XMLReader(zf.getInputStream(ze))) {
             AbstractXmlFilter xmlfilter = getFilter(ze);
             try (BufferedReader reader = new BufferedReader(xReader)) {
-                ZipEntry outEntry = new ZipEntry(ze.getName());
-                zipout.putNextEntry(outEntry);
-                xmlfilter.processFile(reader, writer, fc);
-                zipout.closeEntry();
+                if (zipout == null) {
+                    // Loading: no output archive to write to; parse only.
+                    xmlfilter.processFile(reader, null, fc);
+                } else {
+                    ZipEntry outEntry = new ZipEntry(ze.getName());
+                    zipout.putNextEntry(outEntry);
+                    xmlfilter.processFile(reader, writer, fc);
+                    zipout.closeEntry();
+                }
             }
         } catch (Exception e) {
             Log.log(e);
