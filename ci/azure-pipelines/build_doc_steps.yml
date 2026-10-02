@@ -12,7 +12,7 @@ steps:
   - task: Cache@2
     displayName: 'Cache Gradle'
     inputs:
-      key: '${{ parameters.cacheKeyPrefix }} | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | build-logic/build.gradle | build-logic/src/main/groovy/org.omegat.document-conventions.gradle | src/docs/manual | src/docs/xsl | src/docs/style'
+      key: '${{ parameters.cacheKeyPrefix }} | "$(Agent.OS)" | gradle/wrapper/gradle-wrapper.properties | build-logic/build.gradle | build-logic/src/main/groovy/org.omegat.document-conventions.gradle | src/docs/manual/** | src/docs/xsl/** | src/docs/style/**'
       restoreKeys: |
         gradle-docs | "$(Agent.OS)"
         gradle | "$(Agent.OS)"
