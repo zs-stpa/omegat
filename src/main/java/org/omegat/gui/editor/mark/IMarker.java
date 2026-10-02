@@ -52,6 +52,6 @@ public interface IMarker {
      * @throws Exception if something went wrong
      */
     @Nullable
-    List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText, boolean isActive)
-            throws Exception;
+    List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String translationText, boolean isActive) throws Exception;
 }

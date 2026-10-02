@@ -209,8 +209,8 @@ public interface IFilter {
     /**
      * Returns the encoding of the last parsed source file.
      * 
-     * @return the encoding of the last parsed source file, or null when no file
-     *         has been parsed yet.
+     * @return the encoding of the last parsed source file; never null, before
+     *         the first parse the platform default charset name is returned.
      */
     String getInEncodingLastParsedFile();
 

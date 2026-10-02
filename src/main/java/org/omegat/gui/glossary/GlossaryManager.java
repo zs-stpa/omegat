@@ -340,7 +340,8 @@ public class GlossaryManager implements DirectoryMonitor.Callback {
      *            The glossary entry whose target terms should be searched
      * @return A list of matching target terms
      */
-    public List<String> searchTargetMatches(String trg, ProtectedPart[] protectedParts, GlossaryEntry entry) {
+    public List<String> searchTargetMatches(String trg, ProtectedPart @Nullable [] protectedParts,
+            GlossaryEntry entry) {
         CoreState coreState = CoreState.getInstance();
         ITokenizer tok = coreState.getProject().getTargetTokenizer();
         if (tok == null) {
