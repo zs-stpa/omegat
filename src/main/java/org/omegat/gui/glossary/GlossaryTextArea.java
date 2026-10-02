@@ -50,8 +50,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
@@ -464,5 +466,60 @@ public class GlossaryTextArea extends EntryInfoThreadPane<List<GlossaryEntry>>
         sortOrderLocLength.addActionListener(actionEvent -> Preferences
                 .setPreference(Preferences.GLOSSARY_SORT_BY_LENGTH, sortOrderLocLength.isSelected()));
         menu.add(sortOrderLocLength);
+        menu.addSeparator();
+        boolean projectLoaded = Core.getProject().isProjectLoaded();
+        JMenu glossariesMenu = new JMenu(OStrings.getString("GUI_GLOSSARYWINDOW_GLOSSARIES_MENU"));
+        glossariesMenu.setEnabled(projectLoaded);
+        if (projectLoaded) {
+            Map<String, Integer> counts = Core.getGlossaryManager().getLocalGlossaryCounts();
+            int total = counts.values().stream().mapToInt(Integer::intValue).sum();
+            String summaryText = OStrings.getString("GUI_GLOSSARYWINDOW_GLOSSARIES_SUMMARY",
+                    counts.size(), total);
+            if (counts.size() > 1) {
+                // Filtering over all glossaries at once only means something
+                // when there is more than one; the summary line then carries
+                // the scopes a dedicated menu offered before.
+                JMenu summary = new JMenu(summaryText);
+                for (GlossaryMatchesFilter.Scope scope : GlossaryMatchesFilter.Scope.values()) {
+                    JMenuItem item = new JMenuItem(OStrings
+                            .getString("GUI_GLOSSARYWINDOW_GLOSSARY_FILTER_ITEM", scope.label()));
+                    item.addActionListener(e -> GlossaryMatchesFilter.apply(scope));
+                    summary.add(item);
+                }
+                glossariesMenu.add(summary);
+            } else {
+                JMenuItem summary = new JMenuItem(summaryText);
+                summary.setEnabled(false);
+                glossariesMenu.add(summary);
+            }
+            if (!counts.isEmpty()) {
+                glossariesMenu.addSeparator();
+            }
+            // Relative to the glossary folder, so same-named files in
+            // subfolders stay distinguishable.
+            java.nio.file.Path glossaryRoot = new File(
+                    Core.getProject().getProjectProperties().getGlossaryRoot()).toPath();
+            counts.forEach((path, count) -> {
+                String display;
+                try {
+                    display = glossaryRoot.relativize(new File(path).toPath()).toString();
+                } catch (IllegalArgumentException ex) {
+                    display = new File(path).getName();
+                }
+                JMenu glossary = new JMenu(
+                        OStrings.getString("GUI_GLOSSARYWINDOW_GLOSSARY_ITEM", display, count));
+                glossary.setToolTipText(path);
+                for (GlossaryMatchesFilter.Scope scope : GlossaryMatchesFilter.Scope.values()) {
+                    // Unlike under the "Filter for Glossary matches" parent,
+                    // the scope labels alone would not say what they do here.
+                    JMenuItem item = new JMenuItem(OStrings
+                            .getString("GUI_GLOSSARYWINDOW_GLOSSARY_FILTER_ITEM", scope.label()));
+                    item.addActionListener(e -> GlossaryMatchesFilter.apply(scope, path));
+                    glossary.add(item);
+                }
+                glossariesMenu.add(glossary);
+            });
+        }
+        menu.add(glossariesMenu);
     }
 }
