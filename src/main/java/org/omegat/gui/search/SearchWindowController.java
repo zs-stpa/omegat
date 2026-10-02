@@ -1207,7 +1207,7 @@ public class SearchWindowController {
      * @param query
      *            Initial query string (may be empty or null)
      */
-    public void makeVisible(@Nullable String query) {
+    public void makeVisible(String query) {
         if (!StringUtil.isEmpty(query)) {
             setSearchText(query);
         }
