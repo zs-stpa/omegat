@@ -135,7 +135,7 @@ public class ReplaceFilter implements IEditorFilter {
         return controlComponent;
     }
 
-    public @Nullable List<SearchMatch> getReplacementsForEntry(String translationText) {
+    public @Nullable List<SearchMatch> getReplacementsForEntry(@Nullable String translationText) {
         if (searcher.searchString(translationText, false)) {
             return searcher.getFoundMatches();
         } else {
