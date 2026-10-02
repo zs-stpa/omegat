@@ -36,8 +36,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -316,12 +314,6 @@ public class EditorTextArea3 extends JEditorPane {
             .getKeyStroke("editorMoveTokenPrev");
     private static final KeyStroke KEYSTROKE_MOVE_TOKEN_NEXT = PropertiesShortcuts.getEditorShortcuts()
             .getKeyStroke("editorMoveTokenNext");
-    private static final KeyStroke KEYSTROKE_COPY_SOURCE_TEXT = PropertiesShortcuts
-            .getEditorShortcuts().getKeyStroke("editorCopySourceText");
-    private static final KeyStroke KEYSTROKE_COPY_TARGET_TEXT = PropertiesShortcuts
-            .getEditorShortcuts().getKeyStroke("editorCopyTargetText");
-    private static final KeyStroke KEYSTROKE_TRANSPOSE_CHARS = PropertiesShortcuts
-            .getEditorShortcuts().getKeyStroke("editorTransposeChars");
 
     /** Undo Manager to store edits */
     protected final TranslationUndoManager undoManager = new TranslationUndoManager(this);
@@ -707,12 +699,6 @@ public class EditorTextArea3 extends JEditorPane {
             processed = moveTokenAtCaret(false);
         } else if (s.equals(KEYSTROKE_MOVE_TOKEN_NEXT)) {
             processed = moveTokenAtCaret(true);
-        } else if (s.equals(KEYSTROKE_COPY_SOURCE_TEXT)) {
-            processed = copySegmentToClipboard(true);
-        } else if (s.equals(KEYSTROKE_COPY_TARGET_TEXT)) {
-            processed = copySegmentToClipboard(false);
-        } else if (s.equals(KEYSTROKE_TRANSPOSE_CHARS)) {
-            processed = transposeCharsAtCaret();
         } else if (s.equals(KEYSTROKE_FIRST_SEG)) {
             // Jump to beginning of document
             int segNum = controller.m_docSegList[0].segmentNumberInProject;
@@ -953,80 +939,6 @@ public class EditorTextArea3 extends JEditorPane {
         return true;
     }
 
-    /**
-     * Copy the active segment's source or current target text to the system
-     * clipboard. The target is the live editor state including uncommitted
-     * edits, not the committed translation. It comes from the document,
-     * which carries the bidi control characters the display inserts - strip
-     * them like the selection copy path does.
-     */
-    private boolean copySegmentToClipboard(boolean source) {
-        Document3 doc = getOmDocument();
-        SourceTextEntry ste = controller.getCurrentEntry();
-        if (doc == null || ste == null) {
-            return false;
-        }
-        String text = source ? ste.getSrcText() : doc.extractTranslation();
-        if (text == null) {
-            return false;
-        }
-        Toolkit.getDefaultToolkit().getSystemClipboard()
-                .setContents(new StringSelection(EditorUtils.removeDirectionChars(text)), null);
-        return true;
-    }
-
-    /**
-     * Swap the character before the caret with the one at the caret
-     * (readline transpose-chars). No default binding; users assign one in
-     * the editor shortcuts file.
-     */
-    private boolean transposeCharsAtCaret() {
-        Document3 doc = getOmDocument();
-        if (doc == null || !doc.isEditMode()) {
-            return true;
-        }
-        int start = doc.getTranslationStart();
-        int end = doc.getTranslationEnd();
-        int caret = getCaretPosition();
-        if (caret < start || caret > end) {
-            return true;
-        }
-        String translation = doc.extractTranslation();
-        SourceTextEntry ste = doc.getController().getCurrentEntry();
-        if (translation == null || ste == null) {
-            return true;
-        }
-        applySwap(SegmentEditingOps.computeCharTranspose(translation, caret - start,
-                protectedTexts(ste)), start, caret);
-        return true;
-    }
-
-    /**
-     * Apply a computed swap as one atomic document mutation (one undo step)
-     * with the pre-swap caret, so an undo returns the caret to where the
-     * user was, not to the moved text.
-     */
-    private void applySwap(SegmentEditingOps.@Nullable TokenSwap swap, int start, int caret) {
-        Document3 doc = getOmDocument();
-        if (swap == null || doc == null) {
-            return;
-        }
-        undoManager.runAtomic(() -> {
-            setSelectionStart(start + swap.regionStart);
-            setSelectionEnd(start + swap.regionEnd);
-            replaceSelection(swap.replacement);
-        }, caret - start);
-        if (swap.replacement.equals(doc.extractTranslation().substring(swap.regionStart,
-                swap.regionStart + swap.replacement.length()))) {
-            setCaretPosition(start + swap.caretAfter);
-        } else {
-            // the document filter rejected the replacement (tag protection):
-            // collapse the leftover selection back to the original caret
-            setCaretPosition(caret);
-        }
-        autoCompleter.updatePopup(true);
-    }
-
     /** Insert a no-break space (U+00A0) at the caret. */
     private boolean insertNonBreakingSpace() {
         Document3 doc = getOmDocument();
@@ -1060,8 +972,29 @@ public class EditorTextArea3 extends JEditorPane {
             return true;
         }
         Locale locale = targetLocale != null ? targetLocale : Locale.getDefault();
-        applySwap(SegmentEditingOps.computeTokenSwap(translation, caret - start, forward, locale,
-                protectedTexts(ste)), start, caret);
+        SegmentEditingOps.TokenSwap swap = SegmentEditingOps.computeTokenSwap(translation, caret - start,
+                forward, locale, protectedTexts(ste));
+        if (swap == null) {
+            return true;
+        }
+        // the swap replaces a non-empty region with non-empty text, which
+        // the undo manager would record as two snapshots (remove + insert);
+        // run it atomically with the pre-swap caret, so an undo returns the
+        // caret to where the user was, not to the moved token
+        undoManager.runAtomic(() -> {
+            setSelectionStart(start + swap.regionStart);
+            setSelectionEnd(start + swap.regionEnd);
+            replaceSelection(swap.replacement);
+        }, caret - start);
+        if (swap.replacement.equals(doc.extractTranslation().substring(swap.regionStart,
+                swap.regionStart + swap.replacement.length()))) {
+            setCaretPosition(start + swap.caretAfter);
+        } else {
+            // the document filter rejected the replacement (tag protection):
+            // collapse the leftover selection back to the original caret
+            setCaretPosition(caret);
+        }
+        autoCompleter.updatePopup(true);
         return true;
     }
 
@@ -1388,25 +1321,7 @@ public class EditorTextArea3 extends JEditorPane {
     @Override
     public void cut() {
         checkAndFixCaret();
-        selectWholeTagIfUnselected();
         super.cut();
-    }
-
-    /**
-     * Copy acts on the whole tag when the caret sits inside one with
-     * nothing selected (SF-848).
-     */
-    @Override
-    public void copy() {
-        selectWholeTagIfUnselected();
-        super.copy();
-    }
-
-    /** With an empty selection, select the whole tag at the caret if any. */
-    private void selectWholeTagIfUnselected() {
-        if (getSelectionStart() == getSelectionEnd()) {
-            selectTag(getCaretPosition());
-        }
     }
 
     /**
