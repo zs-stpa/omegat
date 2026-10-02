@@ -25,6 +25,7 @@
 
 package org.omegat.gui.actionpanel;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -33,6 +34,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JMenuItem;
 
 import org.junit.Test;
+
+import org.omegat.externalfinder.item.ExternalFinderItem;
 
 /**
  * @author stephan.pakebusch at zollsoft.de
@@ -51,5 +54,13 @@ public class ActionInvokerTest {
         coreItem.setActionCommand("projectSaveMenuItem");
         coreItem.addActionListener(mainMenu);
         assertTrue(ActionInvoker.dispatchesThroughMainMenu(coreItem, mainMenu));
+    }
+
+    @Test
+    public void testStoredEncodingNamesResolve() {
+        assertEquals(ExternalFinderItem.ENCODING.ESCAPE, ActionInvoker.encodingOf("escape"));
+        assertEquals(ExternalFinderItem.ENCODING.NONE, ActionInvoker.encodingOf("NONE"));
+        assertEquals(ExternalFinderItem.ENCODING.DEFAULT, ActionInvoker.encodingOf("default"));
+        assertEquals(ExternalFinderItem.ENCODING.DEFAULT, ActionInvoker.encodingOf("bogus"));
     }
 }

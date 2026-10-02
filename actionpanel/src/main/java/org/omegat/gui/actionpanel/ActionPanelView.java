@@ -795,6 +795,8 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             return Core.getProject().isProjectLoaded()
                     && ActionInvoker.findAutotextItem(ref.source()) != null;
         }
+        // External search sets come and go with the preferences, without a
+        // project event: judged at click time, which beeps for a missing set.
         return true;
     }
 

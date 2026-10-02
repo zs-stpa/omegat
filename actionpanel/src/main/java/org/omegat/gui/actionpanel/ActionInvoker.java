@@ -34,6 +34,7 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.MessageFormat;
@@ -54,9 +55,16 @@ import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.search.SearchMode;
+import org.omegat.externalfinder.ExternalFinder;
+import org.omegat.externalfinder.item.ExternalFinderItem;
+import org.omegat.externalfinder.item.ExternalFinderItemMenuGenerator;
+import org.omegat.externalfinder.item.ExternalFinderItemURL;
+import org.omegat.externalfinder.item.ExternalFinderValidationException;
+import org.omegat.externalfinder.item.PlaceholderTemplate;
 import org.omegat.gui.actionpanel.ActionSpec.AutotextRefActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ColorSchemeActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.EditorKeyActionSpec;
+import org.omegat.gui.actionpanel.ActionSpec.ExternalSearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.MenuActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ScriptActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SearchActionSpec;
@@ -108,11 +116,21 @@ public final class ActionInvoker {
             insertText(snippet.text());
         } else if (spec instanceof UrlActionSpec url) {
             try {
-                DesktopWrapper.browse(java.net.URI.create(url.url()));
-            } catch (IllegalArgumentException | UnsupportedOperationException | IOException e) {
+                // Placeholders are filled from the current segment, as for
+                // an external search URL.
+                ExternalFinderItemURL template = new ExternalFinderItemURL(url.url(),
+                        ExternalFinderItem.TARGET.BOTH, encodingOf(url.encoding()));
+                DesktopWrapper.browse(template.generateURL(PlaceholderTemplate.Context.ofEditor()));
+            } catch (URISyntaxException | ExternalFinderValidationException | IllegalArgumentException
+                    | UnsupportedOperationException | IOException e) {
                 Log.log(e);
                 showError("ERROR_URL_OPEN", url.url(),
                         e.getMessage() == null ? e.toString() : e.getMessage());
+            }
+        } else if (spec instanceof ExternalSearchActionSpec search) {
+            ExternalFinderItem set = findExternalSearch(search.name());
+            if (set == null || !ExternalFinderItemMenuGenerator.run(set)) {
+                Toolkit.getDefaultToolkit().beep();
             }
         } else if (spec instanceof AutotextRefActionSpec ref) {
             Autotext.AutotextItem item = findAutotextItem(ref.source());
@@ -234,6 +252,25 @@ public final class ActionInvoker {
             }
         }
         return null;
+    }
+
+    /** The external search set of that name, global or project scope. */
+    static @Nullable ExternalFinderItem findExternalSearch(String name) {
+        for (ExternalFinderItem set : ExternalFinder.getItems()) {
+            if (set.getName().equals(name)) {
+                return set;
+            }
+        }
+        return null;
+    }
+
+    /** Stored encoding name back to the enum; unknown names fall back to the default. */
+    static ExternalFinderItem.ENCODING encodingOf(String name) {
+        try {
+            return ExternalFinderItem.ENCODING.valueOf(name.toUpperCase(java.util.Locale.ENGLISH));
+        } catch (IllegalArgumentException e) {
+            return ExternalFinderItem.ENCODING.DEFAULT;
+        }
     }
 
     private static void invokeMenu(MenuActionSpec spec, MenuActionCatalog catalog, int modifiers) {

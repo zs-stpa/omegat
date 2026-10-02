@@ -38,13 +38,19 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jspecify.annotations.Nullable;
 
+import org.omegat.externalfinder.ExternalFinder;
+import org.omegat.externalfinder.gui.ExternalFinderItemURLEditorController;
+import org.omegat.externalfinder.item.ExternalFinderItem;
+import org.omegat.externalfinder.item.ExternalFinderItemURL;
 import org.omegat.gui.actionpanel.ActionSpec.AutotextRefActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ColorSchemeActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.EditorKeyActionSpec;
+import org.omegat.gui.actionpanel.ActionSpec.ExternalSearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.MenuActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ScriptActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ShortcutSetActionSpec;
@@ -100,8 +106,7 @@ public final class AssignMenuBuilder {
         popup.add(buildMenuBranch(catalog, onAssign));
         popup.add(buildEditorBranch(onAssign));
         popup.add(buildScriptsBranch(onAssign));
-        popup.add(buildSearchItem(parent, onAssign, false));
-        popup.add(buildSearchItem(parent, onAssign, true));
+        popup.add(buildSearchBranch(parent, onAssign));
         popup.add(buildSnippetBranch(parent, onAssign));
         popup.add(buildPreferenceBranch(parent, onAssign));
         if (bulk != null) {
@@ -227,6 +232,27 @@ public final class AssignMenuBuilder {
         return menu;
     }
 
+    /** Search..., Replace..., then the configured external search sets. */
+    private static JMenu buildSearchBranch(Component parent, AssignTarget onAssign) {
+        JMenu menu = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_SEARCH_ROOT"));
+        menu.setName(ComponentNames.assignBranch("ASSIGN_MENU_SEARCH_ROOT"));
+        menu.add(buildSearchItem(parent, onAssign, false));
+        menu.add(buildSearchItem(parent, onAssign, true));
+        List<ExternalFinderItem> sets = ExternalFinder.getItems();
+        if (!sets.isEmpty()) {
+            JMenu external = new JMenu(ActionPanelModule.getString("ASSIGN_MENU_EXTERNAL_SEARCH"));
+            external.setName(ComponentNames.assignBranch("ASSIGN_MENU_EXTERNAL_SEARCH"));
+            for (ExternalFinderItem set : sets) {
+                // The set name may carry a mnemonic marker; the row name must not.
+                external.add(leaf(set.getName().replace("&", ""), new ExternalSearchActionSpec(set.getName()),
+                        onAssign));
+            }
+            menu.addSeparator();
+            menu.add(external);
+        }
+        return menu;
+    }
+
     private static JMenuItem buildSearchItem(Component parent, AssignTarget onAssign,
             boolean replace) {
         JMenuItem item = new JMenuItem(
@@ -257,26 +283,18 @@ public final class AssignMenuBuilder {
         JMenuItem urlItem = new JMenuItem(ActionPanelModule.getString("ASSIGN_MENU_URL"));
         urlItem.setName(ComponentNames.assignEntry("ASSIGN_MENU_URL"));
         urlItem.addActionListener(e -> {
-            String url = JOptionPane.showInputDialog(parent,
-                    ActionPanelModule.getString("ASSIGN_URL_PROMPT"));
-            if (url != null && !url.isBlank()) {
-                url = url.trim();
-                // A bare host is meant as a web address.
-                if (!url.contains("://") && !url.toLowerCase(Locale.ENGLISH).startsWith("mailto:")) {
-                    url = "https://" + url;
-                }
-                try {
-                    new java.net.URI(url);
-                } catch (java.net.URISyntaxException ex) {
-                    JOptionPane.showMessageDialog(parent,
-                            java.text.MessageFormat.format(
-                                    ActionPanelModule.getString("ERROR_URL_OPEN"), url,
-                                    ex.getReason()),
-                            urlItem.getText(), JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                onAssign.assign(new ActionSpec.UrlActionSpec(url),
-                        abbreviate(url.replaceFirst("^(?i)[a-z+.-]+://(www\\.)?", "")));
+            // The external search URL editor: placeholders, live validation,
+            // sample output. A plain link needs no placeholder here.
+            ExternalFinderItemURL.Builder builder = new ExternalFinderItemURL.Builder().setURL("https://")
+                    .setPlaceholderRequired(false);
+            ExternalFinderItemURLEditorController editor = new ExternalFinderItemURLEditorController(builder)
+                    .hideTargetChoice();
+            if (editor.show(SwingUtilities.getWindowAncestor(parent))) {
+                ExternalFinderItemURL url = editor.getResult();
+                onAssign.assign(
+                        new ActionSpec.UrlActionSpec(url.getURL(),
+                                url.getEncoding().name().toLowerCase(Locale.ENGLISH)),
+                        abbreviate(url.getURL().replaceFirst("^(?i)[a-z+.-]+://(www\\.)?", "")));
             }
         });
         menu.add(urlItem);

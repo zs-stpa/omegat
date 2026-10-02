@@ -53,12 +53,20 @@ public class ActionSpecTest {
                 new ActionSpec.ProjectFlagActionSpec("SentenceSegmentingEnabled"),
                 new ActionSpec.AutotextRefActionSpec("src"), new ActionSpec.ColorSchemeActionSpec("c"),
                 new ActionSpec.ShortcutSetActionSpec("s"),
-                new ActionSpec.UrlActionSpec("https://omegat.org/"));
+                new ActionSpec.UrlActionSpec("https://omegat.org/?q={comment}", "escape"),
+                new ActionSpec.ExternalSearchActionSpec("Open in &Xcode"));
         Set<String> tags = new HashSet<>();
         for (ActionSpec spec : specs) {
             assertTrue("duplicate tag " + spec.type(), tags.add(spec.type()));
             assertEquals(spec, ActionSpec.of(spec.type(), spec.attributes()));
         }
+    }
+
+    @Test
+    public void testUrlWithoutEncodingReadsAsDefault() {
+        assertEquals(new ActionSpec.UrlActionSpec("https://omegat.org/", "default"),
+                ActionSpec.of("url", java.util.Map.of("url", "https://omegat.org/")));
+        assertEquals("https://omegat.org/", new ActionSpec.UrlActionSpec("https://omegat.org/").identity());
     }
 
     @Test

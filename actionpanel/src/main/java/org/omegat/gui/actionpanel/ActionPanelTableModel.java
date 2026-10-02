@@ -320,6 +320,10 @@ public class ActionPanelTableModel extends AbstractTableModel {
         if (spec instanceof ActionSpec.UrlActionSpec url) {
             return ActionPanelModule.getString("URL_LABEL") + ": " + url.url();
         }
+        if (spec instanceof ActionSpec.ExternalSearchActionSpec search) {
+            return ActionPanelModule.getString("ASSIGN_MENU_EXTERNAL_SEARCH") + ": "
+                    + search.name().replace("&", "");
+        }
         if (spec instanceof ColorSchemeActionSpec scheme) {
             return ActionPanelModule.getString("ASSIGN_MENU_COLORSCHEME") + ": " + scheme.ref();
         }

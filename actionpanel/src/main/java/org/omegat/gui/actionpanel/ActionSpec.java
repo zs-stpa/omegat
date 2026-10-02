@@ -132,8 +132,18 @@ public sealed interface ActionSpec {
         }
     }
 
-    /** A URL opened in the system browser. */
-    record UrlActionSpec(String url) implements ActionSpec {
+    /**
+     * A URL opened in the system browser. It is an external search template:
+     * placeholders such as {@code {comment}} are filled from the current
+     * segment when the button is clicked; {@code encoding} names the
+     * {@link org.omegat.externalfinder.item.ExternalFinderItem.ENCODING}
+     * applied to placeholder values.
+     */
+    record UrlActionSpec(String url, String encoding) implements ActionSpec {
+        public UrlActionSpec(String url) {
+            this(url, "default");
+        }
+
         @Override
         public String type() {
             return "url";
@@ -141,7 +151,26 @@ public sealed interface ActionSpec {
 
         @Override
         public Map<String, String> attributes() {
-            return Map.of("url", url);
+            Map<String, String> attributes = new LinkedHashMap<>();
+            attributes.put("url", url);
+            attributes.put("encoding", encoding);
+            return attributes;
+        }
+    }
+
+    /**
+     * An external search set, addressed by its name in the global or project
+     * configuration; runs it against the current segment.
+     */
+    record ExternalSearchActionSpec(String name) implements ActionSpec {
+        @Override
+        public String type() {
+            return "externalsearch";
+        }
+
+        @Override
+        public Map<String, String> attributes() {
+            return Map.of("name", name);
         }
     }
 
@@ -261,7 +290,9 @@ public sealed interface ActionSpec {
         case "snippet":
             return new SnippetActionSpec(attrs.getOrDefault("text", ""));
         case "url":
-            return new UrlActionSpec(attrs.getOrDefault("url", ""));
+            return new UrlActionSpec(attrs.getOrDefault("url", ""), attrs.getOrDefault("encoding", "default"));
+        case "externalsearch":
+            return new ExternalSearchActionSpec(attrs.getOrDefault("name", ""));
         case "autotextref":
             return new AutotextRefActionSpec(attrs.getOrDefault("source", ""));
         case "colorscheme":
