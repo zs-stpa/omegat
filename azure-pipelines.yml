@@ -1,20 +1,24 @@
 # Submission mode: queue a manual run on the target branch (master or
-# releases/*) and give all three submission parameters. The run then tests the
-# submission merged onto that branch and publishes nothing.
-# Leave all three blank for a normal run.
+# releases/*), set submitPR to true and give all three submission parameters.
+# The run then tests the submission merged onto that branch and publishes nothing.
+# Leave submitPR as false and all three as 'none' for a normal run.
 parameters:
+  - name: submitPR
+    displayName: 'Submission: submit PR information'
+    type: boolean
+    default: false
   - name: subRepo
     displayName: 'Submission: repository URL (https)'
     type: string
-    default: ''
+    default: 'none'
   - name: subBranch
     displayName: 'Submission: branch'
     type: string
-    default: ''
+    default: 'none'
   - name: subCommit
     displayName: 'Submission: tip commit (full 40-character hash)'
     type: string
-    default: ''
+    default: 'none'
 
 trigger:
   branches:
@@ -48,7 +52,7 @@ variables:
 
 stages:
 - stage: TestAndDocCI
-  condition: and(ne(variables['isRelease'], true), or(ne('${{ parameters.subCommit }}', ''), and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'))))
+  condition: and(ne(variables['isRelease'], true), or(eq('${{ parameters.submitPR }}', 'true'), and(ne(variables['Build.Reason'], 'Schedule'), ne(variables['Build.Reason'], 'Manual'))))
   jobs:
   - job: CheckChanges
     displayName: Check commit changes
@@ -61,6 +65,7 @@ stages:
         lfs: false
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
@@ -68,7 +73,7 @@ stages:
           doc_changed=false
           dev_doc_changed=false
           non_doc_changed=false
-          if [[ -n "$SUB_COMMIT" ]]; then
+          if [[ "$SUBMIT_PR" == "true" ]]; then
             # submission: label the run, then classify the changes brought in by the merge
             target="${BUILD_SOURCEBRANCH#refs/heads/}"
             echo "##vso[build.updatebuildnumber]sub-${target//\//-}-${SUB_COMMIT:0:12}-${BUILD_BUILDID}"
@@ -98,6 +103,7 @@ stages:
           echo "##vso[task.setvariable variable=changeDevDoc;isOutput=true]$dev_doc_changed"
           echo "##vso[task.setvariable variable=changeNonDoc;isOutput=true]$non_doc_changed"
         env:
+          SUBMIT_PR: ${{ parameters.submitPR }}
           SUB_COMMIT: ${{ parameters.subCommit }}
         name: checkChanges
   - job: BuildDocument
@@ -114,12 +120,13 @@ stages:
         lfs: false
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/build_doc_steps.yml
         parameters:
-          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission-docs', 'gradle-docs') }}
+          cacheKeyPrefix: ${{ iif(eq(parameters.submitPR, true), 'submission-docs', 'gradle-docs') }}
   - job: BuildDeveloperDocument
     displayName: Build Developer Document
     dependsOn: CheckChanges
@@ -134,12 +141,13 @@ stages:
         lfs: false
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/build_dev_doc_steps.yml
         parameters:
-          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission-pip', 'pip') }}
+          cacheKeyPrefix: ${{ iif(eq(parameters.submitPR, true), 'submission-pip', 'pip') }}
   - job: testOnLinux
     displayName: on Linux
     dependsOn: CheckChanges
@@ -152,12 +160,13 @@ stages:
         fetchTags: false
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/check_steps.yml
         parameters:
-          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
+          cacheKeyPrefix: ${{ iif(eq(parameters.submitPR, true), 'submission', 'gradle') }}
   - job: testOnWindows
     displayName: on Windows
     dependsOn: CheckChanges
@@ -169,12 +178,13 @@ stages:
         fetchDepth: 1
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/test_steps.yml
         parameters:
-          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
+          cacheKeyPrefix: ${{ iif(eq(parameters.submitPR, true), 'submission', 'gradle') }}
   - job: testOnMac
     displayName: on mac
     dependsOn: CheckChanges
@@ -187,15 +197,16 @@ stages:
         fetchTags: false
       - template: ci/azure-pipelines/merge_submission_steps.yml
         parameters:
+          submitPR: ${{ parameters.submitPR }}
           subRepo: ${{ parameters.subRepo }}
           subBranch: ${{ parameters.subBranch }}
           subCommit: ${{ parameters.subCommit }}
       - template: ci/azure-pipelines/test_steps.yml
         parameters:
-          cacheKeyPrefix: ${{ iif(ne(parameters.subCommit, ''), 'submission', 'gradle') }}
+          cacheKeyPrefix: ${{ iif(eq(parameters.submitPR, true), 'submission', 'gradle') }}
 
 - stage: Weekly
-  condition: and(eq('${{ parameters.subCommit }}', ''), or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual')))
+  condition: and(eq('${{ parameters.submitPR }}', 'false'), or(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.Reason'], 'Manual')))
   jobs:
   - job: CheckForWeekly
     displayName: Test and Check
@@ -266,7 +277,7 @@ stages:
 
   # Release steps will run on the main and/or release branch with tags.
 - stage: Release
-  condition: and(eq('${{ parameters.subCommit }}', ''), eq(variables.isRelease, true))
+  condition: and(eq('${{ parameters.submitPR }}', 'false'), eq(variables.isRelease, true))
   jobs:
   - job: CheckForRelease
     displayName: Test and Check
