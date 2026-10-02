@@ -520,6 +520,7 @@ public interface IEditor {
     /**
      * Returns current translation or null.
      */
+    @Nullable
     String getCurrentTranslation();
 
     /**
