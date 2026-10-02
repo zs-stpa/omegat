@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -39,6 +40,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import org.omegat.util.HttpConnectionUtils;
 import org.omegat.util.OConsts;
+import org.omegat.util.OStrings;
 import org.omegat.util.PatternConsts;
 import org.omegat.util.Preferences;
 
@@ -78,24 +80,63 @@ public class DictionaryManager {
         List<String> result = new ArrayList<>();
 
         for (String dic : aList) {
-            String[] parts = dic.split("_");
-            Locale locale;
-            if (parts.length == 1) {
-                locale = Locale.of(parts[0]);
-            } else {
-                locale = Locale.of(parts[0], parts[1]);
-            }
-            result.add(dic + " - " + locale.getDisplayName());
+            result.add(dic + " - " + getLanguageDisplayName(dic));
         }
 
         return result;
     }
 
     /**
-     * return a list of full names of the local dictionaries
+     * Localized language name for a dictionary code in the xx_YY form; only
+     * the first two code parts are used.
      */
+    public static String getLanguageDisplayName(String code) {
+        String[] parts = code.split("_");
+        Locale locale;
+        if (parts.length == 1) {
+            locale = Locale.of(parts[0]);
+        } else {
+            locale = Locale.of(parts[0], parts[1]);
+        }
+        return locale.getDisplayName();
+    }
+
+    /**
+     * return a list of full names of the local dictionaries
+     *
+     * @deprecated the flat list repeats a language once per dictionary
+     *             source with identical labels; use
+     *             {@link #getLocalDictionaryDisplayList()} instead.
+     */
+    @Deprecated
     public List<String> getLocalDictionaryNameList() {
         return getDictionaryNameList(getLocalDictionaryCodeList());
+    }
+
+    /**
+     * One display line per available dictionary, sorted by language code
+     * with installed files before bundled ones: "code - name: engine
+     * (origin)". The flat per-source list showed the same language up to
+     * three times with identical labels (bundled Hunspell, bundled
+     * Morfologik, installed file); the origin suffix keeps every line
+     * distinguishable.
+     */
+    public List<String> getLocalDictionaryDisplayList() {
+        List<SpellingDictionaryEntry> entries = new ArrayList<>(getLocalDictionaryEntries());
+        entries.sort(Comparator.comparing(SpellingDictionaryEntry::getLanguageCode)
+                .thenComparing(entry -> !entry.isLocalFile()).thenComparing(SpellingDictionaryEntry::getType));
+        List<String> result = new ArrayList<>(entries.size());
+        for (SpellingDictionaryEntry entry : entries) {
+            String engine = switch (entry.getType()) {
+            case HUNSPELL -> "Hunspell";
+            case MORFOLOGIK -> "Morfologik";
+            };
+            String source = OStrings.getString(entry.isLocalFile() ? "GUI_SPELLCHECKER_SOURCE_INSTALLED"
+                    : "GUI_SPELLCHECKER_SOURCE_BUNDLED", engine);
+            result.add(OStrings.getString("GUI_SPELLCHECKER_LANG_WITH_SOURCES", entry.getLanguageCode(),
+                    getLanguageDisplayName(entry.getLanguageCode()), source));
+        }
+        return result;
     }
 
     /**
@@ -104,7 +145,7 @@ public class DictionaryManager {
     public List<String> getLocalDictionaryCodeList() {
         List<String> result = new ArrayList<>();
         for (SpellingDictionaryEntry entry : getLocalDictionaryEntries()) {
-            result.add(entry.languageCode);
+            result.add(entry.getLanguageCode());
         }
         return result;
     }
@@ -182,10 +223,10 @@ public class DictionaryManager {
             return false;
         }
         Optional<SpellingDictionaryEntry> target = getLocalDictionaryEntries().stream().filter(
-                it -> it.languageCode.equals(lang)).findFirst();
+                it -> it.getLanguageCode().equals(lang)).findFirst();
         if (target.isPresent()) {
             String base = getDirectory() + File.separator + lang;
-            if (target.get().type.equals(SpellCheckDictionaryType.HUNSPELL)) {
+            if (target.get().getType().equals(SpellCheckDictionaryType.HUNSPELL)) {
                 File affFile = new File(base + OConsts.SC_AFFIX_EXTENSION);
                 if (!affFile.delete()) {
                     return false;
@@ -282,14 +323,33 @@ public class DictionaryManager {
     }
 
     public static class SpellingDictionaryEntry {
-        public String languageCode;
-        public SpellCheckDictionaryType type;
-        public boolean custom;
+        private final String languageCode;
+        private final SpellCheckDictionaryType type;
+        private final boolean localFile;
 
-        public SpellingDictionaryEntry(String languageCode, SpellCheckDictionaryType type, boolean custom) {
+        public SpellingDictionaryEntry(String languageCode, SpellCheckDictionaryType type,
+                boolean localFile) {
             this.languageCode = languageCode;
             this.type = type;
-            this.custom = custom;
+            this.localFile = localFile;
+        }
+
+        /** Dictionary code in the xx_YY form. */
+        public String getLanguageCode() {
+            return languageCode;
+        }
+
+        public SpellCheckDictionaryType getType() {
+            return type;
+        }
+
+        /**
+         * Whether the dictionary is a file in the dictionary folder
+         * (installed or hand-copied), as opposed to a bundled dictionary a
+         * language module registered.
+         */
+        public boolean isLocalFile() {
+            return localFile;
         }
     }
 
