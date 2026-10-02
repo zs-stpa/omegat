@@ -284,7 +284,7 @@ public final class ProjectUICommands {
      * @param closeCurrent
      *            whether to close the current project first, if any
      */
-    public static void projectOpen(final File projectDirectory, boolean closeCurrent) {
+    public static void projectOpen(final @Nullable File projectDirectory, boolean closeCurrent) {
         UIThreadsUtil.mustBeSwingThread();
 
         if (Core.getProject().isProjectLoaded()) {
@@ -1187,7 +1187,7 @@ public final class ProjectUICommands {
         prepareForExit(false, () -> System.exit(-1));
     }
 
-    public static void projectRestart(String projectDir) {
+    public static void projectRestart(@Nullable String projectDir) {
         prepareForExit(false, () -> Main.restartGUI(projectDir));
     }
 

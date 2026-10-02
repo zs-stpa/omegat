@@ -419,8 +419,7 @@ public abstract class AbstractFilter implements IFilter {
      * a stub.
      * <p>
      * Default implementation calls {@link #createReader(File,String)} to create
-     * a reader, <code>new BufferedWriter(new StringWriter())</code> to create a
-     * writer for <code>null</code> output file, or
+     * a reader, a discarding writer for <code>null</code> output file, or
      * {@link #createWriter(File,String)} to create a writer if output file is
      * not <code>null</code>; then calls
      * {@link #processFile(BufferedReader, BufferedWriter, FilterContext)} to
@@ -507,7 +506,7 @@ public abstract class AbstractFilter implements IFilter {
      *            Filter Context to use.
      * @return Encoding to write.
      */
-    protected String getOutputEncoding(FilterContext fc) {
+    protected @Nullable String getOutputEncoding(FilterContext fc) {
         String encoding = fc.getOutEncoding();
         if (encoding == null && isTargetEncodingVariable()) {
             // Use input encoding if it's Unicode; otherwise default to UTF-8
