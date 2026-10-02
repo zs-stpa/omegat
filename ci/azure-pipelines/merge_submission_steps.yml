@@ -4,30 +4,33 @@
 # The submission is identified by repository URL, branch and full tip commit,
 # which covers `git request-pull` mails, SourceForge merge requests and any
 # other hosting. Place after "checkout: self" in each job.
-# Does nothing when all three parameters are empty.
+# Does nothing when submitPR is false.
 parameters:
+  - name: submitPR
+    type: boolean
+    default: false
   - name: subRepo
     type: string
-    default: ''
+    default: 'none'
   - name: subBranch
     type: string
-    default: ''
+    default: 'none'
   - name: subCommit
     type: string
-    default: ''
+    default: 'none'
 
 steps:
-  - ${{ if and(eq(parameters.subCommit, ''), or(ne(parameters.subRepo, ''), ne(parameters.subBranch, ''))) }}:
+  - ${{ if and(eq(parameters.submitPR, true), or(eq(parameters.subCommit, 'none'), eq(parameters.subRepo, 'none'), eq(parameters.subBranch, 'none'))) }}:
     - bash: |
-        echo "##vso[task.logissue type=error]Submission parameters are incomplete: give repository URL, branch and commit, or none of them."
+        echo "##vso[task.logissue type=error]Submission parameters are incomplete: give repository URL, branch and commit."
         exit 1
       displayName: 'Reject incomplete submission parameters'
 
-  - ${{ if ne(parameters.subCommit, '') }}:
+  - ${{ if eq(parameters.submitPR, true) }}:
     - bash: |
         set -euo pipefail
         fail() { echo "##vso[task.logissue type=error]$1"; exit 1; }
- 
+
         [[ "$SUB_REPO" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/[A-Za-z0-9._~/-]+$ ]] || fail "Repository URL must be a plain https URL"
         [[ "$SUB_COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "Commit must be a full 40-character lowercase hash"
         git check-ref-format --branch "$SUB_BRANCH" >/dev/null 2>&1 || fail "Invalid branch name"
@@ -43,10 +46,10 @@ steps:
         git fetch --no-tags "$SUB_REPO" "refs/heads/$SUB_BRANCH"
         fetched="$(git rev-parse FETCH_HEAD)"
         [ "$fetched" = "$SUB_COMMIT" ] || fail "Tip of $SUB_BRANCH is $fetched, not the submitted $SUB_COMMIT"
- 
+
         base="$(git rev-parse HEAD)"
         git -c user.name="OmegaT CI" -c user.email="ci@omegat.invalid" merge --no-ff --no-edit "$SUB_COMMIT" || fail "Submission does not merge cleanly onto $target @ $base"
- 
+
         echo "Submission: $SUB_REPO $SUB_BRANCH @ $SUB_COMMIT"
         echo "Base:       $target @ $base"
         git log --oneline -3
