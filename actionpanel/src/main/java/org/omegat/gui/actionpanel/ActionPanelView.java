@@ -694,7 +694,8 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
             ActionSpec spec = row.action();
             if (spec != null) {
                 catalog.rebuild();
-                ActionInvoker.invoke(spec, catalog, e.getModifiers(), ActionPanelView.this,
+                // The button anchors popups (recent projects) and parents dialogs.
+                ActionInvoker.invoke(spec, catalog, e.getModifiers(), button,
                         updated -> updateRowAction(row, updated));
             }
         });
@@ -796,7 +797,7 @@ public class ActionPanelView extends JPanel implements IPaneMenu, IProjectEventL
                     && ActionInvoker.findAutotextItem(ref.source()) != null;
         }
         // External search sets come and go with the preferences, without a
-        // project event: judged at click time, which beeps for a missing set.
+        // project event: judged at click time, which reports a missing set.
         return true;
     }
 

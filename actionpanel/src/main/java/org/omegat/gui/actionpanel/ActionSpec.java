@@ -159,6 +159,22 @@ public sealed interface ActionSpec {
     }
 
     /**
+     * The recent projects list as a popup menu on the button, mirroring
+     * Project > Open Recent at click time.
+     */
+    record RecentProjectsActionSpec() implements ActionSpec {
+        @Override
+        public String type() {
+            return "recentprojects";
+        }
+
+        @Override
+        public Map<String, String> attributes() {
+            return Map.of("menu", "projectOpenRecentMenuItem");
+        }
+    }
+
+    /**
      * An external search set, addressed by its name in the global or project
      * configuration; runs it against the current segment.
      */
@@ -293,6 +309,8 @@ public sealed interface ActionSpec {
             return new UrlActionSpec(attrs.getOrDefault("url", ""), attrs.getOrDefault("encoding", "default"));
         case "externalsearch":
             return new ExternalSearchActionSpec(attrs.getOrDefault("name", ""));
+        case "recentprojects":
+            return new RecentProjectsActionSpec();
         case "autotextref":
             return new AutotextRefActionSpec(attrs.getOrDefault("source", ""));
         case "colorscheme":

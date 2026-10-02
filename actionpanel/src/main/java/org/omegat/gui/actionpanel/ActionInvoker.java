@@ -46,6 +46,7 @@ import java.util.function.Consumer;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
@@ -66,6 +67,7 @@ import org.omegat.gui.actionpanel.ActionSpec.ColorSchemeActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.EditorKeyActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ExternalSearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.MenuActionSpec;
+import org.omegat.gui.actionpanel.ActionSpec.RecentProjectsActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ScriptActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ShortcutSetActionSpec;
@@ -73,13 +75,16 @@ import org.omegat.gui.actionpanel.ActionSpec.SnippetActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.UnknownActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.UrlActionSpec;
 import org.omegat.gui.editor.autotext.Autotext;
+import org.omegat.gui.main.ProjectUICommands;
 import org.omegat.gui.scripting.ScriptItem;
 import org.omegat.gui.scripting.ScriptRunner;
 import org.omegat.gui.search.SearchWindowController;
 import org.omegat.gui.search.SearchWindowManager;
 import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.Log;
+import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
+import org.omegat.util.RecentProjects;
 import org.omegat.util.gui.DesktopWrapper;
 import org.omegat.util.gui.Styles;
 
@@ -129,9 +134,13 @@ public final class ActionInvoker {
             }
         } else if (spec instanceof ExternalSearchActionSpec search) {
             ExternalFinderItem set = findExternalSearch(search.name());
-            if (set == null || !ExternalFinderItemMenuGenerator.run(set)) {
+            if (set == null) {
+                showError("ERROR_EXTERNAL_SEARCH_MISSING", search.name().replace("&", ""));
+            } else if (!ExternalFinderItemMenuGenerator.run(set)) {
                 Toolkit.getDefaultToolkit().beep();
             }
+        } else if (spec instanceof RecentProjectsActionSpec) {
+            showRecentProjects(parent);
         } else if (spec instanceof AutotextRefActionSpec ref) {
             Autotext.AutotextItem item = findAutotextItem(ref.source());
             if (item == null) {
@@ -252,6 +261,44 @@ public final class ActionInvoker {
             }
         }
         return null;
+    }
+
+    /**
+     * The recent projects as a popup below the invoking component, built
+     * like Project > Open Recent: one entry per project, unreadable folders
+     * disabled, then the clear entry.
+     */
+    private static void showRecentProjects(@Nullable Component anchor) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.setName(ComponentNames.RECENT_PROJECTS_POPUP);
+        List<String> projects = RecentProjects.getRecentProjects();
+        for (int i = 0; i < projects.size(); i++) {
+            String project = projects.get(i);
+            File folder = new File(project);
+            JMenuItem item = new JMenuItem(project);
+            item.setName(ComponentNames.child(popup.getName(), Integer.toString(i + 1)));
+            item.setEnabled(folder.isDirectory() && folder.canRead());
+            item.addActionListener(e -> ProjectUICommands.projectOpen(folder, true));
+            popup.add(item);
+        }
+        if (projects.isEmpty()) {
+            JMenuItem none = new JMenuItem(ActionPanelModule.getString("RECENT_PROJECTS_NONE"));
+            none.setEnabled(false);
+            popup.add(none);
+        }
+        popup.addSeparator();
+        JMenuItem clear = new JMenuItem();
+        PackageDialogs.setTextWithMnemonic(clear, OStrings.getString("TF_MENU_FILE_CLEAR_RECENT"));
+        clear.setName(ComponentNames.child(popup.getName(), "clear"));
+        clear.setEnabled(!projects.isEmpty());
+        clear.addActionListener(e -> RecentProjects.clear());
+        popup.add(clear);
+        if (anchor != null && anchor.isShowing()) {
+            popup.show(anchor, 0, anchor.getHeight());
+        } else {
+            // Triggered by shortcut while the pane is hidden: nowhere to anchor.
+            Toolkit.getDefaultToolkit().beep();
+        }
     }
 
     /** The external search set of that name, global or project scope. */

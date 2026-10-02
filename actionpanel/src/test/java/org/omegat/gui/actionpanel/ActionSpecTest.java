@@ -43,18 +43,8 @@ public class ActionSpecTest {
 
     @Test
     public void testTagsAreUniqueAndRoundTrip() {
-        List<ActionSpec> specs = List.of(new ActionSpec.MenuActionSpec("cmd"),
-                new ActionSpec.EditorKeyActionSpec("key"), new ActionSpec.ScriptActionSpec("f.groovy"),
-                new ActionSpec.SearchActionSpec("q", false,
-                        new java.util.LinkedHashMap<>(java.util.Map.of("search_window_whole_words", "true"))),
-                new ActionSpec.SnippetActionSpec("t"),
-                new ActionSpec.PreferenceActionSpec("theme_color_mode", "combobox", 0, 0,
-                        List.of("default", "dark", "sync")),
-                new ActionSpec.ProjectFlagActionSpec("SentenceSegmentingEnabled"),
-                new ActionSpec.AutotextRefActionSpec("src"), new ActionSpec.ColorSchemeActionSpec("c"),
-                new ActionSpec.ShortcutSetActionSpec("s"),
-                new ActionSpec.UrlActionSpec("https://omegat.org/?q={comment}", "escape"),
-                new ActionSpec.ExternalSearchActionSpec("Open in &Xcode"));
+        List<ActionSpec> specs = SampleSpecs.all();
+        SampleSpecs.assertCoversAllTypes(specs);
         Set<String> tags = new HashSet<>();
         for (ActionSpec spec : specs) {
             assertTrue("duplicate tag " + spec.type(), tags.add(spec.type()));

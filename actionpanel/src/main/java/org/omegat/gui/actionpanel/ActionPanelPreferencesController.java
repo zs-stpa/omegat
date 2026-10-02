@@ -36,6 +36,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -651,18 +652,25 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
     }
 
     private void onExport() {
-        JFileChooser chooser = exportChooser();
+        List<ActionRow> rows = model.getRows();
+        List<PanelPackage.Resource> resources = PanelPackage.referencedResources(rows);
+        List<PanelPackage.Resource> included = resources.isEmpty() ? List.of()
+                : PackageDialogs.chooseForExport(panel, resources);
+        if (included == null) {
+            return;
+        }
+        JFileChooser chooser = packageChooser();
         chooser.setDialogTitle(ActionPanelModule.getString("EXPORT_TITLE"));
         if (chooser.showSaveDialog(panel) != JFileChooser.APPROVE_OPTION) {
             return;
         }
         File file = chooser.getSelectedFile();
         if (!file.getName().contains(".")) {
-            file = new File(file.getParentFile(), file.getName() + ".xml");
+            file = new File(file.getParentFile(), file.getName() + "." + PanelPackage.EXTENSION);
         }
         Preferences.setPreference(EXPORT_DIRECTORY_PREFERENCE, file.getParent());
         try {
-            ActionPanelXML.write(model.getRows(), file);
+            PanelPackage.write(file, rows, included);
         } catch (IOException ex) {
             Log.log(ex);
             JOptionPane.showMessageDialog(panel, ex.getLocalizedMessage(), toString(),
@@ -671,17 +679,25 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
     }
 
     private void onImport() {
-        JFileChooser chooser = exportChooser();
+        JFileChooser chooser = packageChooser();
         chooser.setDialogTitle(ActionPanelModule.getString("IMPORT_TITLE"));
         if (chooser.showOpenDialog(panel) != JFileChooser.APPROVE_OPTION) {
             return;
         }
         Preferences.setPreference(EXPORT_DIRECTORY_PREFERENCE, chooser.getSelectedFile().getParent());
         try {
+            PanelPackage.Contents contents = PanelPackage.read(chooser.getSelectedFile());
+            Map<PanelPackage.Entry, PanelPackage.Decision> decisions = Map.of();
+            if (!contents.entries().isEmpty() || !contents.unresolved().isEmpty()) {
+                decisions = PackageDialogs.chooseForImport(panel, contents);
+                if (decisions == null) {
+                    return;
+                }
+            }
+            PanelPackage.install(decisions);
             // Imported rows are copies: fresh ids, so an import of one's own
             // export never clashes with the rows it was taken from.
-            List<ActionRow> imported = ActionPanelXML.read(chooser.getSelectedFile()).stream()
-                    .map(ActionRow::withFreshId).toList();
+            List<ActionRow> imported = contents.rows().stream().map(ActionRow::withFreshId).toList();
             stopEditing();
             model.appendRows(imported);
         } catch (IOException ex) {
@@ -691,10 +707,12 @@ public class ActionPanelPreferencesController extends BasePreferencesController 
         }
     }
 
-    private JFileChooser exportChooser() {
+    /** Package files, plus the plain configuration files of earlier exports. */
+    private JFileChooser packageChooser() {
         JFileChooser chooser = new JFileChooser(
                 Preferences.getPreferenceDefault(EXPORT_DIRECTORY_PREFERENCE, null));
-        chooser.setFileFilter(new FileNameExtensionFilter("*.xml", "xml"));
+        chooser.setFileFilter(new FileNameExtensionFilter(ActionPanelModule.getString("PACKAGE_FILE_FILTER"),
+                PanelPackage.EXTENSION, "xml"));
         return chooser;
     }
 

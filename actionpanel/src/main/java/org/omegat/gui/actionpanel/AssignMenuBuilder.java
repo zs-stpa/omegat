@@ -52,11 +52,13 @@ import org.omegat.gui.actionpanel.ActionSpec.ColorSchemeActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.EditorKeyActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ExternalSearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.MenuActionSpec;
+import org.omegat.gui.actionpanel.ActionSpec.RecentProjectsActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ScriptActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ShortcutSetActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SnippetActionSpec;
 import org.omegat.gui.editor.autotext.Autotext;
 import org.omegat.gui.scripting.ScriptRunner;
+import org.omegat.util.OStrings;
 
 /**
  * Builds the multi-level assignment popup out of every available action
@@ -179,6 +181,12 @@ public final class AssignMenuBuilder {
         for (MenuActionCatalog.MenuEntry entry : catalog.getMenuEntries().values()) {
             JMenu parent = menuForPath(root, menus, entry.getPath(), entry.getMenuNames());
             parent.add(leaf(entry.getLabel(), new MenuActionSpec(entry.getActionCommand()), onAssign));
+            if ("projectOpenMenuItem".equals(entry.getActionCommand())) {
+                // Open Recent is a live submenu the harvest cannot address;
+                // offer it as a popup action right after Open.
+                parent.add(leaf(OStrings.getString("TF_MENU_FILE_OPEN_RECENT").replace("&", ""),
+                        new RecentProjectsActionSpec(), onAssign));
+            }
         }
         return root;
     }

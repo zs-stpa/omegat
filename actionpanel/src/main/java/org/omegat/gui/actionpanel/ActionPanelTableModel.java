@@ -45,6 +45,7 @@ import org.omegat.gui.actionpanel.ActionSpec.SearchActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.ShortcutSetActionSpec;
 import org.omegat.gui.actionpanel.ActionSpec.SnippetActionSpec;
 import org.omegat.gui.shortcuts.PropertiesShortcuts;
+import org.omegat.util.OStrings;
 import org.omegat.util.gui.StaticUIUtils;
 
 /**
@@ -319,6 +320,13 @@ public class ActionPanelTableModel extends AbstractTableModel {
         }
         if (spec instanceof ActionSpec.UrlActionSpec url) {
             return ActionPanelModule.getString("URL_LABEL") + ": " + url.url();
+        }
+        if (spec instanceof ActionSpec.RecentProjectsActionSpec) {
+            // Worded like the harvested Open entry it sits next to.
+            MenuActionCatalog.MenuEntry open = catalog.lookup("projectOpenMenuItem");
+            String menu = open != null ? String.join(" > ", open.getPath())
+                    : OStrings.getString("TF_MENU_FILE").replace("&", "");
+            return menu + " > " + OStrings.getString("TF_MENU_FILE_OPEN_RECENT").replace("&", "");
         }
         if (spec instanceof ActionSpec.ExternalSearchActionSpec search) {
             return ActionPanelModule.getString("ASSIGN_MENU_EXTERNAL_SEARCH") + ": "

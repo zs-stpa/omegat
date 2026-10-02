@@ -79,6 +79,13 @@ public final class ComponentNames {
     public static final String FREEZE_SUFFIX = ".freeze";
     public static final String REFERENCE_SUFFIX = ".reference";
 
+    /** Package export/import dialogs and the recent-projects popup. */
+    public static final String PACKAGE_DIALOG = PREFIX + "package";
+    public static final String EXPORT_TABLE = PACKAGE_DIALOG + ".export_table";
+    public static final String IMPORT_TABLE = PACKAGE_DIALOG + ".import_table";
+    public static final String IMPORT_DECISION_EDITOR = PACKAGE_DIALOG + ".decision";
+    public static final String RECENT_PROJECTS_POPUP = PREFIX + "recent_projects";
+
     private ComponentNames() {
     }
 
@@ -121,6 +128,11 @@ public final class ComponentNames {
     /** Preferences page: buttons, comboboxes and checkboxes by bundle key. */
     public static String prefs(String bundleKey) {
         return PREFS_PREFIX + lower(bundleKey);
+    }
+
+    /** A child of a named component, by the parent's name. */
+    public static String child(String parentName, String suffix) {
+        return parentName + (suffix.startsWith(".") ? suffix : "." + suffix);
     }
 
     /** A child entry of a named parent; null keeps an unnamed parent's children unnamed. */
