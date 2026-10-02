@@ -53,7 +53,15 @@ public class ExternalFinderItemPlaceholdersTest {
     private static Context context() {
         EntryKey key = new EntryKey("Strings.xlf", "Hello", "greeting", null, null, null);
         String[] props = { "note", "path=/src/A.m&line=12" };
-        return Context.of(null, new SourceTextEntry(key, 1, props, null, Collections.emptyList()));
+        return Context.of(null, new SourceTextEntry(key, 1, props, null, Collections.emptyList()), null);
+    }
+
+    @Test
+    public void testPlainLinkAllowedWhenPlaceholderOptional() throws Exception {
+        ExternalFinderItemURL.Builder builder = new ExternalFinderItemURL.Builder().setURL("https://omegat.org/")
+                .setPlaceholderRequired(false);
+        assertEquals("https://omegat.org/", builder.validate().toString());
+        assertEquals("https://omegat.org/", builder.build().generateURL(context()).toString());
     }
 
     @Test

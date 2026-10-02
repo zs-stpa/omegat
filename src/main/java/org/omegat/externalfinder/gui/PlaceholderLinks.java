@@ -27,7 +27,7 @@ package org.omegat.externalfinder.gui;
 
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
@@ -62,26 +62,27 @@ final class PlaceholderLinks {
     /** Insertable text per link, in display order. The tooltip key is the suffix after the name. */
     static Map<String, String> links() {
         Map<String, String> links = new LinkedHashMap<>();
-        links.put(PlaceholderTemplate.TARGET, "{" + PlaceholderTemplate.TARGET + "}");
-        links.put(PlaceholderTemplate.COMMENT, "{" + PlaceholderTemplate.COMMENT + "}");
-        links.put(PlaceholderTemplate.PROP, "{" + PlaceholderTemplate.PROP + ":key}");
-        links.put(PlaceholderTemplate.FILE, "{" + PlaceholderTemplate.FILE + "}");
-        links.put(PlaceholderTemplate.ID, "{" + PlaceholderTemplate.ID + "}");
+        for (String name : PlaceholderTemplate.NAMES) {
+            links.put(name, "{" + name + (PlaceholderTemplate.PROP.equals(name) ? ":key}" : "}"));
+        }
         links.put("regex", "{" + PlaceholderTemplate.COMMENT + ":{regex}}");
         return Collections.unmodifiableMap(links);
     }
 
+    /** Links per row of the grid. */
+    private static final int COLUMNS = 6;
+
     static JComponent create(JTextComponent field) {
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEADING, 8, 0));
-        row.setOpaque(false);
-        row.setAlignmentX(0.0F);
+        JPanel grid = new JPanel(new GridLayout(0, COLUMNS, 8, 2));
+        grid.setOpaque(false);
+        grid.setAlignmentX(0.0F);
         for (Map.Entry<String, String> link : links().entrySet()) {
-            row.add(createLink(field, link.getKey(), link.getValue()));
+            grid.add(createLink(field, link.getKey(), link.getValue()));
         }
-        // Keep the row at its natural height; the box layout would otherwise
+        // Keep the grid at its natural height; the box layout would otherwise
         // hand it a share of any extra dialog height.
-        row.setMaximumSize(new Dimension(Short.MAX_VALUE, row.getPreferredSize().height));
-        return row;
+        grid.setMaximumSize(new Dimension(Short.MAX_VALUE, grid.getPreferredSize().height));
+        return grid;
     }
 
     private static JLabel createLink(JTextComponent field, String name, String text) {

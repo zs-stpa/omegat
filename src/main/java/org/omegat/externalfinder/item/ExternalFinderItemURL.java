@@ -119,6 +119,7 @@ public class ExternalFinderItemURL {
 
     public static final class Builder {
         private String url;
+        private boolean placeholderRequired = true;
         private ExternalFinderItem.TARGET target = ExternalFinderItem.TARGET.BOTH;
         private ExternalFinderItem.ENCODING encoding = ExternalFinderItem.ENCODING.DEFAULT;
 
@@ -130,6 +131,19 @@ public class ExternalFinderItemURL {
         public Builder setURL(String url) {
             this.url = url;
             return this;
+        }
+
+        /**
+         * A search needs a placeholder to be a search; a plain link to open
+         * does not. Default: required.
+         */
+        public Builder setPlaceholderRequired(boolean placeholderRequired) {
+            this.placeholderRequired = placeholderRequired;
+            return this;
+        }
+
+        public boolean isPlaceholderRequired() {
+            return placeholderRequired;
         }
 
         public String getURL() {
@@ -171,7 +185,7 @@ public class ExternalFinderItemURL {
                 throw new ExternalFinderValidationException(
                         OStrings.getString("EXTERNALFINDER_URL_ERROR_NOURL"));
             }
-            if (!PlaceholderTemplate.parse(url).hasPlaceholders()) {
+            if (!PlaceholderTemplate.parse(url).hasPlaceholders() && placeholderRequired) {
                 throw new ExternalFinderValidationException(
                         OStrings.getString("EXTERNALFINDER_PLACEHOLDER_ERROR_NONE"));
             }

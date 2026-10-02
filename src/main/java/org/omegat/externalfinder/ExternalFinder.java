@@ -39,6 +39,7 @@ import java.util.logging.Logger;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
@@ -92,50 +93,69 @@ public final class ExternalFinder {
         CoreEvents.registerApplicationEventListener(generateIApplicationEventListener());
     }
 
-    private static IProjectEventListener generateIProjectEventListener() {
-        return new IProjectEventListener() {
-            private final List<Component> menuItems = new ArrayList<>();
+    /** The Tools menu entries of the loaded project's search sets. */
+    private static final ToolsMenuEntries TOOLS_MENU = new ToolsMenuEntries();
 
-            @Override
-            public void onProjectChanged(final IProjectEventListener.PROJECT_CHANGE_TYPE eventType) {
-                switch (eventType) {
-                case LOAD:
-                    onLoad();
-                    break;
-                case CLOSE:
-                    onClose();
-                    break;
-                default:
-                    // ignore
-                }
-            }
+    private static final class ToolsMenuEntries implements IProjectEventListener {
+        private final List<Component> menuItems = new ArrayList<>();
 
-            private void onLoad() {
-                // clear old items
-                menuItems.clear();
-
-                // add finder items to menuItems
-                IExternalFinderItemMenuGenerator generator = new ExternalFinderItemMenuGenerator(
-                        ExternalFinderItem.TARGET.BOTH, false);
-                List<JMenuItem> newMenuItems = generator.generate();
-                // Separator
-                Component separator = new JPopupMenu.Separator();
-                MenuExtender.addMenuItem(MenuExtender.MenuKey.TOOLS, separator);
-                menuItems.add(separator);
-
-                // add menuItems to menu
-                MenuItemPager pager = new MenuItemPager(MenuExtender.MenuKey.TOOLS);
-                newMenuItems.forEach(pager::add);
-                menuItems.addAll(pager.getFirstPage());
-            }
-
-            private void onClose() {
-                // remove menu items
-                MenuExtender.removeMenuItems(MenuExtender.MenuKey.TOOLS, menuItems);
-                menuItems.clear();
+        @Override
+        public void onProjectChanged(final IProjectEventListener.PROJECT_CHANGE_TYPE eventType) {
+            switch (eventType) {
+            case LOAD:
+                rebuild();
+                break;
+            case CLOSE:
+                clear();
                 projectConfig = null;
+                break;
+            default:
+                // ignore
             }
-        };
+        }
+
+        void rebuild() {
+            clear();
+
+            // add finder items to menuItems
+            IExternalFinderItemMenuGenerator generator = new ExternalFinderItemMenuGenerator(
+                    ExternalFinderItem.TARGET.BOTH, false);
+            List<JMenuItem> newMenuItems = generator.generate();
+            if (newMenuItems.isEmpty()) {
+                return;
+            }
+            // Separator
+            Component separator = new JPopupMenu.Separator();
+            MenuExtender.addMenuItem(MenuExtender.MenuKey.TOOLS, separator);
+            menuItems.add(separator);
+
+            // add menuItems to menu
+            MenuItemPager pager = new MenuItemPager(MenuExtender.MenuKey.TOOLS);
+            newMenuItems.forEach(pager::add);
+            menuItems.addAll(pager.getFirstPage());
+        }
+
+        void clear() {
+            MenuExtender.removeMenuItems(MenuExtender.MenuKey.TOOLS, menuItems);
+            menuItems.clear();
+        }
+    }
+
+    /**
+     * Rebuild the Tools menu entries, so a changed configuration shows without
+     * reloading the project.
+     */
+    public static void refreshToolsMenu() {
+        IProject project = Core.getProject();
+        if (project == null || !project.isProjectLoaded()) {
+            return;
+        }
+        // The preferences dialog saves from a worker thread; the menu is Swing's.
+        if (SwingUtilities.isEventDispatchThread()) {
+            TOOLS_MENU.rebuild();
+        } else {
+            SwingUtilities.invokeLater(TOOLS_MENU::rebuild);
+        }
     }
 
     private static IApplicationEventListener generateIApplicationEventListener() {
@@ -143,7 +163,7 @@ public final class ExternalFinder {
 
             @Override
             public void onApplicationStartup() {
-                CoreEvents.registerProjectChangeListener(generateIProjectEventListener());
+                CoreEvents.registerProjectChangeListener(TOOLS_MENU);
                 Core.getEditor().registerPopupMenuConstructors(getGlobalConfig().getPriority(),
                         new ExternalFinderItemPopupMenuConstructor());
             }
@@ -194,6 +214,7 @@ public final class ExternalFinder {
         globalConfig = newConfig;
         if (!Objects.equals(newConfig, oldConfig)) {
             writeConfig(newConfig, getGlobalConfigFile());
+            refreshToolsMenu();
         }
     }
 
@@ -246,6 +267,7 @@ public final class ExternalFinder {
         if (!Objects.equals(newConfig, oldConfig)) {
             File projectFile = getProjectFile(currentProject);
             writeConfig(newConfig, projectFile);
+            refreshToolsMenu();
         }
     }
 

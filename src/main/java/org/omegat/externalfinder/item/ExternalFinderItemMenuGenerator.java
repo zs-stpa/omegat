@@ -39,7 +39,6 @@ import javax.swing.JOptionPane;
 import org.jspecify.annotations.Nullable;
 
 import org.omegat.util.StringUtil;
-import org.omegat.core.Core;
 import org.omegat.externalfinder.ExternalFinder;
 import org.omegat.externalfinder.item.ExternalFinderItem.SCOPE;
 import org.omegat.externalfinder.item.PlaceholderTemplate.Context;
@@ -117,27 +116,42 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
         return menuItems;
     }
 
+    /**
+     * Run a search set against the editor's current state: the selection and
+     * the current segment. A set that reads the selection does nothing while
+     * nothing is selected.
+     *
+     * @return whether the set was run
+     */
+    public static boolean run(ExternalFinderItem finderItem) {
+        final Context context = Context.ofEditor();
+        final String selection = context.getSelection();
+        if (selection == null && finderItem.usesSelection()) {
+            return false;
+        }
+        new ExternalFinderItemActionListener(finderItem).run(context, selection);
+        return true;
+    }
+
     private static class ExternalFinderItemActionListener implements ActionListener {
 
         private final SCOPE scope;
-        private final boolean usesSelection;
+        private final ExternalFinderItem finderItem;
         private final List<ExternalFinderItemURL> urls;
         private final List<ExternalFinderItemCommand> commands;
 
         ExternalFinderItemActionListener(ExternalFinderItem finderItem) {
+            this.finderItem = finderItem;
             this.urls = finderItem.getURLs();
             this.commands = finderItem.getCommands();
             this.scope = finderItem.getScope();
-            this.usesSelection = finderItem.usesSelection();
         }
 
         public void actionPerformed(ActionEvent e) {
-            final String selection = Core.getEditor().getSelectedText();
-            if (selection == null && usesSelection) {
-                return;
-            }
-            final Context context = Context.of(selection, Core.getEditor().getCurrentEntry());
+            ExternalFinderItemMenuGenerator.run(finderItem);
+        }
 
+        private void run(Context context, @Nullable String selection) {
             // Without a selection the ASCII filters have nothing to judge.
             final @Nullable Boolean isASCII = selection == null ? null : ExternalFinderItem.isASCII(selection);
 
