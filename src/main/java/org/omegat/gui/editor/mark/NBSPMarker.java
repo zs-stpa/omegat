@@ -59,5 +59,6 @@ public class NBSPMarker extends AbstractMarker {
         // created per call so that color preference changes take effect
         // without restarting the application
         painter = new TransparentHighlightPainter(Styles.EditorColor.COLOR_NBSP.getColor(), 0.5F);
+        attributes = Styles.createTextStyleAttributeSet(Styles.EditorColor.COLOR_NBSP);
     }
 }

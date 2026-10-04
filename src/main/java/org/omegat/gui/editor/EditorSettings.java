@@ -65,8 +65,6 @@ public class EditorSettings implements IEditorSettings {
     private boolean markAltTranslations;
     private String displayModificationInfo;
     private boolean autoSpellChecking;
-    private boolean viewSourceBold;
-    private boolean viewActiveSourceBold;
     private boolean markFirstNonUnique;
     private boolean markGlossaryMatches;
     private boolean markLanguageChecker;
@@ -106,10 +104,6 @@ public class EditorSettings implements IEditorSettings {
                 MARK_AUTOPOPULATED_DEFAULT);
 
         // options from preferences 'view' pane
-        viewSourceBold = Preferences.isPreferenceDefault(Preferences.VIEW_OPTION_SOURCE_ALL_BOLD,
-                Preferences.VIEW_OPTION_SOURCE_ALL_BOLD_DEFAULT);
-        viewActiveSourceBold = Preferences.isPreferenceDefault(Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD,
-                Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD_DEFAULT);
         markFirstNonUnique = Preferences.isPreference(Preferences.VIEW_OPTION_UNIQUE_FIRST);
         markGlossaryMatches = Preferences.isPreferenceDefault(Preferences.MARK_GLOSSARY_MATCHES,
                 MARK_GLOSSARY_MATCHES_DEFAULT);
@@ -490,8 +484,6 @@ public class EditorSettings implements IEditorSettings {
         parent.commitAndDeactivate();
 
         // update variables
-        viewSourceBold = Preferences.isPreference(Preferences.VIEW_OPTION_SOURCE_ALL_BOLD);
-        viewActiveSourceBold = Preferences.isPreference(Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD);
         markFirstNonUnique = Preferences.isPreference(Preferences.VIEW_OPTION_UNIQUE_FIRST);
 
         if (Core.getProject().isProjectLoaded()) {
@@ -650,21 +642,21 @@ public class EditorSettings implements IEditorSettings {
             bg = Styles.EditorColor.COLOR_NBSP;
         }
 
-        // determine bold
-        Boolean bold = false;
+        // determine italic (null = leave unset, like the bold flag)
+        Boolean italic = isRemoveText && isSource ? true : null;
+
+        // Source bold moved into the configurable text styles: inactive
+        // source carries COLOR_SOURCE's style, the active segment adds
+        // COLOR_ACTIVE_SOURCE's on top - same truth table as the two view
+        // option checkboxes, which now drive these flags.
+        AttributeSet attrs = Styles.createBoundAttributeSet(fg, bg, null, italic);
         if (isSource) {
-            if (viewSourceBold || (active && viewActiveSourceBold)) {
-                bold = true;
+            attrs = Styles.overlayTextStyle(Styles.EditorColor.COLOR_SOURCE, attrs);
+            if (active) {
+                attrs = Styles.overlayTextStyle(Styles.EditorColor.COLOR_ACTIVE_SOURCE, attrs);
             }
         }
-
-        // determine italic
-        Boolean italic = false;
-        if (isRemoveText && isSource) {
-            italic = true;
-        }
-
-        return Styles.overlayTextStyle(stateStyle, Styles.createBoundAttributeSet(fg, bg, bold, italic));
+        return Styles.overlayTextStyle(stateStyle, attrs);
     }
 
     /**
@@ -673,7 +665,8 @@ public class EditorSettings implements IEditorSettings {
      * @return
      */
     public AttributeSet getParagraphStartAttributeSet() {
-        return Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_PARAGRAPH_START, null, false, true);
+        return Styles.overlayTextStyle(Styles.EditorColor.COLOR_PARAGRAPH_START,
+                Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_PARAGRAPH_START, null, null, null));
     }
 
     /**
@@ -682,8 +675,8 @@ public class EditorSettings implements IEditorSettings {
      * @return
      */
     public AttributeSet getModificationInfoAttributeSet() {
-        return Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_MOD_INFO_FG,
-                Styles.EditorColor.COLOR_MOD_INFO, false, true);
+        return Styles.overlayTextStyle(Styles.EditorColor.COLOR_MOD_INFO_FG, Styles.createBoundAttributeSet(
+                Styles.EditorColor.COLOR_MOD_INFO_FG, Styles.EditorColor.COLOR_MOD_INFO, null, null));
     }
 
     /**
@@ -692,8 +685,9 @@ public class EditorSettings implements IEditorSettings {
      * @return
      */
     public AttributeSet getSegmentMarkerAttributeSet() {
-        return Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_SEGMENT_MARKER_FG,
-                Styles.EditorColor.COLOR_SEGMENT_MARKER_BG, true, false);
+        return Styles.overlayTextStyle(Styles.EditorColor.COLOR_SEGMENT_MARKER_FG,
+                Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_SEGMENT_MARKER_FG,
+                        Styles.EditorColor.COLOR_SEGMENT_MARKER_BG, null, null));
     }
 
     /**
@@ -702,7 +696,7 @@ public class EditorSettings implements IEditorSettings {
      * @return
      */
     public AttributeSet getOtherLanguageTranslationAttributeSet() {
-        return Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_SOURCE_FG,
-                Styles.EditorColor.COLOR_SOURCE, false, true);
+        return Styles.overlayTextStyle(Styles.EditorColor.COLOR_SOURCE_FG, Styles.createBoundAttributeSet(
+                Styles.EditorColor.COLOR_SOURCE_FG, Styles.EditorColor.COLOR_SOURCE, null, null));
     }
 }

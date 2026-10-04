@@ -233,11 +233,62 @@ public class StylesTest {
         assertTrue(Styles.EditorColor.COLOR_TRANSLATED.getDefaultTextStyle().isEmpty());
     }
 
+    /** The source bold view options became intrinsic style defaults. */
+    @Test
+    public void testSourceBoldAndExtendedIntrinsicDefaults() {
+        assertEquals(EnumSet.of(Styles.TextStyle.BOLD),
+                Styles.EditorColor.COLOR_SOURCE.getDefaultTextStyle());
+        assertEquals(EnumSet.of(Styles.TextStyle.BOLD),
+                Styles.EditorColor.COLOR_ACTIVE_SOURCE.getDefaultTextStyle());
+        assertEquals(EnumSet.of(Styles.TextStyle.ITALIC),
+                Styles.EditorColor.COLOR_PARAGRAPH_START.getDefaultTextStyle());
+        assertEquals(EnumSet.of(Styles.TextStyle.ITALIC),
+                Styles.EditorColor.COLOR_MOD_INFO_FG.getDefaultTextStyle());
+        assertEquals(EnumSet.of(Styles.TextStyle.BOLD),
+                Styles.EditorColor.COLOR_SEGMENT_MARKER_FG.getDefaultTextStyle());
+        assertEquals(EnumSet.of(Styles.TextStyle.BOLD),
+                Styles.EditorColor.COLOR_SEARCH_FOUND_MARK.getDefaultTextStyle());
+        assertTrue(Styles.EditorColor.COLOR_NBSP.getDefaultTextStyle().isEmpty());
+    }
+
+    /**
+     * A legacy source bold view option keeps deciding until a style key is
+     * written, so an existing configuration keeps its look.
+     */
+    @Test
+    public void testLegacyViewOptionDecidesUntilStyleKeyExists() {
+        assertFalse("legacy off wins over the intrinsic default",
+                Styles.EditorColor.resolveBoldDefault(true, false, false));
+        assertTrue(Styles.EditorColor.resolveBoldDefault(false, true, false));
+        assertTrue("a written style key ends the legacy era",
+                Styles.EditorColor.resolveBoldDefault(true, false, true));
+        assertTrue("no legacy value: intrinsic default applies",
+                Styles.EditorColor.resolveBoldDefault(true, null, false));
+    }
+
+    /** Style-only attributes render like no attributes while unconfigured. */
+    @Test
+    public void testTextStyleAttributeSetEmptyByDefault() {
+        assertEquals(0, Styles.createTextStyleAttributeSet(Styles.EditorColor.COLOR_NBSP)
+                .getAttributeCount());
+        Styles.EditorColor entry = Styles.EditorColor.COLOR_REPLACE;
+        try {
+            entry.setTextStyle(EnumSet.of(Styles.TextStyle.BOLD));
+            assertTrue(StyleConstants.isBold(Styles.createTextStyleAttributeSet(entry)));
+        } finally {
+            entry.setTextStyle(entry.getDefaultTextStyle());
+        }
+    }
+
     /** Only entries with wired call sites expose editable style flags. */
     @Test
     public void testTextStyleablePinnedToWiredCallSites() {
         assertTrue(Styles.EditorColor.COLOR_MATCHES_DEL_ACTIVE.isTextStyleable());
         assertTrue(Styles.EditorColor.COLOR_TRANSLATED.isTextStyleable());
+        assertTrue(Styles.EditorColor.COLOR_PARAGRAPH_START.isTextStyleable());
+        assertTrue(Styles.EditorColor.COLOR_SEARCH_FOUND_MARK.isTextStyleable());
+        assertTrue(Styles.EditorColor.COLOR_NBSP.isTextStyleable());
+        assertTrue(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XICE.isTextStyleable());
         // underline painter marks, no attribute-based call site yet
         assertFalse(Styles.EditorColor.COLOR_TRANSTIPS.isTextStyleable());
         assertFalse(Styles.EditorColor.COLOR_GLOSSARY_SOURCE.isTextStyleable());
