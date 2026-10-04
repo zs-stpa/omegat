@@ -134,7 +134,7 @@ public final class Styles {
         /**
          * Active source text background.
          */
-        COLOR_ACTIVE_SOURCE("OmegaT.activeSource", "#c0ffc0"),
+        COLOR_ACTIVE_SOURCE("OmegaT.activeSource", "#c0ffc0", TextStyle.BOLD),
         /**
          * Active source text foreground.
          */
@@ -150,7 +150,7 @@ public final class Styles {
         /**
          * Segment marker foreground color.
          */
-        COLOR_SEGMENT_MARKER_FG("OmegaT.segmentMarkerForeground", "#000000"),
+        COLOR_SEGMENT_MARKER_FG("OmegaT.segmentMarkerForeground", "#000000", TextStyle.BOLD),
         /**
          * Segment marker background color.
          */
@@ -158,11 +158,11 @@ public final class Styles {
         /**
          * source text background.
          */
-        COLOR_SOURCE("OmegaT.source", "#c0ffc0"),
+        COLOR_SOURCE("OmegaT.source", "#c0ffc0", TextStyle.BOLD),
         /**
          * source text foreground.
          */
-        COLOR_SOURCE_FG("OmegaT.sourceForeground", "#000000"),
+        COLOR_SOURCE_FG("OmegaT.sourceForeground", "#000000", TextStyle.ITALIC),
         /**
          * noted segment background.
          */
@@ -203,7 +203,7 @@ public final class Styles {
         /**
          * Modification information text.
          */
-        COLOR_MOD_INFO_FG("OmegaT.modInfoForeground", "#000000"),
+        COLOR_MOD_INFO_FG("OmegaT.modInfoForeground", "#000000", TextStyle.ITALIC),
         /**
          * Tags placeholder color.
          */
@@ -227,7 +227,7 @@ public final class Styles {
         /**
          * Paragraph start delimitation background color.
          */
-        COLOR_PARAGRAPH_START("OmegaT.paragraphStart", "#888888"),
+        COLOR_PARAGRAPH_START("OmegaT.paragraphStart", "#888888", TextStyle.ITALIC),
         /**
          * The background color of a segment comes from MT memory.
          */
@@ -317,7 +317,7 @@ public final class Styles {
         /**
          * Search found mark highlight color.
          */
-        COLOR_SEARCH_FOUND_MARK("OmegaT.searchFoundMark", "#0000ff"),
+        COLOR_SEARCH_FOUND_MARK("OmegaT.searchFoundMark", "#0000ff", TextStyle.BOLD),
         /**
          * Search replace mark highlight color.
          */
@@ -484,6 +484,17 @@ public final class Styles {
                 // defaults into user's prefs file.
                 boolean on = defaultTextStyle.contains(flag);
                 String key = textStylePrefKey(flag);
+                // Migration: the source bold toggles lived in the view
+                // options before they joined the text styles. An existing
+                // legacy key keeps deciding until the style key is written,
+                // so nobody's configuration changes its look.
+                String legacyKey = legacyBoldPreference();
+                if (flag == TextStyle.BOLD && legacyKey != null) {
+                    Boolean legacy = Preferences.existsPreference(legacyKey)
+                            ? Preferences.isPreference(legacyKey)
+                            : null;
+                    on = resolveBoldDefault(on, legacy, Preferences.existsPreference(key));
+                }
                 if (Preferences.existsPreference(key)) {
                     String pref = Preferences.getPreferenceDefault(key, "");
                     if (!pref.isEmpty() && !DEFAULT_COLOR.equals(pref)) {
@@ -493,6 +504,33 @@ public final class Styles {
                 if (on) {
                     textStyle.add(flag);
                 }
+            }
+        }
+
+        /**
+         * The intrinsic bold default, overruled by a legacy view option
+         * value as long as no style key was ever written.
+         */
+        static boolean resolveBoldDefault(boolean intrinsicDefault, @Nullable Boolean legacyValue,
+                boolean styleKeyExists) {
+            if (!styleKeyExists && legacyValue != null) {
+                return legacyValue;
+            }
+            return intrinsicDefault;
+        }
+
+        /**
+         * Pre-text-style preference key that used to hold this entry's bold
+         * toggle, null for every other entry.
+         */
+        private @Nullable String legacyBoldPreference() {
+            switch (this) {
+            case COLOR_SOURCE:
+                return Preferences.VIEW_OPTION_SOURCE_ALL_BOLD;
+            case COLOR_ACTIVE_SOURCE:
+                return Preferences.VIEW_OPTION_SOURCE_ACTIVE_BOLD;
+            default:
+                return null;
             }
         }
 
@@ -549,7 +587,13 @@ public final class Styles {
                 COLOR_NON_UNIQUE, COLOR_PLACEHOLDER, COLOR_REMOVETEXT_TARGET,
                 COLOR_MATCHES_CHANGED, COLOR_MATCHES_UNCHANGED,
                 COLOR_MATCHES_INS_ACTIVE, COLOR_MATCHES_INS_INACTIVE,
-                COLOR_MATCHES_DEL_ACTIVE, COLOR_MATCHES_DEL_INACTIVE);
+                COLOR_MATCHES_DEL_ACTIVE, COLOR_MATCHES_DEL_INACTIVE,
+                COLOR_PARAGRAPH_START, COLOR_MOD_INFO_FG, COLOR_SEGMENT_MARKER_FG, COLOR_SOURCE_FG,
+                COLOR_SEARCH_FOUND_MARK, COLOR_SEARCH_REPLACE_MARK,
+                COLOR_MARK_ALT_TRANSLATION, COLOR_NBSP, COLOR_REPLACE,
+                COLOR_MARK_COMES_FROM_TM_MT, COLOR_MARK_COMES_FROM_TM_XICE,
+                COLOR_MARK_COMES_FROM_TM_X100PC, COLOR_MARK_COMES_FROM_TM_XAUTO,
+                COLOR_MARK_COMES_FROM_TM_XENFORCED);
     }
 
     /**
@@ -665,6 +709,15 @@ public final class Styles {
             StyleConstants.setUnderline(r, true);
         }
         return r;
+    }
+
+    /**
+     * Attributes carrying ONLY the entry's configured text style flags, no
+     * colors - for marks whose color comes from a highlight painter. With
+     * the default (empty) style this renders exactly like no attributes.
+     */
+    public static AttributeSet createTextStyleAttributeSet(EditorColor entry) {
+        return overlayTextStyle(entry, createAttributeSet(null, null, null, null));
     }
 
     /**

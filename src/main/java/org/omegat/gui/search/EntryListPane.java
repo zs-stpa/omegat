@@ -446,10 +446,12 @@ class EntryListPane extends JTextPane {
             StyledDocument doc = (StyledDocument) getDocument();
             // attributes are created per request so that color preference
             // changes take effect without restarting the application
-            AttributeSet foundMark = Styles.createAttributeSet(
-                    Styles.EditorColor.COLOR_SEARCH_FOUND_MARK.getColor(), null, true, null);
-            AttributeSet replaceMark = Styles.createAttributeSet(
-                    Styles.EditorColor.COLOR_SEARCH_REPLACE_MARK.getColor(), null, false, null);
+            AttributeSet foundMark = Styles.overlayTextStyle(Styles.EditorColor.COLOR_SEARCH_FOUND_MARK,
+                    Styles.createAttributeSet(Styles.EditorColor.COLOR_SEARCH_FOUND_MARK.getColor(), null,
+                            null, null));
+            AttributeSet replaceMark = Styles.overlayTextStyle(
+                    Styles.EditorColor.COLOR_SEARCH_REPLACE_MARK, Styles.createAttributeSet(
+                            Styles.EditorColor.COLOR_SEARCH_REPLACE_MARK.getColor(), null, null, null));
             List<SearchMatch> matchesToMark = matches.subList(0, Math.min(MARKS_PER_REQUEST, matches.size()));
             for (SearchMatch m : matchesToMark) {
                 doc.setCharacterAttributes(m.getStart(), m.getLength(), foundMark, true);
