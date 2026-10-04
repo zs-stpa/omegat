@@ -45,7 +45,7 @@ public class DictionaryGlossaryRenderer implements IGlossaryRenderer {
 
     @Override
     public void render(GlossaryEntry entry, IRenderTarget<?> trg) {
-        trg.append(entry.getSrcText(), SOURCE_ATTRIBUTES);
+        trg.append(entry.getSrcText(), IGlossaryRenderer.sourceAttributes());
         trg.append(": ");
 
         String[] targets = entry.getLocTerms(false);
@@ -60,7 +60,7 @@ public class DictionaryGlossaryRenderer implements IGlossaryRenderer {
                     trg.startIndent(null);
                     hasComments = false;
                 }
-                SimpleAttributeSet attrs = new SimpleAttributeSet(TARGET_ATTRIBUTES);
+                SimpleAttributeSet attrs = new SimpleAttributeSet(IGlossaryRenderer.targetAttributes());
                 if (priorities[i]) {
                     StyleConstants.setBold(attrs, true);
                 }
@@ -71,8 +71,8 @@ public class DictionaryGlossaryRenderer implements IGlossaryRenderer {
                 }
             }
             if (!comments[i].isEmpty()) {
-                trg.startIndent(NOTES_ATTRIBUTES);
-                trg.append("- " + comments[i], NOTES_ATTRIBUTES);
+                trg.startIndent(IGlossaryRenderer.notesAttributes());
+                trg.append("- " + comments[i], IGlossaryRenderer.notesAttributes());
                 hasComments = true;
             }
         }
