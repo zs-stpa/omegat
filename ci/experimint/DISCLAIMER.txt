@@ -1,0 +1,29 @@
+Ωt-experimInt (omegaT-experimental-integration)
+================================================
+
+UNOFFICIAL, EXPERIMENTAL, UNTESTED BUILD — USE ENTIRELY AT YOUR OWN RISK.
+
+This is a private, automatically merged snapshot of several dozen open
+OmegaT pull requests on top of upstream master. It is NOT an official
+OmegaT release and is in no way endorsed by or affiliated with the
+OmegaT project.
+
+- NO WARRANTY, NO LIABILITY: nothing beyond what the GPL already states
+  (GPLv2 sections 11-12: the program is provided "as is", the entire
+  risk as to quality and performance is with you). The publisher accepts
+  no responsibility for any damage whatsoever.
+
+- The feature combinations in this build exist nowhere else and are
+  untested. Bad things can happen to production data, including team
+  projects. BACK UP your projects and configuration BEFORE running this
+  build - a backup now beats tears later.
+
+- Report problems on the fork that published this build
+  (https://github.com/zs-stpa/omegat), not to the OmegaT project:
+  upstream cannot reproduce this build.
+
+- macOS will warn about an unidentified developer: the app is ad-hoc
+  signed, not notarized. Right-click the app -> Open on first launch.
+
+Source code: https://github.com/zs-stpa/omegat/tree/experimental-integration
+License: GNU General Public License v2 (see the app's licenses folder).
