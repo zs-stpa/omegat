@@ -26,6 +26,10 @@
 
 - 2026010 [Value-Based Fuzzy Match Numbers](2026010.ValueBasedNumberMatching.md)
 
+### Numbers and Numerals
+
+- 2026007 [Number-Only Segment Auto-Conversion](2026007.NumberOnlyAutofill.md)
+
 ### Filters
 
 - 2025009 [Yaml Filter Specification](2025009.YAMLFilterSpecification.md) 
