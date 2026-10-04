@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.gui.editor.autocompleter.AutoCompleter;
 import org.omegat.gui.editor.autocompleter.AutoCompleterItem;
@@ -107,7 +108,8 @@ public class GlossaryAutoCompleterView extends AutoCompleterListView {
      * @param glossary the glossary to search
      * @param context the context to match (can be null)
      */
-    private void fillMatchingTerms(List<AutoCompleterItem> result, List<GlossaryEntry> glossary, String context) {
+    private void fillMatchingTerms(List<AutoCompleterItem> result, List<GlossaryEntry> glossary,
+            @Nullable String context) {
         if ("".equals(context)) {
             // Context is present but empty--we consider no terms to match.
             return;
@@ -133,7 +135,7 @@ public class GlossaryAutoCompleterView extends AutoCompleterListView {
         }
     }
 
-    private boolean termMatchesChunk(String term, String context) {
+    private boolean termMatchesChunk(String term, @Nullable String context) {
         if (context == null) {
             // Consider null context to match everything
             return true;

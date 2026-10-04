@@ -373,7 +373,7 @@ public class RepositoriesMappingController {
     /**
      * Check if data is valid. Returns null if all valid.
      */
-    String isValid() {
+    @Nullable String isValid() {
         Set<String> urls = new TreeSet<String>();
         for (RowRepo r : listRepo) {
             if (StringUtil.isEmpty(r.url)) {
