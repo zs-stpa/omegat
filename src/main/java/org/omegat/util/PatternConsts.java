@@ -31,6 +31,7 @@
 
 package org.omegat.util;
 
+import java.beans.PropertyChangeListener;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -313,6 +314,23 @@ public final class PatternConsts {
         updatePlaceholderPattern();
         updateRemovePattern();
         updateCustomTagPattern();
+    }
+
+    /** Preferences the placeholder pattern is built from. */
+    private static final String[] PLACEHOLDER_KEYS = { Preferences.CHECK_ALL_PRINTF_TAGS,
+            Preferences.CHECK_SIMPLE_PRINTF_TAGS, Preferences.CHECK_JAVA_PATTERN_TAGS,
+            Preferences.CHECK_CUSTOM_PATTERN };
+
+    static {
+        // The cached patterns follow their preferences, so whoever changes
+        // a tag validation setting (dialog, script, plugin) need not know
+        // which cache to invalidate.
+        PropertyChangeListener placeholderReset = e -> updatePlaceholderPattern();
+        for (String key : PLACEHOLDER_KEYS) {
+            Preferences.addPropertyChangeListener(key, placeholderReset);
+        }
+        Preferences.addPropertyChangeListener(Preferences.CHECK_CUSTOM_PATTERN, e -> updateCustomTagPattern());
+        Preferences.addPropertyChangeListener(Preferences.CHECK_REMOVE_PATTERN, e -> updateRemovePattern());
     }
 
     /**
