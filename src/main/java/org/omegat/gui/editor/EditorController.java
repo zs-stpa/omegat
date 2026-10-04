@@ -439,7 +439,7 @@ public class EditorController implements IEditor {
         scrollPane.setName("EditorScrollPane");
         metadataGutter = new SegmentMetadataGutter(this, editor);
         updateMetadataGutter();
-        pane.setMenuProvider(new EditorPaneMenu(this::updateMetadataGutter,
+        pane.setMenuProvider(new EditorPaneMenu(this, this::updateMetadataGutter,
                 metadataGutter::currentColumnWidth, metadataGutter::currentTotalWidth,
                 () -> editor.getFont().getSize()));
         pane.setLayout(new BorderLayout());
