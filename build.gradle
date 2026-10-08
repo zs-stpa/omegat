@@ -428,6 +428,7 @@ distributions {
             from(layout.settingsDirectory.dir('release/linux-specific')) {
                 filter ReplaceTokens, tokens: [
                         VERSION_NUMBER_SUBST: project.version,
+                        HEAP_SUBST          : project.property('org.omegat.jvmHeapPercentage'),
                         JAR_SUBST           : project.property('org.omegat.omegatJarFilename')
                 ]
                 filePermissions {
@@ -437,6 +438,7 @@ distributions {
             from(layout.settingsDirectory.dir('release/win32-specific')) {
                 include 'OmegaT.bat'
                 filter(ReplaceTokens, tokens: [
+                        HEAP_SUBST          : project.property('org.omegat.jvmHeapPercentage'),
                         JAR_SUBST           : project.property('org.omegat.omegatJarFilename')
                 ])
             }

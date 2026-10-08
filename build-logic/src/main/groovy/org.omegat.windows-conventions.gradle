@@ -63,8 +63,8 @@ launch4j {
     icon = "${projectDir}/images/OmegaT.ico"
     errTitle = 'OmegaT'
     headerType = 'gui'
-    jreMinVersion = '11.0'
-    jreMaxVersion = '25.0'
+    jreMinVersion = project.property('org.omegat.win.jvmMinimum')
+    jreMaxVersion = project.property('org.omegat.win.jvmMaximum')
     copyConfigurable = [] // hack: don't copy dependencies to $libraryDir
     // assume bundled JRE in jre/, fallback to JAVA_HOME env then PATH
     bundledJrePath = 'jre;%JAVA_HOME%;%PATH%'
@@ -80,8 +80,8 @@ launch4j {
 }
 
 def assetDir = findProperty('assetDir') ?: '../'
-def windowsJRE = fileTree(dir: assetDir, include: 'OpenJDK25U-jre_x64_windows_*.zip')
-def windowsArm64JRE = fileTree(dir: assetDir, include: 'OpenJDK21U-jre_aarch64_windows_*.zip')
+def windowsJRE = fileTree(dir: assetDir, include: project.property('org.omegat.win.jreGlobX64'))
+def windowsArm64JRE = fileTree(dir: assetDir, include: project.property('org.omegat.win.jreGlobAarch64'))
 tasks.register('win') {
     description = 'Builds the Windows distributions.'
     group = 'distribution'
@@ -94,6 +94,7 @@ ext.makeWinTask = { args ->
     def genDistsTaskName = "${args.name}Gen"
     def distsTaskName = "${args.name}"
     def archSubst = "x64compatible"
+    def jvmHeapPercentage = project.property('org.omegat.jvmHeapPercentage')
 
     def targetJar = layout.buildDirectory.file("innosetup/${args.name}/OmegaT.jar")
     def originJar = layout.buildDirectory.file('libs/OmegaT.jar')
@@ -120,7 +121,8 @@ ext.makeWinTask = { args ->
                     VERSION_NUMBER_SUBST : fullVersion,
                     OUTPUT_BASENAME_SUBST: installerBasename.toString(),
                     CUSTOM_MESSAGES_SUBST: getInnoSetupCustomMessages(),
-                    ARCHITECTURE_SUBST   : archSubst
+                    ARCHITECTURE_SUBST   : archSubst,
+                    HEAP_PERCENTAGE: jvmHeapPercentage
             ])
             filter(FixCrLfFilter, eol: FixCrLfFilter.CrLf.newInstance('crlf'))
             filteringCharset = 'UTF-8'

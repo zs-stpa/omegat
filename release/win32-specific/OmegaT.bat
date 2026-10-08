@@ -1,2 +1,2 @@
-java -jar -Xmx1024M "%~dp0@JAR_SUBST@" %*
+java -jar -XX:MaxRAMPercentage=@HEAP_SUBST@ "%~dp0@JAR_SUBST@" %*
 

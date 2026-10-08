@@ -25,6 +25,7 @@ tasks.register('genMac') {
     def appClass = project.property('org.omegat.mainClassName')
     def ver = project.version.toString()
     def jvmRequired = project.property('org.omegat.mac.jvmRequired')
+    def jvmHeapPercentage = project.property('org.omegat.jvmHeapPercentage')
     // $APP_ROOT is expanded at runtime by the launcher binary
     def configFile = '$APP_ROOT/Contents/Resources/Configuration.properties'
     def macSpecificDir = layout.projectDirectory.dir('release/mac-specific/OmegaT.app')
@@ -37,6 +38,7 @@ tasks.register('genMac') {
     inputs.property('appClass', appClass)
     inputs.property('ver', ver)
     inputs.property('jvmRequired', jvmRequired)
+    inputs.property('jvmHeapPercentage', jvmHeapPercentage)
     inputs.property('configFile', configFile)
     inputs.property('iconFile', iconFile)
     inputs.dir(macSpecificDir)
@@ -63,6 +65,7 @@ tasks.register('genMac') {
             option(value: "-Xdock:name=${appName}")
             option(value: "-Dapple.awt.application.name=${appName}")
             option(value: "-Dapple.awt.application.appearance=system")
+            option(value: "-XX:MaxRAMPercentage=${jvmHeapPercentage}")
             argument(value: "--config-file=${configFile}")
             bundledocument(extensions: 'project',
                     name: "${appName} Project",
