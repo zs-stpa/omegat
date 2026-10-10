@@ -196,27 +196,46 @@
                </note>
             </listitem>
          </varlistentry>
-         <varlistentry xml:id="dialogs.project.properties.match.numbers">
-            <term xml:id="dialogs.project.properties.match.numbers.title">
-               <option>Consider numbers in matches</option>
+         <varlistentry xml:id="dialogs.project.properties.match.equivalence">
+            <term xml:id="dialogs.project.properties.match.equivalence.title">
+               <option>Character equivalence...</option>
             </term>
             <listitem>
-               <para>By default, the word-based match percentages ignore numbers, and
-                  		  a segment that consists only of numbers (a date, a bare quantity)
-                  		  scores too low against a segment with different numbers to be
-                  		  offered as a match.</para>
-               <para>Activating this option makes fuzzy matching compare number
-                  		  tokens by their numeric value: numbers written in different
-                  		  numbering systems (Roman numerals, ideographic numbers,
-                  		  Arabic-Indic or full-width digits, and so on) count as equal to
-                  		  their Western counterpart of the same value. The sign-written
-                  		  systems (Ethiopic, cuneiform, Mayan and others) and the
-                  		  precomposed fraction glyphs are read the same way, and an
-                  		  inserted match rewrites each number in the notation the match
-                  		  itself uses. Two segments that
-                  		  consist only of numbers are scored against each other as number
-                  		  sequences, with a small fixed penalty, so differing dates or bare
-                  		  numbers surface as fuzzy matches at all.</para>
+               <para>Opens a dialog with the character equivalence classes used by
+                  		  fuzzy matching and search: quote, dash, space and
+                  		  invisible-format variants fold onto each other. Each class
+                  		  lists its complete character inventory, a test area compares
+                  		  two sample texts with the current selection, and the dialog
+                  		  also holds the number matching option described below.</para>
+            </listitem>
+         </varlistentry>
+         <varlistentry xml:id="dialogs.project.properties.match.numbers">
+            <term xml:id="dialogs.project.properties.match.numbers.title">
+               <option>Number value equality</option>
+            </term>
+            <listitem>
+               <para>This option is part of the equivalence dialog opened with the
+                  		  <option>Character equivalence...</option> button. It is active
+                  		  by default.</para>
+               <para>While active, fuzzy matching compares number tokens by their
+                  		  numeric value: numbers written in different numbering systems
+                  		  (ideographic numbers, Arabic-Indic or full-width digits, and so
+                  		  on) count as equal to their Western counterpart of the same
+                  		  value. The sign-written systems (Ethiopic, cuneiform, Mayan
+                  		  and others) and the precomposed fraction glyphs are read the
+                  		  same way, and an inserted match rewrites each number in the
+                  		  notation the match itself uses. Two segments that consist only of numbers are scored
+                  		  against each other as number sequences, with a small fixed
+                  		  penalty, so differing dates or bare numbers surface as fuzzy
+                  		  matches at all. Roman numerals written with Latin letters are
+                  		  only read as numbers when the indented sub-option is also
+                  		  activated (off by default, since ordinary words such as
+                  		  <literal>I</literal> or <literal>MIX</literal> read as Roman
+                  		  numerals too).</para>
+               <para>Deactivated, the word-based match percentages ignore numbers,
+                  		  and a segment that consists only of numbers (a date, a bare
+                  		  quantity) scores too low against a segment with different
+                  		  numbers to be offered as a match.</para>
                <para>The setting is stored in the project and applies to everyone
                   		  working on it. Hover over a match in the
                   <link linkend="panes.fuzzy.matches" endterm="panes.fuzzy.matches.title"></link> pane to see how its score was
@@ -348,6 +367,30 @@
                      			in the 
                      <link linkend="dialogs.preferences.external.searches" endterm="dialogs.preferences.external.searches.title"></link>
                      			preferences.</para>
+               </note>
+            </listitem>
+         </varlistentry>
+         <varlistentry xml:id="dialogs.project.properties.tag.definitions">
+            <term xml:id="dialogs.project.properties.tag.definitions.title">
+               <guibutton>Local Tag Definitions...</guibutton>
+            </term>
+            <listitem>
+               <para>By default, the custom tag and flagged text definitions are
+                  		  global and shared by all projects. They are found in the
+                  <link linkend="dialogs.preferences.tag.processing" endterm="dialogs.preferences.tag.processing.title"></link>
+                  		  preferences.</para>
+               <para>Use this button to create local tag definitions specific to
+                  		  your project. Check the
+                  <option>Use local tag definitions</option> box, and adjust the two
+                  		  regular expressions as desired. An empty field means the project
+                  		  does not use that expression at all.</para>
+               <para>The project will store the expressions in the
+                  <link linkend="project.folder.omegat.tag.patterns" endterm="project.folder.omegat.tag.patterns.title"></link> file located in its
+                  <link linkend="project.folder.omegat.folder" endterm="project.folder.omegat.folder.title"></link> folder. These
+                  		  settings will supersede the global tag definitions.</para>
+               <note>
+                  <para>To disable local tag definitions, uncheck the box, or remove
+                     			that file while the project is closed.</para>
                </note>
             </listitem>
          </varlistentry>
