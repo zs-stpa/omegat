@@ -84,3 +84,5 @@ tips:
   name: Sort segments by numeric value
 - file: share_colour_scheme.html
   name: Share your colour scheme
+- file: editing_shortcuts.html
+  name: Faster editing
