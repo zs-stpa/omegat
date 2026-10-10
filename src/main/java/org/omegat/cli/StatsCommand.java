@@ -112,27 +112,46 @@ public class StatsCommand implements Callable<Integer> {
         if (p == null) {
             return 1;
         }
-        StatsResult projectStats = Statistics.buildProjectStats(p);
-        StatOutputFormat statsMode;
+        return reportStats(p);
+    }
 
-        if (output == null) {
-            // no output file specified, print to console.
-            System.out.println(new StatisticsTextWriter().getTextData(projectStats));
-            p.closeProject();
-            return 0;
-        } else if (format == null) {
-            // when no stats type specified, try to detect from file extension,
-            // otherwise XML.
-            statsMode = StatOutputFormat.detect(output);
-            if (statsMode == null) {
-                statsMode = StatOutputFormat.XML;
-            }
-        } else {
-            statsMode = StatOutputFormat.parse(format);
+    /**
+     * Compute the statistics of a loaded project, emit them, and close the
+     * project. Closing on every path matters: the project's directory
+     * monitors are non-daemon threads, and {@code Main} only forces an exit
+     * on a non-zero status, so a project left open keeps the JVM alive after
+     * the statistics have been written.
+     */
+    int reportStats(RealProject p) {
+        if (!p.isProjectLoaded()) {
+            // selectProjectConsoleMode hands back the project even when loading
+            // failed; its monitors never started, so there is nothing to close.
+            return 1;
         }
-        File statsFile = Paths.get(FileUtil.expandTildeHomeDir(output)).toFile();
-        Statistics.writeStat(statsFile, projectStats, statsMode);
-        return 0;
+        try {
+            StatsResult projectStats = Statistics.buildProjectStats(p);
+            if (output == null) {
+                // no output file specified, print to console.
+                System.out.println(new StatisticsTextWriter().getTextData(projectStats));
+                return 0;
+            }
+            StatOutputFormat statsMode;
+            if (format == null) {
+                // when no stats type specified, try to detect from file extension,
+                // otherwise XML.
+                statsMode = StatOutputFormat.detect(output);
+                if (statsMode == null) {
+                    statsMode = StatOutputFormat.XML;
+                }
+            } else {
+                statsMode = StatOutputFormat.parse(format);
+            }
+            File statsFile = Paths.get(FileUtil.expandTildeHomeDir(output)).toFile();
+            Statistics.writeStat(statsFile, projectStats, statsMode);
+            return 0;
+        } finally {
+            p.closeProject();
+        }
     }
 
 }
