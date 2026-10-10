@@ -7,6 +7,7 @@
                2012 Aaron Madlon-Kay
                2014 Briac Pilpre
                2015 Aaron Madlon-Kay
+               2026 Stephan Pakebusch
                Home page: https://www.omegat.org/
                Support center: https://omegat.org/support
 
@@ -30,7 +31,13 @@ package org.omegat.util.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 
+import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
@@ -38,6 +45,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.jspecify.annotations.Nullable;
+import org.omegat.core.CoreEvents;
+import org.omegat.core.events.IColorsChangedEventListener;
 import org.omegat.util.Log;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
@@ -85,11 +94,95 @@ public final class Styles {
      * component. Consumers reacting to an
      * {@link org.omegat.core.events.IColorsChangedEventListener} event should
      * call this and repaint, rather than re-reading the colors themselves, so
-     * a live color change is reflected everywhere without a restart.
+     * a live color change is reflected everywhere without a restart. Most
+     * consumers should not call this directly but use
+     * {@link #bindColors(JComponent)}, which keeps the component up to date
+     * automatically.
      */
     public static void applyColors(Component component) {
         component.setForeground(EditorColor.COLOR_FOREGROUND.getColor());
         component.setBackground(EditorColor.COLOR_BACKGROUND.getColor());
+    }
+
+    /**
+     * Configurable text style flags of {@link EditorColor} entries.
+     */
+    public enum TextStyle {
+        BOLD, ITALIC, STRIKETHROUGH, UNDERLINE
+    }
+
+    /**
+     * Bind a component to the current editor base colors: apply them now and
+     * re-apply them automatically on every color change for as long as the
+     * component is displayable. This replaces the manual
+     * register/apply/repaint triple that every pane had to repeat, and unlike
+     * most of those hand-written registrations it also unregisters itself, so
+     * short-lived components (dialogs, search windows) do not leak listeners.
+     * Call on the Swing thread (or during the single-threaded application
+     * startup, like the rest of the GUI construction). Bind a component at
+     * most once: every call installs an independent binding, so a second call
+     * makes the applier run twice per color change.
+     */
+    public static void bindColors(JComponent component) {
+        bindColors(component, () -> applyColors(component));
+    }
+
+    /**
+     * Variant of {@link #bindColors(JComponent)} for components that apply
+     * more than plain foreground and background: {@code colorApplier} runs
+     * once now and again on every color change while the component is
+     * displayable, each time followed by a repaint.
+     */
+    public static void bindColors(JComponent component, Runnable colorApplier) {
+        component.addHierarchyListener(new ColorBinding(component, colorApplier));
+    }
+
+    /**
+     * Listener pair behind {@link #bindColors(JComponent, Runnable)}:
+     * registers with {@link CoreEvents} while the bound component is
+     * displayable and unregisters when it is not. Re-applies the colors on
+     * re-registration because the palette may have changed while unbound.
+     */
+    static final class ColorBinding implements HierarchyListener, IColorsChangedEventListener {
+
+        private final Component component;
+        private final Runnable colorApplier;
+        private boolean registered;
+
+        ColorBinding(Component component, Runnable colorApplier) {
+            this.component = component;
+            this.colorApplier = colorApplier;
+            if (component.isDisplayable()) {
+                CoreEvents.registerColorsChangedEventListener(this);
+                registered = true;
+            }
+            onColorsChanged();
+        }
+
+        @Override
+        public void hierarchyChanged(HierarchyEvent e) {
+            if ((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0) {
+                syncRegistration();
+            }
+        }
+
+        private void syncRegistration() {
+            boolean displayable = component.isDisplayable();
+            if (displayable && !registered) {
+                CoreEvents.registerColorsChangedEventListener(this);
+                registered = true;
+                onColorsChanged();
+            } else if (!displayable && registered) {
+                CoreEvents.unregisterColorsChangedEventListener(this);
+                registered = false;
+            }
+        }
+
+        @Override
+        public void onColorsChanged() {
+            colorApplier.run();
+            component.repaint();
+        }
     }
 
     /**
@@ -105,8 +198,12 @@ public final class Styles {
      * text-like entries to their own base foreground and surface-like
      * entries to their own base background, which renders exactly like the
      * former "inherit" behavior.
+     * <p>
+     * Entries can carry intrinsic default {@link TextStyle} flags (e.g.
+     * struck-through deleted match text); user configuration overrides per
+     * flag.
      */
-    public enum EditorColor {
+    public enum EditorColor implements ColorEntry {
         /**
          * Background color.
          * <p>
@@ -245,6 +342,16 @@ public final class Styles {
          */
         COLOR_MARK_COMES_FROM_TM_XNUMBER("OmegaT.markComesFromTmXnumber", "#c8e6c9"),
         /**
+         * The background color of a segment whose translation is identical to
+         * the source.
+         */
+        COLOR_MARK_IDENTICAL("OmegaT.markIdentical", "#c8e6c9"),
+        /**
+         * The background color of a segment whose translation was pre-filled
+         * from the source file.
+         */
+        COLOR_MARK_COMES_FROM_SOURCE_FILE("OmegaT.markComesFromSourceFile", "#a0e8c0"),
+        /**
          * Alternative translation highlight color.
          */
         COLOR_MARK_ALT_TRANSLATION("OmegaT.markAltTranslations", "#33ffff"),
@@ -291,19 +398,21 @@ public final class Styles {
         /**
          * Matches deleted active text color (struck-through foreground).
          */
-        COLOR_MATCHES_DEL_ACTIVE("OmegaT.matchesDelActive", "#000000"),
+        COLOR_MATCHES_DEL_ACTIVE("OmegaT.matchesDelActive", "#ff3399", TextStyle.BOLD,
+                TextStyle.STRIKETHROUGH),
         /**
          * Matches deleted inactive text color (struck-through foreground).
          */
-        COLOR_MATCHES_DEL_INACTIVE("OmegaT.matchesDelInactive", "#000000"),
+        COLOR_MATCHES_DEL_INACTIVE("OmegaT.matchesDelInactive", "#ff0000", TextStyle.STRIKETHROUGH),
         /**
-         * Matches inserted active background color.
+         * Matches inserted active text color (underlined foreground).
          */
-        COLOR_MATCHES_INS_ACTIVE("OmegaT.matchesInsActive", "#0000ff"),
+        COLOR_MATCHES_INS_ACTIVE("OmegaT.matchesInsActive", "#0000ff", TextStyle.BOLD,
+                TextStyle.UNDERLINE),
         /**
-         * Matches inserted inactive background color.
+         * Matches inserted inactive text color (underlined foreground).
          */
-        COLOR_MATCHES_INS_INACTIVE("OmegaT.matchesInsInactive", "#6c6c6c"),
+        COLOR_MATCHES_INS_INACTIVE("OmegaT.matchesInsInactive", "#6c6c6c", TextStyle.UNDERLINE),
         /**
          * Hyperlink highlight color.
          */
@@ -362,22 +471,28 @@ public final class Styles {
         private final String displayName;
         private final String uiManagerKey;
         private final Color fallbackColor;
+        private final EnumSet<TextStyle> defaultTextStyle;
         private @Nullable Color color;
+        private EnumSet<TextStyle> textStyle = EnumSet.noneOf(TextStyle.class);
 
         /**
          * A color whose default is provided by the installed look and feel
          * under {@code uiManagerKey}, with {@code fallbackHex} taking over
-         * when no theme defines the key.
+         * when no theme defines the key. Optional {@code defaultTextStyle}
+         * flags: intrinsic marker text style.
          */
-        EditorColor(String uiManagerKey, String fallbackHex) {
-            this(uiManagerKey, Color.decode(fallbackHex));
+        EditorColor(String uiManagerKey, String fallbackHex, TextStyle... defaultTextStyle) {
+            this(uiManagerKey, Color.decode(fallbackHex), defaultTextStyle);
         }
 
-        EditorColor(String uiManagerKey, Color fallbackColor) {
+        EditorColor(String uiManagerKey, Color fallbackColor, TextStyle... defaultTextStyle) {
             this.displayName = OStrings.getString(name());
             this.uiManagerKey = uiManagerKey;
             this.fallbackColor = fallbackColor;
+            this.defaultTextStyle = EnumSet.noneOf(TextStyle.class);
+            Collections.addAll(this.defaultTextStyle, defaultTextStyle);
             setColorFromPreference();
+            setTextStyleFromPreference();
         }
 
         private void setColorFromPreference() {
@@ -410,6 +525,7 @@ public final class Styles {
          * The color currently in effect: the user-configured color if one
          * is set, otherwise {@link #getDefault()}.
          */
+        @Override
         public Color getColor() {
             return color != null ? color : getDefault();
         }
@@ -419,6 +535,7 @@ public final class Styles {
          * under {@link #getUIManagerKey()} when the theme defines the key,
          * otherwise the built-in fallback.
          */
+        @Override
         public Color getDefault() {
             Color themed = UIManager.getColor(uiManagerKey);
             return themed != null ? themed : fallbackColor;
@@ -434,8 +551,15 @@ public final class Styles {
             return uiManagerKey;
         }
 
+        @Override
         public String getDisplayName() {
             return displayName;
+        }
+
+        /** The enum constant name doubles as the stable entry id. */
+        @Override
+        public String getId() {
+            return name();
         }
 
         /**
@@ -443,6 +567,7 @@ public final class Styles {
          * equal to the current default — resets the entry, so it keeps
          * following the (theme-dependent) default from then on.
          */
+        @Override
         public void setColor(@Nullable Color newColor) {
             if (newColor == null || newColor.equals(getDefault())) {
                 color = null;
@@ -452,6 +577,92 @@ public final class Styles {
                 Preferences.setPreference(name(), toHex());
             }
         }
+
+        private String textStylePrefKey(TextStyle flag) {
+            return name() + "_TEXT_STYLE_" + flag.name();
+        }
+
+        private void setTextStyleFromPreference() {
+            if (!Preferences.isInitialized()) {
+                // Standalone guard as in setColorFromPreference: intrinsic
+                // defaults apply, user overrides cannot.
+                textStyle = EnumSet.copyOf(defaultTextStyle);
+                return;
+            }
+            textStyle = EnumSet.noneOf(TextStyle.class);
+            for (TextStyle flag : TextStyle.values()) {
+                // Sentinel or absent key = flag follows intrinsic default
+                // (color pattern). existsPreference guard needed:
+                // getPreferenceDefault writes absent keys back, would pin
+                // defaults into user's prefs file.
+                boolean on = defaultTextStyle.contains(flag);
+                String key = textStylePrefKey(flag);
+                if (Preferences.existsPreference(key)) {
+                    String pref = Preferences.getPreferenceDefault(key, "");
+                    if (!pref.isEmpty() && !DEFAULT_COLOR.equals(pref)) {
+                        on = Boolean.parseBoolean(pref);
+                    }
+                }
+                if (on) {
+                    textStyle.add(flag);
+                }
+            }
+        }
+
+        /** Whether flag is currently in effect. */
+        public boolean is(TextStyle flag) {
+            return textStyle.contains(flag);
+        }
+
+        /** Text style flags currently in effect. */
+        public Set<TextStyle> getTextStyle() {
+            return Collections.unmodifiableSet(textStyle);
+        }
+
+        /** Intrinsic default text style flags. */
+        public Set<TextStyle> getDefaultTextStyle() {
+            return Collections.unmodifiableSet(defaultTextStyle);
+        }
+
+        /**
+         * Configure the text style rendered for text this colour marks. The
+         * flags are additive: they never remove bold/italic that a view
+         * option or a marker itself requests.
+         */
+        public void setTextStyle(Set<TextStyle> newStyle) {
+            EnumSet<TextStyle> style = EnumSet.noneOf(TextStyle.class);
+            style.addAll(newStyle);
+            if (style.equals(textStyle)) {
+                return;
+            }
+            textStyle = style;
+            for (TextStyle flag : TextStyle.values()) {
+                // Flags matching intrinsic default store sentinel: entry
+                // keeps following changed defaults (as setColor).
+                boolean on = style.contains(flag);
+                Preferences.setPreference(textStylePrefKey(flag),
+                        on == defaultTextStyle.contains(flag) ? DEFAULT_COLOR : Boolean.toString(on));
+            }
+        }
+
+        /**
+         * Whether entry's call sites render configured style flags; only
+         * such entries expose editable flag cells in colours table.
+         */
+        public boolean isTextStyleable() {
+            return TEXT_STYLEABLE.contains(this);
+        }
+
+        // Entries with wired call sites: editor segment states
+        // (EditorSettings), match pane attributes (MatchesTextArea). Extend
+        // together with call sites.
+        private static final Set<EditorColor> TEXT_STYLEABLE = EnumSet.of(
+                COLOR_ACTIVE_SOURCE, COLOR_ACTIVE_TARGET,
+                COLOR_SOURCE, COLOR_NOTED, COLOR_UNTRANSLATED, COLOR_TRANSLATED,
+                COLOR_NON_UNIQUE, COLOR_PLACEHOLDER, COLOR_REMOVETEXT_TARGET,
+                COLOR_MATCHES_CHANGED, COLOR_MATCHES_UNCHANGED,
+                COLOR_MATCHES_INS_ACTIVE, COLOR_MATCHES_INS_INACTIVE,
+                COLOR_MATCHES_DEL_ACTIVE, COLOR_MATCHES_DEL_INACTIVE);
     }
 
     /**
@@ -541,5 +752,39 @@ public final class Styles {
     private static @Nullable Color resolveBound(AttributeSet attributes, Object key) {
         Object bound = attributes.getAttribute(key);
         return bound instanceof EditorColor ? ((EditorColor) bound).getColor() : null;
+    }
+
+    /**
+     * Overlay the text style configured for the given colour entry onto an
+     * attribute set. Additive: flags that are off leave the base attributes
+     * untouched, so view options and marker-specific styling keep working.
+     */
+    public static AttributeSet overlayTextStyle(@Nullable EditorColor style, AttributeSet base) {
+        if (style == null || style.textStyle.isEmpty()) {
+            return base;
+        }
+        MutableAttributeSet r = new SimpleAttributeSet();
+        r.addAttributes(base);
+        if (style.is(TextStyle.BOLD)) {
+            StyleConstants.setBold(r, true);
+        }
+        if (style.is(TextStyle.ITALIC)) {
+            StyleConstants.setItalic(r, true);
+        }
+        if (style.is(TextStyle.STRIKETHROUGH)) {
+            StyleConstants.setStrikeThrough(r, true);
+        }
+        if (style.is(TextStyle.UNDERLINE)) {
+            StyleConstants.setUnderline(r, true);
+        }
+        return r;
+    }
+
+    /**
+     * Foreground attribute set of entry: current colour plus configured
+     * text style flags.
+     */
+    public static AttributeSet createStyledAttributeSet(EditorColor foreground) {
+        return overlayTextStyle(foreground, createAttributeSet(foreground.getColor(), null, null, null));
     }
 }
