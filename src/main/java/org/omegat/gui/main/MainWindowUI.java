@@ -34,13 +34,28 @@ package org.omegat.gui.main;
 import java.awt.Component;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 
 import javax.swing.text.JTextComponent;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
@@ -53,6 +68,8 @@ import org.omegat.util.OStrings;
 import org.omegat.util.StaticUtils;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.UIDesignManager;
+
+import com.vlsolutions.swing.docking.DockingContext;
 
 /**
  * Class for initialize, load/save, etc. for main window UI components.
@@ -203,12 +220,103 @@ public final class MainWindowUI {
      * defaults if an error occurs.
      */
     private static void loadScreenLayout(IMainWindow mainWindow, File uiLayoutFile) {
-        try (InputStream in = new FileInputStream(uiLayoutFile)) {
-            mainWindow.getDesktop().readXML(in);
+        try {
+            byte[] layout = Files.readAllBytes(uiLayoutFile.toPath());
+            DockingContext context = mainWindow.getDesktop().getContext();
+            layout = dropUnknownDockables(layout, key -> context.getDockableByKey(key) != null);
+            try (InputStream in = new ByteArrayInputStream(layout)) {
+                mainWindow.getDesktop().readXML(in);
+            }
         } catch (Exception ex) {
             Log.log(ex);
             resetDesktopLayout(mainWindow);
         }
+    }
+
+    /**
+     * Removes every dockable the given filter does not know from a stored
+     * layout. A layout may reference panes this installation cannot resolve
+     * - written by a version with an additional module, or by a newer
+     * version - and the restore aborts on the first unknown key, throwing
+     * the WHOLE layout away. Dropping just the foreign panes keeps
+     * everything else in place; containers are re-collapsed so the tree
+     * stays readable (a split needs two children, a tab group at least
+     * one).
+     */
+    static byte[] dropUnknownDockables(byte[] layout, Predicate<String> isKnownKey) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        Document doc = factory.newDocumentBuilder().parse(new ByteArrayInputStream(layout));
+
+        List<Element> foreign = new ArrayList<>();
+        NodeList keys = doc.getElementsByTagName("Key");
+        for (int i = 0; i < keys.getLength(); i++) {
+            Element key = (Element) keys.item(i);
+            String name = key.getAttribute("dockName");
+            if (!isKnownKey.test(name)) {
+                Log.logWarningRB("LOG_LAYOUT_UNKNOWN_DOCKABLE", name);
+                foreign.add((Element) key.getParentNode());
+            }
+        }
+        if (foreign.isEmpty()) {
+            return layout;
+        }
+        for (Element dockable : foreign) {
+            dockable.getParentNode().removeChild(dockable);
+        }
+        collapseEmptiedContainers(doc.getDocumentElement());
+
+        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        transformer.transform(new DOMSource(doc), new StreamResult(out));
+        return out.toByteArray();
+    }
+
+    /**
+     * Re-collapses containers that lost children: a Split with a single
+     * child is replaced by that child, empty Splits, tab groups, borders
+     * and floating entries are dropped.
+     */
+    private static void collapseEmptiedContainers(Element element) {
+        List<Element> children = new ArrayList<>();
+        NodeList nodes = element.getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            if (nodes.item(i) instanceof Element child) {
+                children.add(child);
+            }
+        }
+        for (Element child : children) {
+            collapseEmptiedContainers(child);
+        }
+        String name = element.getNodeName();
+        long elementChildren = countElementChildren(element);
+        if ("Split".equals(name)) {
+            if (elementChildren == 1) {
+                Node parent = element.getParentNode();
+                for (int i = 0; i < element.getChildNodes().getLength(); i++) {
+                    if (element.getChildNodes().item(i) instanceof Element child) {
+                        parent.replaceChild(child, element);
+                        return;
+                    }
+                }
+            } else if (elementChildren == 0) {
+                element.getParentNode().removeChild(element);
+            }
+        } else if (("TabbedDockable".equals(name) || "TabGroup".equals(name) || "TabGroups".equals(name)
+                || "Floating".equals(name) || "Border".equals(name)) && elementChildren == 0) {
+            element.getParentNode().removeChild(element);
+        }
+    }
+
+    private static long countElementChildren(Element element) {
+        long count = 0;
+        NodeList nodes = element.getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            if (nodes.item(i).getNodeType() == Node.ELEMENT_NODE) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
