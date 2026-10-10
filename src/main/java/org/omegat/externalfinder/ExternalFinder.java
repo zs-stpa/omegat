@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.data.IProject;
@@ -55,6 +56,7 @@ import org.omegat.externalfinder.item.ExternalFinderXMLLoader;
 import org.omegat.externalfinder.item.ExternalFinderXMLWriter;
 import org.omegat.externalfinder.item.IExternalFinderItemLoader;
 import org.omegat.externalfinder.item.IExternalFinderItemMenuGenerator;
+import org.omegat.util.FileUtil;
 import org.omegat.util.StaticUtils;
 import org.omegat.util.gui.MenuExtender;
 import org.omegat.util.gui.MenuItemPager;
@@ -177,6 +179,7 @@ public final class ExternalFinder {
                 // Ignore
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                backupUnreadable(getGlobalConfigFile());
             }
             if (globalConfig == null) {
                 globalConfig = ExternalFinderConfiguration.empty();
@@ -205,6 +208,14 @@ public final class ExternalFinder {
     private static ExternalFinderConfiguration projectConfig;
 
     /**
+     * The project file that could not be read, with its modification time:
+     * it is not read, logged and backed up again on every menu while it
+     * stays unchanged, but a repaired file is picked up on the next look.
+     */
+    private static @Nullable File unreadableProjectFile;
+    private static long unreadableProjectFileStamp;
+
+    /**
      * Get the project-specific configuration.
      *
      * @return The configuration, or null if no project is loaded or the project
@@ -218,14 +229,22 @@ public final class ExternalFinder {
         if (projectConfig == null) {
             // load project's xml file
             File projectFile = getProjectFile(currentProject);
+            if (projectFile.equals(unreadableProjectFile)
+                    && projectFile.lastModified() == unreadableProjectFileStamp) {
+                return null;
+            }
             IExternalFinderItemLoader projectItemLoader = new ExternalFinderXMLLoader(projectFile,
                     SCOPE.PROJECT);
             try {
                 projectConfig = projectItemLoader.load();
+                unreadableProjectFile = null;
             } catch (FileNotFoundException e) {
                 // Ignore
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                unreadableProjectFile = projectFile;
+                unreadableProjectFileStamp = projectFile.lastModified();
+                backupUnreadable(projectFile);
             }
         }
         return projectConfig;
@@ -277,6 +296,27 @@ public final class ExternalFinder {
         ProjectProperties projectProperties = project.getProjectProperties();
         File projectRoot = projectProperties.getProjectInternalDir();
         return new File(projectRoot, FINDER_FILE);
+    }
+
+    /**
+     * A file this version could not read at all is left in a backup before
+     * the next save replaces it with what this version holds, as the
+     * preferences file is.
+     */
+    private static void backupUnreadable(File file) {
+        if (!file.isFile()) {
+            return;
+        }
+        try {
+            File backup = FileUtil.backupFile(file);
+            if (backup.isFile()) {
+                LOGGER.log(Level.WARNING, "Backed up unreadable ExternalFinder config to {0}", backup);
+            } else {
+                LOGGER.log(Level.SEVERE, "Could not back up unreadable ExternalFinder config {0}", file);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 
     public static List<ExternalFinderItem> getItems() {
