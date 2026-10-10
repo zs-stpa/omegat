@@ -36,10 +36,12 @@ import java.util.logging.Logger;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.jspecify.annotations.Nullable;
+
 import org.omegat.util.StringUtil;
-import org.omegat.core.Core;
 import org.omegat.externalfinder.ExternalFinder;
 import org.omegat.externalfinder.item.ExternalFinderItem.SCOPE;
+import org.omegat.externalfinder.item.PlaceholderTemplate.Context;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
 import org.omegat.util.gui.DesktopWrapper;
@@ -47,12 +49,31 @@ import org.openide.awt.Mnemonics;
 
 public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuGenerator {
 
+    /**
+     * Prefix of the action command of generated menu items, followed by the
+     * item name. Lets menu harvesters address an item without clashing with
+     * the main menu's handler names; the item is triggered by clicking it.
+     */
+    public static final String ACTION_COMMAND_PREFIX = "externalFinder:";
+
     private final ExternalFinderItem.TARGET target;
     private final boolean popup;
+    private final boolean hasSelection;
 
     public ExternalFinderItemMenuGenerator(ExternalFinderItem.TARGET target, boolean popup) {
+        this(target, popup, true);
+    }
+
+    /**
+     * @param hasSelection
+     *            whether editor text is selected; without a selection, items
+     *            that read it are left out
+     */
+    public ExternalFinderItemMenuGenerator(ExternalFinderItem.TARGET target, boolean popup,
+            boolean hasSelection) {
         this.target = target;
         this.popup = popup;
+        this.hasSelection = hasSelection;
     }
 
     @Override
@@ -68,6 +89,9 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
             if (popup && finderItem.isNopopup()) {
                 continue;
             }
+            if (!hasSelection && finderItem.usesSelection()) {
+                continue;
+            }
             if (target == ExternalFinderItem.TARGET.ASCII_ONLY
                     && finderItem.isNonAsciiOnly()) {
                 continue;
@@ -79,6 +103,7 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
             JMenuItem item = new JMenuItem();
             Mnemonics.setLocalizedText(item, finderItem.getName());
             item.setName(finderItem.getName());
+            item.setActionCommand(ACTION_COMMAND_PREFIX + finderItem.getName());
 
             // set keyboard shortcut
             if (!popup) {
@@ -91,36 +116,53 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
         return menuItems;
     }
 
+    /**
+     * Run a search set against the editor's current state: the selection and
+     * the current segment. A set that reads the selection does nothing while
+     * nothing is selected.
+     *
+     * @return whether the set was run
+     */
+    public static boolean run(ExternalFinderItem finderItem) {
+        final Context context = Context.ofEditor();
+        final String selection = context.getSelection();
+        if (selection == null && finderItem.usesSelection()) {
+            return false;
+        }
+        new ExternalFinderItemActionListener(finderItem).run(context, selection);
+        return true;
+    }
+
     private static class ExternalFinderItemActionListener implements ActionListener {
 
         private final SCOPE scope;
+        private final ExternalFinderItem finderItem;
         private final List<ExternalFinderItemURL> urls;
         private final List<ExternalFinderItemCommand> commands;
 
         ExternalFinderItemActionListener(ExternalFinderItem finderItem) {
+            this.finderItem = finderItem;
             this.urls = finderItem.getURLs();
             this.commands = finderItem.getCommands();
             this.scope = finderItem.getScope();
         }
 
         public void actionPerformed(ActionEvent e) {
-            final String selection = Core.getEditor().getSelectedText();
-            if (selection == null) {
-                return;
-            }
+            ExternalFinderItemMenuGenerator.run(finderItem);
+        }
 
-            final String targetWords = selection; // selection.trim();
-            final boolean isASCII = ExternalFinderItem.isASCII(targetWords);
+        private void run(Context context, @Nullable String selection) {
+            // Without a selection the ASCII filters have nothing to judge.
+            final @Nullable Boolean isASCII = selection == null ? null : ExternalFinderItem.isASCII(selection);
 
             new Thread(() -> {
                 for (ExternalFinderItemURL url : urls) {
-                    if ((isASCII && (url.getTarget() == ExternalFinderItem.TARGET.NON_ASCII_ONLY))
-                            || (!isASCII && (url.getTarget() == ExternalFinderItem.TARGET.ASCII_ONLY))) {
+                    if (skip(url.getTarget(), isASCII)) {
                         continue;
                     }
 
                     try {
-                        DesktopWrapper.browse(url.generateURL(targetWords));
+                        DesktopWrapper.browse(url.generateURL(context));
                     } catch (Exception ex) {
                         Logger.getLogger(ExternalFinderItemMenuGenerator.class.getName()).log(Level.SEVERE,
                                 null, ex);
@@ -132,8 +174,7 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
 
             new Thread(() -> {
                 for (ExternalFinderItemCommand command : commands) {
-                    if ((isASCII && (command.getTarget() == ExternalFinderItem.TARGET.NON_ASCII_ONLY))
-                            || (!isASCII && (command.getTarget() == ExternalFinderItem.TARGET.ASCII_ONLY))) {
+                    if (skip(command.getTarget(), isASCII)) {
                         continue;
                     }
                     if (scope == SCOPE.PROJECT && !Preferences
@@ -144,7 +185,7 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
                         return;
                     }
                     try {
-                        Runtime.getRuntime().exec(command.generateCommand(targetWords));
+                        Runtime.getRuntime().exec(command.generateCommand(context));
                     } catch (Exception ex) {
                         Logger.getLogger(ExternalFinderItemMenuGenerator.class.getName()).log(Level.SEVERE,
                                 null, ex);
@@ -153,6 +194,14 @@ public class ExternalFinderItemMenuGenerator implements IExternalFinderItemMenuG
                     }
                 }
             }).start();
+        }
+
+        private static boolean skip(ExternalFinderItem.TARGET target, @Nullable Boolean isASCII) {
+            if (isASCII == null) {
+                return false;
+            }
+            return (isASCII && target == ExternalFinderItem.TARGET.NON_ASCII_ONLY)
+                    || (!isASCII && target == ExternalFinderItem.TARGET.ASCII_ONLY);
         }
     }
 }
