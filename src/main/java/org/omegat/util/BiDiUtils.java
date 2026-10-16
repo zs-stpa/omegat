@@ -28,6 +28,14 @@
 package org.omegat.util;
 
 import java.awt.ComponentOrientation;
+import java.awt.font.TextAttribute;
+import java.text.Bidi;
+
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 import org.omegat.core.Core;
 
@@ -51,6 +59,9 @@ public final class BiDiUtils {
     public static final String BIDI_LRE = "\u202a";
     public static final String BIDI_RLE = "\u202b";
     public static final String BIDI_PDF = "\u202c";
+    public static final String BIDI_LRI = "\u2066";
+    public static final String BIDI_RLI = "\u2067";
+    public static final String BIDI_PDI = "\u2069";
     public static final String BIDI_LRM = "\u200e";
     public static final String BIDI_RLM = "\u200f";
     public static final char BIDI_LRM_CHAR = '\u200e';
@@ -135,6 +146,55 @@ public final class BiDiUtils {
             throw new IllegalArgumentException();
         }
         return targetOrientation;
+    }
+
+    /**
+     * Lets every paragraph of a document read in the direction of its own
+     * text, decided by its first strong character as in the Unicode bidi
+     * algorithm; a paragraph without one keeps the document direction. For
+     * panes that show free text whose language is not known in advance,
+     * such as segment comments: a German comment stays left-to-right in a
+     * project with an Arabic target, an Arabic one reads right-to-left,
+     * each paragraph on its own.
+     *
+     * Swing lays every line out in the document direction, which follows
+     * the component orientation; a paragraph attribute only moves the
+     * alignment. So a paragraph that reads against the document is wrapped
+     * in isolate controls, LRI or RLI up to PDI, much as the editor puts
+     * embedding controls around segment text, and every paragraph is aligned
+     * to the side it starts on. Call it once, right after the text is set:
+     * the controls stay in the document, so whoever reads its text has to
+     * strip them, see EditorUtils.removeDirectionChars.
+     *
+     * @param doc
+     *            the document to adjust, on the event dispatch thread
+     */
+    public static void alignParagraphsToText(StyledDocument doc) {
+        boolean docLtr = !TextAttribute.RUN_DIRECTION_RTL.equals(doc.getProperty(TextAttribute.RUN_DIRECTION));
+        int defaultDirection = docLtr ? Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT
+                : Bidi.DIRECTION_DEFAULT_RIGHT_TO_LEFT;
+        Element root = doc.getDefaultRootElement();
+        for (int i = 0; i < root.getElementCount(); i++) {
+            Element paragraph = root.getElement(i);
+            int start = paragraph.getStartOffset();
+            // The last paragraph ends on the implicit newline past the text.
+            int end = Math.min(paragraph.getEndOffset(), doc.getLength());
+            try {
+                String text = doc.getText(start, end - start);
+                boolean ltr = new Bidi(text, defaultDirection).baseIsLeftToRight();
+                if (ltr != docLtr) {
+                    int contentEnd = text.endsWith("\n") ? end - 1 : end;
+                    doc.insertString(contentEnd, BIDI_PDI, null);
+                    doc.insertString(start, ltr ? BIDI_LRI : BIDI_RLI, null);
+                    end += 2;
+                }
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                StyleConstants.setAlignment(attrs, ltr ? StyleConstants.ALIGN_LEFT : StyleConstants.ALIGN_RIGHT);
+                doc.setParagraphAttributes(start, end - start, attrs, false);
+            } catch (BadLocationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     public static String addRtlBidiAround(String string) {

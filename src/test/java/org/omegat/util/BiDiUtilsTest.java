@@ -35,7 +35,12 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.awt.ComponentOrientation;
+import java.awt.font.TextAttribute;
 import java.util.Locale;
+
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Element;
+import javax.swing.text.StyleConstants;
 
 import org.omegat.core.Core;
 import org.omegat.core.data.NotLoadedProject;
@@ -51,6 +56,47 @@ public class BiDiUtilsTest {
     @After
     public void resetInitialLocale() {
         Locale.setDefault(INITIAL_LOCALE);
+    }
+
+    @Test
+    public void testAlignParagraphsToText() throws Exception {
+        String[] paragraphs = { "Kommentar:", // label in the UI language
+                "\u0646\u0635 \u0639\u0631\u0628\u064a %@", // Arabic with a tag
+                "Siehe \u0646\u0635 im Original.", // German quoting an Arabic word
+                "\u0661\u0662 - %@", // digits and neutrals only
+                "\uD83A\uDD00\uD83A\uDD01", // Adlam, outside the BMP
+                "" }; // empty
+        // null: no strong character, the paragraph follows the document
+        Boolean[] ltr = { true, false, true, null, false, null };
+
+        for (boolean docLtr : new boolean[] { true, false }) {
+            DefaultStyledDocument doc = new DefaultStyledDocument();
+            doc.putProperty(TextAttribute.RUN_DIRECTION,
+                    docLtr ? TextAttribute.RUN_DIRECTION_LTR : TextAttribute.RUN_DIRECTION_RTL);
+            doc.insertString(0, String.join("\n", paragraphs), null);
+
+            BiDiUtils.alignParagraphsToText(doc);
+
+            Element root = doc.getDefaultRootElement();
+            assertEquals(paragraphs.length, root.getElementCount());
+            String[] lines = doc.getText(0, doc.getLength()).split("\n", -1);
+            for (int i = 0; i < paragraphs.length; i++) {
+                String where = "paragraph " + i + " in " + (docLtr ? "LTR" : "RTL") + " document";
+                boolean expectLtr = ltr[i] == null ? docLtr : ltr[i];
+                assertEquals(where, expectLtr ? StyleConstants.ALIGN_LEFT : StyleConstants.ALIGN_RIGHT,
+                        StyleConstants.getAlignment(root.getElement(i).getAttributes()));
+                String expectedLine = expectLtr == docLtr ? paragraphs[i]
+                        : (expectLtr ? BiDiUtils.BIDI_LRI : BiDiUtils.BIDI_RLI) + paragraphs[i] + BiDiUtils.BIDI_PDI;
+                assertEquals(where, expectedLine, lines[i]);
+            }
+        }
+
+        // a single paragraph without a final newline, against the document
+        DefaultStyledDocument doc = new DefaultStyledDocument();
+        doc.putProperty(TextAttribute.RUN_DIRECTION, TextAttribute.RUN_DIRECTION_RTL);
+        doc.insertString(0, "Hallo.", null);
+        BiDiUtils.alignParagraphsToText(doc);
+        assertEquals(BiDiUtils.BIDI_LRI + "Hallo." + BiDiUtils.BIDI_PDI, doc.getText(0, doc.getLength()));
     }
 
     @Test
