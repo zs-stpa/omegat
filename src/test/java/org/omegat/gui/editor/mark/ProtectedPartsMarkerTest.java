@@ -25,17 +25,24 @@
 package org.omegat.gui.editor.mark;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import org.omegat.core.Core;
 import org.omegat.core.TestCoreInitializer;
 import org.omegat.core.data.EntryKey;
+import org.omegat.core.data.NotLoadedProject;
+import org.omegat.core.data.ProjectProperties;
 import org.omegat.core.data.ProtectedPart;
 import org.omegat.core.data.SourceTextEntry;
+import org.omegat.util.Language;
 import org.omegat.util.PatternConsts;
 import org.omegat.util.TagUtil;
 
@@ -63,4 +70,75 @@ public class ProtectedPartsMarkerTest extends MarkerTestBase {
         assertEquals("SOURCE", result.get(0).entryPart.toString());
     }
 
+    /**
+     * In a project whose languages differ in direction the editor follows
+     * the target. Tags of the target keep the foreground attribute (SF bug
+     * #1122); tags of the source, which is embedded against the editor
+     * orientation, keep the painter: a style run inside such an embedding
+     * makes the spaces next to the tag change sides.
+     */
+    @Test
+    public void testMarkerAttributesFollowEditorOrientation() throws Exception {
+        setupProject(new Language("de"), new Language("ar"));
+        try {
+            IMarker marker = new ProtectedPartsMarker();
+            String sourceText = "source %s text.";
+            String translationText = "\u0646\u0635 %s";
+            List<ProtectedPart> protectedParts = TagUtil.applyCustomProtectedParts(sourceText,
+                    PatternConsts.PRINTF_VARS, null);
+            EntryKey key = new EntryKey("file", sourceText, "id", "prev", "next", "path");
+            SourceTextEntry ste = new SourceTextEntry(key, 1, new String[0], sourceText, protectedParts);
+
+            List<Mark> result = marker.getMarksForEntry(ste, sourceText, translationText, true);
+
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            Mark source = result.get(0);
+            Mark target = result.get(1);
+            assertEquals(Mark.ENTRY_PART.SOURCE, source.entryPart);
+            assertNull("Source against the editor orientation must not carry attributes", source.attributes);
+            assertNotNull("Source against the editor orientation keeps the painter", source.painter);
+            assertEquals(Mark.ENTRY_PART.TRANSLATION, target.entryPart);
+            assertNotNull("Target tags must carry a foreground colour attribute", target.attributes);
+            assertNull("Target tags must not fall back to a faint highlight painter", target.painter);
+        } finally {
+            Core.setProject(new NotLoadedProject());
+        }
+    }
+
+    @Test
+    public void testAttributesSafe() {
+        // the target always follows the editor orientation
+        assertTrue(ProtectedPartsMarker.attributesSafe(false, false, true));
+        assertTrue(ProtectedPartsMarker.attributesSafe(false, true, false));
+        // the source only when it shares the target direction
+        assertTrue(ProtectedPartsMarker.attributesSafe(true, false, false));
+        assertTrue(ProtectedPartsMarker.attributesSafe(true, true, true));
+        assertFalse(ProtectedPartsMarker.attributesSafe(true, false, true));
+        assertFalse(ProtectedPartsMarker.attributesSafe(true, true, false));
+    }
+
+    private static void setupProject(Language sourceLanguage, Language targetLanguage) {
+        Core.setProject(new NotLoadedProject() {
+            @Override
+            public boolean isProjectLoaded() {
+                return true;
+            }
+
+            @Override
+            public ProjectProperties getProjectProperties() {
+                return new ProjectProperties() {
+                    @Override
+                    public Language getSourceLanguage() {
+                        return sourceLanguage;
+                    }
+
+                    @Override
+                    public Language getTargetLanguage() {
+                        return targetLanguage;
+                    }
+                };
+            }
+        });
+    }
 }
