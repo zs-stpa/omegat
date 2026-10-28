@@ -29,6 +29,8 @@ package org.omegat.util;
 
 import java.awt.ComponentOrientation;
 
+import org.jspecify.annotations.Nullable;
+
 import org.omegat.core.Core;
 
 /**
@@ -101,6 +103,29 @@ public final class BiDiUtils {
      */
     public static ComponentOrientation getInitialOrientation() {
         return getOrientation(null);
+    }
+
+    /**
+     * The direction a text is displayed in under the orientation mode: the
+     * forced modes win, otherwise the text reads in its own direction.
+     *
+     * @param orientationType
+     *            the orientation mode, null for the current one
+     * @param textRtl
+     *            does the text itself read right-to-left?
+     */
+    public static boolean isDisplayedRtl(@Nullable ORIENTATION orientationType, boolean textRtl) {
+        if (orientationType == null) {
+            orientationType = getOrientationType();
+        }
+        switch (orientationType) {
+        case ALL_LTR:
+            return false;
+        case ALL_RTL:
+            return true;
+        default:
+            return textRtl;
+        }
     }
 
     /**
