@@ -32,6 +32,7 @@ import java.awt.event.MouseEvent;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
+import org.omegat.util.gui.ForcedWrappingEditorKit;
 import org.omegat.util.gui.JTextPaneLinkifier;
 import org.omegat.util.gui.StaticUIUtils;
 import org.omegat.util.gui.Styles;

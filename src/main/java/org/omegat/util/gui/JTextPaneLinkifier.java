@@ -222,11 +222,41 @@ public final class JTextPaneLinkifier {
             }
         }
 
+        private boolean containsLink(String text) {
+            for (Pattern pattern : urlPatterns) {
+                if (pattern.matcher(text).find()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean containsLinkAttributes() {
+            for (int offset = 0; offset < doc.getLength();) {
+                Element el = doc.getCharacterElement(offset);
+                // the semantic marker, not the color set: colors may become
+                // dynamic one day, the action attribute stays
+                if (el.getAttributes().getAttribute(ATTR_LINK) != null) {
+                    return true;
+                }
+                offset = el.getEndOffset();
+            }
+            return false;
+        }
+
         private void refreshPane() {
             if (doc.getLength() == 0) {
                 return;
             }
             try {
+                // Documents without any link are left alone: the full
+                // attribute reset below would wipe the renderers' styling
+                // (bold terms, origin tooltips) and re-layout the pane for
+                // nothing on every insert. With links present the full
+                // reset still applies.
+                if (!containsLink(doc.getText(0, doc.getLength())) && !containsLinkAttributes()) {
+                    return;
+                }
                 // URL detection
                 URLCodec codec = new URLCodec("UTF-8");
                 UrlValidator urlValidator = new UrlValidator();

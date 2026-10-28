@@ -82,6 +82,7 @@ import org.omegat.util.Preferences;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.DragTargetOverlay;
 import org.omegat.util.gui.DragTargetOverlay.FileDropInfo;
+import org.omegat.util.gui.ForcedWrappingEditorKit;
 import org.omegat.util.gui.IPaneMenu;
 import org.omegat.util.gui.JTextPaneLinkifier;
 import org.omegat.util.gui.StaticUIUtils;
@@ -124,6 +125,12 @@ public class GlossaryTextArea extends EntryInfoThreadPane<List<GlossaryEntry>>
     /** Creates new form MatchGlossaryPane */
     public GlossaryTextArea(IMainWindow mw) {
         super(true);
+
+        // One over-long unbreakable token (a URL, a long term) would push
+        // the pane's minimum width past the viewport and switch word
+        // wrapping off for the whole pane; this kit keeps the minimum
+        // width at zero and breaks such tokens mid-word instead.
+        setEditorKit(new ForcedWrappingEditorKit());
 
         String title = OStrings.getString("GUI_MATCHWINDOW_SUBWINDOWTITLE_Glossary");
         scrollPane = new DockableScrollPane("GLOSSARY", title, this, true);
