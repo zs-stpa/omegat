@@ -27,18 +27,30 @@
 package org.omegat.core.spellchecker;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 
+import org.jspecify.annotations.Nullable;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import org.omegat.util.HttpConnectionUtils;
+import org.omegat.util.Log;
 import org.omegat.util.OConsts;
 import org.omegat.util.OStrings;
 import org.omegat.util.PatternConsts;
@@ -91,12 +103,12 @@ public class DictionaryManager {
      * the first two code parts are used.
      */
     public static String getLanguageDisplayName(String code) {
-        String[] parts = code.split("_");
-        Locale locale;
-        if (parts.length == 1) {
-            locale = Locale.of(parts[0]);
-        } else {
-            locale = Locale.of(parts[0], parts[1]);
+        // Codes arrive as xx_YY, xx-YY and with script subtags (sr_Latn);
+        // BCP 47 parsing names them all.
+        Locale locale = Locale.forLanguageTag(code.replace('_', '-'));
+        if (locale.getLanguage().isEmpty()) {
+            String[] parts = code.split("_");
+            locale = parts.length == 1 ? Locale.of(parts[0]) : Locale.of(parts[0], parts[1]);
         }
         return locale.getDisplayName();
     }
@@ -200,14 +212,156 @@ public class DictionaryManager {
             }
         }
 
-        for (String language : SpellCheckerManager.getHunspellDictionaryLanguages()) {
-            result.add(new SpellingDictionaryEntry(language, SpellCheckDictionaryType.HUNSPELL, false));
-        }
-        for (String language : SpellCheckerManager.getMorfologikDictionaryLanguages()) {
-            result.add(new SpellingDictionaryEntry(language, SpellCheckDictionaryType.MORFOLOGIK, false));
-        }
-
+        addBundled(result, SpellCheckerManager.getHunspellDictionaryLanguages(), SpellCheckDictionaryType.HUNSPELL);
+        addBundled(result, SpellCheckerManager.getMorfologikDictionaryLanguages(),
+                SpellCheckDictionaryType.MORFOLOGIK);
         return result;
+    }
+
+    /**
+     * Modules register one dictionary under several spellings of its code
+     * (sr_Latn, sr_LATN, sr-LATN); list it once.
+     */
+    private static void addBundled(List<SpellingDictionaryEntry> result, Set<String> codes,
+            SpellCheckDictionaryType type) {
+        Map<String, String> spellings = new HashMap<>();
+        for (String code : codes) {
+            spellings.merge(code.replace('-', '_').toLowerCase(Locale.ENGLISH), code,
+                    DictionaryManager::preferredSpelling);
+        }
+        for (String code : spellings.values()) {
+            result.add(new SpellingDictionaryEntry(code, type, false));
+        }
+    }
+
+    /**
+     * Of two spellings of one code, the underscore form with the fewest
+     * capitals: sr_Latn over sr_LATN over sr-LATN.
+     */
+    static String preferredSpelling(String first, String second) {
+        boolean firstHyphen = first.indexOf('-') >= 0;
+        if (firstHyphen != (second.indexOf('-') >= 0)) {
+            return firstHyphen ? second : first;
+        }
+        long firstCapitals = first.chars().filter(Character::isUpperCase).count();
+        long secondCapitals = second.chars().filter(Character::isUpperCase).count();
+        if (firstCapitals != secondCapitals) {
+            return firstCapitals < secondCapitals ? first : second;
+        }
+        return first.compareTo(second) <= 0 ? first : second;
+    }
+
+    /** Table order: language code, installed files before bundled, engine. */
+    public static final Comparator<SpellingDictionaryEntry> DISPLAY_ORDER = Comparator
+            .comparing(SpellingDictionaryEntry::getLanguageCode).thenComparing(entry -> !entry.isLocalFile())
+            .thenComparing(SpellingDictionaryEntry::getType);
+
+    /** Engine name as shown to the user. */
+    public static String getEngineName(SpellCheckDictionaryType type) {
+        return switch (type) {
+        case HUNSPELL -> "Hunspell";
+        case MORFOLOGIK -> "Morfologik";
+        };
+    }
+
+    /** Engine and origin as shown to the user, e.g. "Hunspell (bundled)". */
+    public static String getSourceLabel(SpellingDictionaryEntry entry) {
+        return OStrings.getString(
+                entry.isLocalFile() ? "GUI_SPELLCHECKER_SOURCE_INSTALLED" : "GUI_SPELLCHECKER_SOURCE_BUNDLED",
+                getEngineName(entry.getType()));
+    }
+
+    /**
+     * Summary for the preferences panel: the number of dictionaries, then
+     * one line with the distinct languages (code before any region or
+     * script subtag) and their number.
+     */
+    public static String summarize(Collection<SpellingDictionaryEntry> entries) {
+        if (entries.isEmpty()) {
+            return "";
+        }
+        Set<String> languages = new TreeSet<>();
+        for (SpellingDictionaryEntry entry : entries) {
+            languages.add(baseLanguage(entry.getLanguageCode()));
+        }
+        return OStrings.getString("GUI_SPELLCHECKER_SUMMARY_DICTIONARIES", entries.size()) + "\n"
+                + OStrings.getString("GUI_SPELLCHECKER_SUMMARY_LANGUAGES", languages.size(),
+                        String.join(", ", languages));
+    }
+
+    /** The language subtag of a dictionary code: de for de_AT, sr for sr_Latn. */
+    static String baseLanguage(String code) {
+        int end = code.length();
+        for (int i = 0; i < code.length(); i++) {
+            char c = code.charAt(i);
+            if (c == '_' || c == '-') {
+                end = i;
+                break;
+            }
+        }
+        return code.substring(0, end).toLowerCase(Locale.ENGLISH);
+    }
+
+    /** Facts about the entry's dictionary, read from its files or module. */
+    public DictionaryInfo describe(SpellingDictionaryEntry entry) {
+        if (!entry.isLocalFile()) {
+            return SpellCheckerManager.getDictionaryInfo(entry.getLanguageCode(), entry.getType());
+        }
+        File main = mainFile(entry);
+        File companion = companionFile(entry);
+        long size = main.length() + (companion.exists() ? companion.length() : 0);
+        Long entries = null;
+        try {
+            if (entry.getType() == SpellCheckDictionaryType.HUNSPELL) {
+                entries = DictionaryResources.hunspellEntryCount(new FileInputStream(main));
+            } else if (companion.exists()) {
+                entries = DictionaryResources.morfologikEntryCount(new FileInputStream(main),
+                        new FileInputStream(companion));
+            }
+        } catch (IOException ex) {
+            Log.log(ex);
+        }
+        // No licence travels with a hand-installed file; the link opens its folder.
+        return new DictionaryInfo(OStrings.getString("GUI_SPELLCHECKER_LICENSE_LOCAL"), dir.toURI().toString(),
+                entries, size);
+    }
+
+    /**
+     * The dictionary file to show the user: the installed file itself, or
+     * a copy of the bundled one in a fresh temporary directory.
+     */
+    public @Nullable Path locate(SpellingDictionaryEntry entry) throws IOException {
+        if (entry.isLocalFile()) {
+            File main = mainFile(entry);
+            return main.exists() ? main.toPath() : null;
+        }
+        return SpellCheckerManager.extractDictionary(entry.getLanguageCode(), entry.getType(), extractDir());
+    }
+
+    private static @Nullable Path extractDir;
+
+    /** One directory per session for bundled copies, deleted on exit. */
+    private static synchronized Path extractDir() throws IOException {
+        if (extractDir == null) {
+            Path dir = Files.createTempDirectory("omegat-dictionary");
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> FileUtils.deleteQuietly(dir.toFile())));
+            extractDir = dir;
+        }
+        return extractDir;
+    }
+
+    /** The word list: .dic for Hunspell, .dict for Morfologik. */
+    private File mainFile(SpellingDictionaryEntry entry) {
+        String ext = entry.getType() == SpellCheckDictionaryType.HUNSPELL ? OConsts.SC_DICTIONARY_EXTENSION
+                : OConsts.SC_MORFOLOGIK_EXTENSION;
+        return new File(dir, entry.getLanguageCode() + ext);
+    }
+
+    /** The companion: .aff for Hunspell, .info for Morfologik. */
+    private File companionFile(SpellingDictionaryEntry entry) {
+        String ext = entry.getType() == SpellCheckDictionaryType.HUNSPELL ? OConsts.SC_AFFIX_EXTENSION
+                : ".info";
+        return new File(dir, entry.getLanguageCode() + ext);
     }
 
     /**
