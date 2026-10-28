@@ -1,0 +1,37 @@
+{
+  "language": "tr",
+  "languageName": "Turkish",
+  "license": "MIT",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "tr",
+      "codes": [],
+      "words": 371056,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tr/index.aff",
+      "affSha256": "6a390c79b054ad427cf9a6bf6de43463953cc1918e7f727e9dd4ebd4f9702f42",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tr/index.dic",
+      "dicSha256": "dc1d8f7724f4aefd117274678de431e4ea1765f2e02e6983b6ca48cbf5a7fc7c",
+      "upstream": "http://extensions.openoffice.org/en/project/turkish-spellcheck-dictionary",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tr/license",
+          "sha256": "c18fd6425a62f50a0f1d4ec1dd45611e2051a66c56c44349a5f9045325549c0c"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tr/readme.md",
+          "sha256": "71c8fb3256059a057f9ce7f33bb25a3eba5480b8c7d3b544cecc980050ca9f18"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "tr",
+    "good": "lağvedeceğiz",
+    "bad": "ziğecedevğal"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "language": "tlh",
+  "languageName": "Klingon",
+  "license": "Apache-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "tlh",
+      "codes": [],
+      "words": 4591,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh/index.aff",
+      "affSha256": "26f0ec79d36476e271496848a6453e713981bfb651ee4a51ca792426faca6b07",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh/index.dic",
+      "dicSha256": "90c8fc2d019d0698a7b11455c07901b8f5e78f4eae7dda7d4416ced3d2cced2c",
+      "upstream": "https://github.com/PanderMusubi/klingon",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh/license",
+          "sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh/readme.md",
+          "sha256": "903ae125dfd8167256b371bad2697a81df562081f8d0db89028b63f250aad99b"
+        }
+      ]
+    },
+    {
+      "stem": "tlh_Latn",
+      "codes": [],
+      "words": 4591,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh-Latn/index.aff",
+      "affSha256": "3f2c2beb38884f725b0965340a032c134fbf11e6f0e09224fb669e1a512c7323",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh-Latn/index.dic",
+      "dicSha256": "ad443c9f2c8fce9fd3474cf34084f0285f4716c9c9aa803b1f7dc63f0b424217",
+      "upstream": "https://github.com/PanderMusubi/klingon",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh-Latn/license",
+          "sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tlh-Latn/readme.md",
+          "sha256": "5e09924cff30c26b44659e79504710eb8d77e238c06f1eaa465110496d4a31c4"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "tlh_Latn",
+    "good": "portughal",
+    "bad": "lahgutrop"
+  }
+}
