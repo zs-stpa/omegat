@@ -53,6 +53,8 @@ import org.omegat.core.CoreEvents;
 import org.omegat.core.events.IProjectEventListener;
 import org.omegat.gui.main.BaseMainWindowMenuHandler;
 import org.omegat.gui.main.MainMenuIcons;
+import org.omegat.gui.main.MainWindow;
+import org.omegat.gui.main.MainWindowMenuHandler;
 import org.omegat.gui.main.ProjectUICommands;
 import org.omegat.util.OConsts;
 import org.omegat.util.OStrings;
@@ -84,6 +86,14 @@ public class AccessTools extends JPanel {
     public AccessTools(final BaseMainWindowMenuHandler mainWindowMenuHandler) {
         this.mainWindowMenuHandler = mainWindowMenuHandler;
         initComponents();
+    }
+
+    /**
+     * Matches the reflective toolbar instantiation in
+     * MainWindow.initMainMenu, which looks this signature up exactly.
+     */
+    public AccessTools(MainWindow mainWindow, MainWindowMenuHandler mainWindowMenuHandler) {
+        this(mainWindowMenuHandler);
     }
 
     public void initComponents() {
