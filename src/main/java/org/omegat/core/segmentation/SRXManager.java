@@ -28,7 +28,6 @@
 
 package org.omegat.core.segmentation;
 
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
@@ -49,14 +48,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DatabindException;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlFactory;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -66,6 +59,7 @@ import gen.core.segmentation.ObjectFactory;
 import gen.core.segmentation.Srx;
 import org.omegat.util.Language;
 import org.omegat.util.Log;
+import org.omegat.util.XmlMapperFactory;
 
 /**
  * Utility class for SRX segmentation rules.
@@ -82,18 +76,7 @@ public final class SRXManager {
     private static final XmlMapper MAPPER;
 
     static {
-        final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-        xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
-        xmlInputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
-        xmlInputFactory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, Boolean.FALSE);
-        XmlFactory xmlFactory = new XmlFactory(xmlInputFactory);
-        MAPPER = XmlMapper.builder(xmlFactory).defaultUseWrapper(false)
-                .enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME)
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION)
-                .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_EMPTY,
-                        JsonInclude.Include.NON_EMPTY))
-                .addModule(new JakartaXmlBindAnnotationModule()).build();
+        MAPPER = XmlMapperFactory.createConfigMapper();
     }
 
     private SRXManager() {
@@ -181,7 +164,7 @@ public final class SRXManager {
     /**
      * Loads the local segmentation file. Accepts SRX (default) or old CONF
      * format. In case you use a conf format, rules about an old version remain
-     * valid.
+     * valid. Elements and attributes unknown to this version are skipped.
      **/
     public static @org.jetbrains.annotations.Nullable SRX loadFromDir(File configDir) {
         File inFile;

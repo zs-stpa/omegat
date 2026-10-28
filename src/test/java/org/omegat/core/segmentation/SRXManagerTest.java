@@ -136,6 +136,32 @@ public class SRXManagerTest {
                 diff.hasDifferences());
     }
 
+    /**
+     * An SRX file written by a newer OmegaT may carry elements and attributes
+     * this version does not know. They must not prevent loading.
+     */
+    @Test
+    public void testLoadFromDirSkipsUnknownContent() throws IOException {
+        File sourceFile = new File("src/test/resources/data/segmentation/default/segmentation.srx");
+        String original = Files.readString(sourceFile.toPath());
+        String xml = original
+                .replace("<header segmentsubflows=\"yes\" cascade=\"yes\"/>",
+                        "<header segmentsubflows=\"yes\" cascade=\"yes\" futureflag=\"yes\">"
+                                + "<future><deep/></future></header>")
+                .replace("<languagerule languagerulename=\"Catalan\">",
+                        "<languagerule languagerulename=\"Catalan\" future=\"x\"><futurerule/>");
+        Assert.assertNotEquals("Fixture must contain the injected content", original, xml);
+        File file = new File(tempFolder.getRoot(), SRXManager.SRX_SENTSEG);
+        Files.writeString(file.toPath(), xml);
+
+        SRX srx = SRXManager.loadFromDir(tempFolder.getRoot());
+
+        Assert.assertNotNull(srx);
+        Assert.assertEquals(18, srx.getMappingRules().size());
+        Assert.assertEquals("File must stay untouched", xml, Files.readString(file.toPath()));
+        Assert.assertEquals("No backup expected", 1, tempFolder.getRoot().list().length);
+    }
+
     @Test
     public void testRemoveSrxWhenNull() throws IOException {
         // Copy test data to temporary folder
