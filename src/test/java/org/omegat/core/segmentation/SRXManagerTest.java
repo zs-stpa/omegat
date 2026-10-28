@@ -33,6 +33,7 @@ import org.xmlunit.diff.Diff;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 /**
@@ -160,6 +161,29 @@ public class SRXManagerTest {
         Assert.assertEquals(18, srx.getMappingRules().size());
         Assert.assertEquals("File must stay untouched", xml, Files.readString(file.toPath()));
         Assert.assertEquals("No backup expected", 1, tempFolder.getRoot().list().length);
+    }
+
+    /**
+     * An unreadable SRX file is kept as a dated copy and left in place; the
+     * caller gets null and falls back as before.
+     */
+    @Test
+    public void testLoadFromDirKeepsUnreadableFile() throws IOException {
+        String broken = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<srx xmlns=\"http://www.lisa.org/srx20\" version=\"2.0\"><header cascade=\"yes\">";
+        File file = new File(tempFolder.getRoot(), SRXManager.SRX_SENTSEG);
+        Files.writeString(file.toPath(), broken, StandardCharsets.UTF_8);
+
+        SRX srx = SRXManager.loadFromDir(tempFolder.getRoot());
+
+        Assert.assertNull(srx);
+        Assert.assertEquals("File must stay untouched", broken,
+                Files.readString(file.toPath(), StandardCharsets.UTF_8));
+        File[] backups = tempFolder.getRoot().listFiles(
+                (dir, name) -> name.startsWith(SRXManager.SRX_SENTSEG + ".") && name.endsWith(".bak"));
+        Assert.assertNotNull(backups);
+        Assert.assertEquals(1, backups.length);
+        Assert.assertEquals(broken, Files.readString(backups[0].toPath(), StandardCharsets.UTF_8));
     }
 
     @Test

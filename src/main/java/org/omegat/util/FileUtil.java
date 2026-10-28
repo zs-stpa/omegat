@@ -66,6 +66,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 
 /**
@@ -150,6 +151,28 @@ public final class FileUtil {
             }
         }
         Log.logErrorRB(lastError, "PP_ERROR_UNABLE_TO_CREATE_BACKUP_FILE", original.getName());
+        return backup;
+    }
+
+    /**
+     * Keeps a copy of a file this version could not read, so that nothing is
+     * lost when defaults are written in its place later. Old copies beyond
+     * {@link OConsts#MAX_BACKUPS} are removed.
+     *
+     * @param original
+     *            the unreadable file
+     * @return the copy, or null if there is no such file or the copy failed
+     */
+    public static @Nullable File backupUnreadable(File original) {
+        if (!original.isFile()) {
+            return null;
+        }
+        File backup = backupFile(original);
+        if (!backup.isFile()) {
+            return null;
+        }
+        removeOldBackups(original, OConsts.MAX_BACKUPS);
+        Log.logWarningRB("FILEUTIL_UNREADABLE_FILE_BACKUP", original.getAbsolutePath(), backup.getName());
         return backup;
     }
 

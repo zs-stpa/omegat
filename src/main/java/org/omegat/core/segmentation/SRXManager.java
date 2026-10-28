@@ -57,6 +57,7 @@ import gen.core.segmentation.Languagemap;
 import gen.core.segmentation.Languagerule;
 import gen.core.segmentation.ObjectFactory;
 import gen.core.segmentation.Srx;
+import org.omegat.util.FileUtil;
 import org.omegat.util.Language;
 import org.omegat.util.Log;
 import org.omegat.util.XmlMapperFactory;
@@ -156,7 +157,7 @@ public final class SRXManager {
         try (InputStream inputStream = Files.newInputStream(Paths.get(rulesUri))) {
             return loadSrxInputStream(inputStream);
         } catch (Exception e) {
-            Log.logDebug("Error loading segmentation rules from file: {0}\n{1}", rulesUri, e.getMessage());
+            Log.logErrorRB(e, "CORE_SRX_ERROR_LOADING_SEG_RULES_FILE", Paths.get(rulesUri));
         }
         return null;
     }
@@ -164,19 +165,21 @@ public final class SRXManager {
     /**
      * Loads the local segmentation file. Accepts SRX (default) or old CONF
      * format. In case you use a conf format, rules about an old version remain
-     * valid. Elements and attributes unknown to this version are skipped.
+     * valid. Elements and attributes unknown to this version are skipped. If
+     * the SRX file cannot be read at all, a copy of it is kept next to it and
+     * null is returned, the file itself is left alone.
      **/
     public static @org.jetbrains.annotations.Nullable SRX loadFromDir(File configDir) {
-        File inFile;
-        try {
-            inFile = new File(configDir, SRX_SENTSEG);
-            if (inFile.exists()) {
-                return loadSrxFile(inFile.toURI());
+        File inFile = new File(configDir, SRX_SENTSEG);
+        if (inFile.exists()) {
+            SRX srx = loadSrxFile(inFile.toURI());
+            if (srx == null) {
+                FileUtil.backupUnreadable(inFile);
             }
-        } catch (Exception ignored) {
+            return srx;
         }
 
-        // If file was not present or not readable
+        // If the SRX file was not present
         inFile = new File(configDir, CONF_SENTSEG);
         if (inFile.exists()) {
             try {

@@ -160,6 +160,32 @@ public class FilterMasterTest {
         assertEquals("No backup expected", 1, tempFolder.getRoot().list().length);
     }
 
+    /**
+     * An unreadable filters.xml is kept as a dated copy and left in place;
+     * only the in-memory configuration falls back to the defaults.
+     */
+    @Test
+    public void loadConfigKeepsUnreadableFile() throws Exception {
+        String broken = "<?xml version='1.0' encoding='UTF-8'?>" //
+                + "<filters removeTags='true'><filter className='org.example.Future' enabled='true'>";
+        File file = tempFolder.newFile(FilterMaster.FILE_FILTERS);
+        FileUtils.writeStringToFile(file, broken, StandardCharsets.UTF_8);
+
+        Filters loaded = FilterMaster.loadConfig(file);
+
+        assertNotNull(loaded);
+        assertEquals("Defaults expected", 1, loaded.getFilters().size());
+        assertEquals(org.omegat.filters3.xml.xhtml.XHTMLFilter.class.getName(),
+                loaded.getFilters().get(0).getClassName());
+        assertEquals("File must stay untouched", broken,
+                FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+        File[] backups = tempFolder.getRoot().listFiles(
+                (dir, name) -> name.startsWith(FilterMaster.FILE_FILTERS + ".") && name.endsWith(".bak"));
+        assertNotNull(backups);
+        assertEquals(1, backups.length);
+        assertEquals(broken, FileUtils.readFileToString(backups[0], StandardCharsets.UTF_8));
+    }
+
     @Test
     public void testFilterInitOption() throws Exception {
 

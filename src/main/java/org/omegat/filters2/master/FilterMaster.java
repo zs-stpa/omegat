@@ -67,6 +67,7 @@ import org.omegat.filters2.ITranslateCallback;
 import org.omegat.filters2.Instance;
 import org.omegat.filters2.TranslationException;
 import org.omegat.gui.main.IMainWindow;
+import org.omegat.util.FileUtil;
 import org.omegat.util.Language;
 import org.omegat.util.Log;
 import org.omegat.util.OStrings;
@@ -490,16 +491,17 @@ public class FilterMaster {
      * Loads information about the filters from an XML file. Elements and
      * attributes unknown to this version are skipped; they are lost as soon
      * as the file is saved again, which happens right here when a registered
-     * filter is missing from the file. If there's an error loading a file, it
-     * calls <code>setupDefaultFilters</code>.
+     * filter is missing from the file. If the file cannot be read at all, a
+     * copy of it is kept next to it and the default configuration is returned
+     * without touching the file.
      *
      * @param configFile
      *            the file from which the filter configuration is to be loaded
      * @return an instance of {@code Filters} containing the loaded
-     *         configuration, or a new {@code Filters} instance if an error
-     *         occurs or a new configuration is generated
+     *         configuration, the default configuration if the file is
+     *         unreadable, or null if the file does not exist
      * @throws IOException
-     *             if an I/O error occurs while reading the configuration file
+     *             if an I/O error occurs while completing the configuration file
      */
     public static @Nullable Filters loadConfig(File configFile) throws IOException {
         if (!configFile.exists()) {
@@ -511,7 +513,8 @@ public class FilterMaster {
         } catch (Exception e) {
             Log.logErrorRB("FILTERMASTER_ERROR_LOADING_FILTERS_CONFIG");
             Log.log(e);
-            result = new Filters();
+            FileUtil.backupUnreadable(configFile);
+            return createDefaultFiltersConfig();
         }
 
         if (addNewFiltersToConfig(result)) {
