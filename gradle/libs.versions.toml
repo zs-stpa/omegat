@@ -19,6 +19,7 @@ checkstyle = "8.45.1"
 guava = "33.7.1-jre"
 annotations = "26.1.0"
 jspecify = "1.0.1"
+jsr305 = "3.0.2"
 jgit = "7.7.1.202607240634-r"
 svnkit = "1.10.13"
 ivy = "2.6.0"
@@ -117,6 +118,7 @@ lucene-analyzers-stempel = {group = "org.apache.lucene", name = "lucene-analysis
 guava = {group = "com.google.guava", name = "guava", version.ref = "guava"}
 jetbrains-annotations = {group = "org.jetbrains", name = "annotations", version.ref = "annotations"}
 jspecify = {group = "org.jspecify", name = "jspecify", version.ref = "jspecify"}
+findbugs-jsr305 = {group = "com.google.code.findbugs", name = "jsr305", version.ref = "jsr305"}
 groovy-jsr223 = {group = "org.apache.groovy", name = "groovy-jsr223", version.ref = "groovy"}
 groovy-dateutil = {group = "org.apache.groovy", name = "groovy-dateutil", version.ref = "groovy"}
 groovy-json = {group = "org.apache.groovy", name = "groovy-json", version.ref = "groovy"}
