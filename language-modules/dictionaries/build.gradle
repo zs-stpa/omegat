@@ -103,6 +103,9 @@ subprojects {
         description = 'Fetches the upstream files pinned in artifact.json and verifies their checksums.'
         outputs.dir(downloadDir)
         inputs.property('files', files.collect { it.url + '@' + it.sha256 })
+        // Read at configuration time: the configuration cache forbids touching
+        // the Gradle object from a task action.
+        boolean offline = gradle.startParameter.offline
         doLast {
             File dir = downloadDir.get().asFile
             dir.mkdirs()
@@ -112,7 +115,7 @@ subprojects {
                     return
                 }
                 target.parentFile.mkdirs()
-                if (gradle.startParameter.offline) {
+                if (offline) {
                     throw new GradleException("Gradle runs offline and ${target} is missing. Build once with "
                             + "network access, or use -Pomegat.dictionaries=repository once the artifacts "
                             + "are published.")
