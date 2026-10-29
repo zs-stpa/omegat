@@ -29,6 +29,7 @@ package org.omegat.core.spellchecker;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -313,10 +314,15 @@ public class DictionaryManager {
         Long entries = null;
         try {
             if (entry.getType() == SpellCheckDictionaryType.HUNSPELL) {
-                entries = DictionaryResources.hunspellEntryCount(new FileInputStream(main));
+                try (InputStream dic = new FileInputStream(main)) {
+                    entries = DictionaryResources.hunspellEntryCount(dic);
+                }
             } else if (companion.exists()) {
-                entries = DictionaryResources.morfologikEntryCount(new FileInputStream(main),
-                        new FileInputStream(companion));
+                // Opened here so that a failing second open cannot leak the first.
+                try (InputStream dict = new FileInputStream(main);
+                        InputStream info = new FileInputStream(companion)) {
+                    entries = DictionaryResources.morfologikEntryCount(dict, info);
+                }
             }
         } catch (IOException ex) {
             Log.log(ex);
