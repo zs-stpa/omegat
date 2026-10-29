@@ -1,0 +1,32 @@
+{
+  "language": "th",
+  "languageName": "Thai",
+  "license": "LGPL",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "th_TH",
+      "codes": [],
+      "words": 50446,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/th_TH/th_TH.aff",
+      "affSha256": "a99ba46a0899a9155cd0d4f7f823ef9f5686281220ae2eb355c8b576d166e243",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/th_TH/th_TH.dic",
+      "dicSha256": "42e9f145eb6744a3a24c498e143229a7ce7fb2cb67c8e8e94b42fde808dbf28f",
+      "upstream": "http://lexitron.nectec.or.th/",
+      "documents": [
+        {
+          "name": "README_th_TH.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/th_TH/README_th_TH.txt",
+          "sha256": "87049058b4b6e4f22cf01720bcbb416dfe14bc7ca5f6ae7927821a231d559e10"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "th_TH",
+    "good": "ความเอนเอียง",
+    "bad": "งยีอเนอเมาวค"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "language": "lij",
+  "languageName": "Ligurian",
+  "license": "MIT",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "lij",
+      "codes": [
+        "lij_IT"
+      ],
+      "words": 39744,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lij_IT/lij_IT.aff",
+      "affSha256": "8b8c82ec1b5eb8d09354e64c7bc1865ed4ede38424dea05772f1d01942164e80",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lij_IT/lij_IT.dic",
+      "dicSha256": "0d8e013aa472f8baa591e7746517c7753ba0758ffaa67d166eecfac6b8900c6b",
+      "upstream": "https://conseggio-ligure.org/en/",
+      "documents": [
+        {
+          "name": "LICENSE_lij_IT.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lij_IT/LICENSE_lij_IT.txt",
+          "sha256": "00a9f772dae26967a310b37ef54e15aceee5f8cdce2d614ca16bae564ca23f73"
+        },
+        {
+          "name": "README_lij_IT.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lij_IT/README_lij_IT.txt",
+          "sha256": "73a9fc374732d75da0125765faa751a37df5c76d7498007b79a3a03a089afe1a"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "lij",
+    "good": "mescicañe",
+    "bad": "eñacicsem"
+  }
+}

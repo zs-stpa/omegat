@@ -1,0 +1,59 @@
+{
+  "language": "sr",
+  "languageName": "Serbian",
+  "license": "GPL-2.0 / LGPL-2.1 / MPL-1.1 / CC-BY-SA-3.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "sr",
+      "codes": [],
+      "words": 263909,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr/index.aff",
+      "affSha256": "10e11edbd55742975f0720b26a2b6669187e9b91fabc5063ee81f0db2f73279f",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr/index.dic",
+      "dicSha256": "8bdbbe464f20a5a600ccad1ff0257883c42bb6170a55440d45b4b39e002f433a",
+      "upstream": "https://github.com/grakic/hunspell-sr",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr/license",
+          "sha256": "272cfe7e4b339cbad1750806139576f062f9dbb8a966a55acd3d8700c51daeca"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr/readme.md",
+          "sha256": "c75101686879eefa678d129c7e1a9dc9e12445714d5064a2588b174f6494e6bf"
+        }
+      ]
+    },
+    {
+      "stem": "sr_Latn",
+      "codes": [],
+      "words": 263909,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr-Latn/index.aff",
+      "affSha256": "9112fdbd53c8a20ac06397e736884450d61df0c6c5be6f5512210ed58229f939",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr-Latn/index.dic",
+      "dicSha256": "a41302b3e707c7a344560bc7df6db739db254f87be0442108a68f4ed2a34782d",
+      "upstream": "https://github.com/grakic/hunspell-sr",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr-Latn/license",
+          "sha256": "8f0c179268ac54bdbd9d2096eacde31aaf74383c02b50b3a99e71b4ebfc2611f"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/sr-Latn/readme.md",
+          "sha256": "8de8f3164dbe3969a6f2e8beaf14c16ef6ff6bae75fea3c3a47c9edf0402b120"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "sr",
+    "good": "јерменском",
+    "bad": "мокснемреј"
+  }
+}

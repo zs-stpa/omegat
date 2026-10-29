@@ -1,0 +1,34 @@
+{
+  "language": "ckb",
+  "languageName": "Central Kurdish",
+  "license": "CC-BY-SA-4.0",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "ckb_IR",
+      "codes": [
+        "ckb_IQ"
+      ],
+      "words": 23255,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ckb/dictionaries/ckb.aff",
+      "affSha256": "31cabc5b61b79b29847b05c13fb929d2677173eaec41abb94c3d1b6b5928eca9",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ckb/dictionaries/ckb.dic",
+      "dicSha256": "74c1ae8253874861d78d68f4a2ce187cac1c6f7c6d14e5345df7eda419af5c8c",
+      "upstream": "https://github.com/sinaahmadi/KurdishHunspell",
+      "documents": [
+        {
+          "name": "LICENSES-en.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ckb/LICENSES-en.txt",
+          "sha256": "f9f1687c5b84c636e3a9e55edee5131a772ef0de4f1ed6d7826f5a6e6adc6793"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ckb_IR",
+    "good": "وردوخاشکردن",
+    "bad": "ندرکشاخودرو"
+  }
+}

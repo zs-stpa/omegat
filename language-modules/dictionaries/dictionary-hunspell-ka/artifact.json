@@ -1,0 +1,37 @@
+{
+  "language": "ka",
+  "languageName": "Georgian",
+  "license": "MIT",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "ka",
+      "codes": [],
+      "words": 143020,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ka/index.aff",
+      "affSha256": "f5c39986659f13d703d0bae0ac8856d58768ce2b8d1f5ab6fb1ca3487c5ede5a",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ka/index.dic",
+      "dicSha256": "5963f268e996f1e27e17163873b4d32f41fae2a1e5bef0117126caefe62f5857",
+      "upstream": "https://github.com/gamag/ka_GE.spell",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ka/license",
+          "sha256": "583322a252b4aef50d55c3300e42391697c406be5a732530428b2af3f0fa79ed"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ka/readme.md",
+          "sha256": "dee7581eecd1c1093e183031182e8c030aac5dc03ed4515fdb8428eb0ae5e04a"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ka",
+    "good": "დაცვივდნენ",
+    "bad": "ნენდვივცად"
+  }
+}

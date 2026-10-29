@@ -1,0 +1,37 @@
+{
+  "language": "ia",
+  "languageName": "Interlingua",
+  "license": "GPL-3.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "ia",
+      "codes": [],
+      "words": 51603,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ia/index.aff",
+      "affSha256": "08fa657fc641f6b2db0e9179d4219a14a0e7091a23471b794a5c5e9805283d18",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ia/index.dic",
+      "dicSha256": "22ee44726f058c904541b83db9bc3f4652e51186188fadd475619e3a596ada47",
+      "upstream": "https://addons.thunderbird.net/en-US/thunderbird/addon/dict-ia/",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ia/license",
+          "sha256": "6aa5a02caa670f3073868d681dd9626ab69c21a3f54426d317c97be677a2295f"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ia/readme.md",
+          "sha256": "dd0a8e66290a18e4d02b273ad591ead642304235069664488739fa5ec790d258"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ia",
+    "good": "hyphomyceto",
+    "bad": "otecymohpyh"
+  }
+}

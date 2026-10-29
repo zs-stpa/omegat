@@ -65,7 +65,8 @@ public class SpellcheckerConfigurationPanel extends javax.swing.JPanel {
         jPanel3 = new javax.swing.JPanel();
         contentLabel = new javax.swing.JLabel();
         languageScrollPane = new javax.swing.JScrollPane();
-        languageList = new javax.swing.JList<>();
+        languageTable = new javax.swing.JTable();
+        summaryTextArea = new javax.swing.JTextArea();
 
         setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
@@ -103,9 +104,15 @@ public class SpellcheckerConfigurationPanel extends javax.swing.JPanel {
         org.openide.awt.Mnemonics.setLocalizedText(contentLabel, OStrings.getString("GUI_SPELLCHECKER_AVAILABLE_LABEL"));
         jPanel3.add(contentLabel, java.awt.BorderLayout.NORTH);
 
-        languageScrollPane.setViewportView(languageList);
+        languageScrollPane.setViewportView(languageTable);
 
         jPanel3.add(languageScrollPane, java.awt.BorderLayout.CENTER);
+
+        summaryTextArea.setEditable(false);
+        summaryTextArea.setLineWrap(true);
+        summaryTextArea.setWrapStyleWord(true);
+        summaryTextArea.setOpaque(false);
+        jPanel3.add(summaryTextArea, java.awt.BorderLayout.SOUTH);
 
         detailPanel.add(jPanel3, java.awt.BorderLayout.CENTER);
 
@@ -122,8 +129,9 @@ public class SpellcheckerConfigurationPanel extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel8;
-    javax.swing.JList<String> languageList;
     private javax.swing.JScrollPane languageScrollPane;
+    javax.swing.JTable languageTable;
+    javax.swing.JTextArea summaryTextArea;
     // End of variables declaration//GEN-END:variables
 
 }

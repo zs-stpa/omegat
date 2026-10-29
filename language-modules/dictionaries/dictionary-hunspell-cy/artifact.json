@@ -1,0 +1,37 @@
+{
+  "language": "cy",
+  "languageName": "Welsh",
+  "license": "LGPL-3.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "cy",
+      "codes": [],
+      "words": 72081,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cy/index.aff",
+      "affSha256": "757c350b84889c4d0711c93760509fe532863079262695c069550f9a9c1c5222",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cy/index.dic",
+      "dicSha256": "ef8f01db311cf17c617377d22b11f6752b01c65f5457820cc04d877bba6b92ff",
+      "upstream": "https://github.com/techiaith/hunspell-cy",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cy/license",
+          "sha256": "a36169950f39f4286fc7f941f48518ffba734b3e95de78356833c7ccd58ea2b2"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cy/readme.md",
+          "sha256": "fb1b94612d619be9b9d9bb5b23379385f37c4ff213279afed1dbaf9b892135fe"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "cy",
+    "good": "brigflodyn",
+    "bad": "nydolfgirb"
+  }
+}

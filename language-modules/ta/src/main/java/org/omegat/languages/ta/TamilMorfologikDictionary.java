@@ -24,63 +24,30 @@
  */
 package org.omegat.languages.ta;
 
-import java.io.IOException;
 import java.io.InputStream;
 
-import morfologik.stemming.Dictionary;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.languagetool.JLanguageTool;
 
-import org.omegat.core.spellchecker.ISpellCheckerDictionary;
-import org.omegat.core.spellchecker.SpellCheckDictionaryType;
+import org.omegat.core.spellchecker.AbstractMorfologikDictionary;
 
+/**
+ * Morfologik spelling dictionary of the module, served through the shared
+ * base class so sizes, counts and extraction work like for every module.
+ */
 @NullMarked
-public class TamilMorfologikDictionary implements ISpellCheckerDictionary {
-
+public class TamilMorfologikDictionary extends AbstractMorfologikDictionary {
     private static final String DICTIONARY_BASE = "/org/languagetool/resource/ta/";
-    private static final String DICT_EXT = ".dict";
-    private static final String META_EXT = ".info";
-    private static final String DICT = "tamil";
-
-    private @Nullable InputStream infoInputStream;
-    private @Nullable InputStream dictInputStream;
+    private static final String[] DICTIONARIES = { "tamil" };
 
     @Override
-    public @Nullable Dictionary getMorfologikDictionary(String language) {
-        if (language.startsWith("ta")) {
-            infoInputStream = JLanguageTool.getDataBroker()
-                    .getAsStream(DICTIONARY_BASE + DICT + META_EXT);
-            dictInputStream = JLanguageTool.getDataBroker()
-                    .getAsStream(DICTIONARY_BASE + DICT + DICT_EXT);
-            if (infoInputStream != null && dictInputStream != null) {
-                try {
-                    return Dictionary.read(dictInputStream, infoInputStream);
-                } catch (IOException ignored) {
-                }
-            }
-        }
-        return null;
+    protected String[] getDictionaries() {
+        return DICTIONARIES;
     }
 
     @Override
-    public SpellCheckDictionaryType getDictionaryType() {
-        return SpellCheckDictionaryType.MORFOLOGIK;
-    }
-
-    @Override
-    public void close() {
-        if (infoInputStream != null) {
-            try {
-                infoInputStream.close();
-            } catch (IOException ignored) {
-            }
-        }
-        if (dictInputStream != null) {
-            try {
-                dictInputStream.close();
-            } catch (IOException ignored) {
-            }
-        }
+    protected @Nullable InputStream getResourceAsStream(String resource) {
+        return JLanguageTool.getDataBroker().getAsStream(DICTIONARY_BASE + resource);
     }
 }
