@@ -309,6 +309,13 @@ public class MarkerController {
         try {
             for (int i = 0; i < evs.size(); i++) {
                 EntryMarks ev = evs.get(i);
+                // A builder of a replaced document keeps its display version
+                // forever (loadDocument creates new builders), so the version
+                // check alone lets a slow marker thread paint its result with
+                // the old document's offsets onto the current document.
+                if (ev.builder.getDocument() != doc) {
+                    continue;
+                }
                 if (!ev.isSegmentChanged()) {
                     remove(ev.builder, ev.markerIndex);
                     try {
