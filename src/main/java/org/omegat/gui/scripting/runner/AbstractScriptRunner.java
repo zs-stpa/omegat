@@ -28,6 +28,7 @@ package org.omegat.gui.scripting.runner;
 
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.gui.scripting.ScriptItem;
 import org.omegat.gui.scripting.ScriptRunner;
@@ -82,8 +83,8 @@ public abstract class AbstractScriptRunner {
      * @throws IOException when I/O error occurred.
      * @throws ScriptException when script engine raises error.
      */
-    public String executeScript(String script, ScriptItem item,
-                                       Map<String, Object> additionalBindings) throws IOException, ScriptException {
+    public String executeScript(@Nullable String script, ScriptItem item,
+            @Nullable Map<String, Object> additionalBindings) throws IOException, ScriptException {
 
         Map<String, Object> bindings = new HashMap<>();
         if (additionalBindings != null) {
