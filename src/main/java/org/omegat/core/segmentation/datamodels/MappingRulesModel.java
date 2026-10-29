@@ -92,8 +92,10 @@ public class MappingRulesModel extends AbstractTableModel {
         switch (columnIndex) {
         case 0:
             String target = (String) aValue;
-            String code = LanguageCodes.getLanguageCodeByName(target);
-            maprules.set(rowIndex, new MapRule(code != null ? code : target, oldrule.getPattern(), oldrule.getRules()));
+            // getLanguageCode lets a stable code pass through unchanged and
+            // resolves localized names, unlike the name-only lookup.
+            maprules.set(rowIndex, new MapRule(LanguageCodes.getLanguageCode(target), oldrule.getPattern(),
+                    oldrule.getRules()));
             break;
         case 1:
             try {
