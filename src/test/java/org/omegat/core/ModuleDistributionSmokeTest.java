@@ -189,6 +189,22 @@ public class ModuleDistributionSmokeTest {
         }
     }
 
+    /**
+     * The gRPC transports the LanguageTool core drags in must not come back
+     * through a dependency update: build.gradle excludes them, and only
+     * grpc-api and grpc-stub may remain for class linking.
+     */
+    @Test
+    public void testNoGrpcTransportsShipped() {
+        List<String> transports = new ArrayList<>();
+        for (File jar : listJars(new File(distDir, "lib"))) {
+            if (jar.getName().matches("(grpc-netty|grpc-core|grpc-okhttp|proto-google-common-protos).*")) {
+                transports.add(jar.getName());
+            }
+        }
+        assertTrue("gRPC transports shipped in lib/: " + transports, transports.isEmpty());
+    }
+
     private static URLClassLoader newModuleLoader(File moduleJarFile) throws IOException {
         return new URLClassLoader(new URL[] { moduleJarFile.toURI().toURL() }, parentLoader);
     }
