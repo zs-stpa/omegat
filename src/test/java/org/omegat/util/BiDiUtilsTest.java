@@ -285,4 +285,12 @@ public class BiDiUtilsTest {
             }
         });
     }
+
+    @Test
+    public void testIsDisplayedRtl_forcedModesWinOverTheText() {
+        assertFalse(BiDiUtils.isDisplayedRtl(BiDiUtils.ORIENTATION.ALL_LTR, true));
+        assertTrue(BiDiUtils.isDisplayedRtl(BiDiUtils.ORIENTATION.ALL_RTL, false));
+        assertTrue(BiDiUtils.isDisplayedRtl(BiDiUtils.ORIENTATION.DIFFER, true));
+        assertFalse(BiDiUtils.isDisplayedRtl(BiDiUtils.ORIENTATION.DIFFER, false));
+    }
 }
