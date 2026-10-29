@@ -26,19 +26,28 @@
 package org.omegat.externalfinder.item;
 
 import java.io.File;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
 import javax.swing.KeyStroke;
+
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.omegat.externalfinder.item.ExternalFinderItem.SCOPE;
 import org.omegat.util.Log;
+import org.omegat.util.OStrings;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -62,7 +71,7 @@ public class ExternalFinderXMLLoader implements IExternalFinderItemLoader {
     @Override
     public ExternalFinderConfiguration load() throws Exception {
 
-        List<ExternalFinderItem> finderItems = new ArrayList<>();
+        List<ExternalFinderConfiguration.Entry> entries = new ArrayList<>();
         int priority = -1;
         DocumentBuilder documentBuilder = createDocumentBuilder();
         Document document = documentBuilder.parse(file);
@@ -72,19 +81,59 @@ public class ExternalFinderXMLLoader implements IExternalFinderItemLoader {
         }
 
         for (int i = 0, n = nodeList.getLength(); i < n; i++) {
+            Node node = nodeList.item(i);
+            ExternalFinderItem item = null;
             try {
-                finderItems.add(generateFinderItem(nodeList.item(i)));
+                item = generateFinderItem(node);
             } catch (ExternalFinderValidationException ex) {
                 Log.logWarningRB(LOG_VALIDATION_EXCEPTION, ex.getMessage());
             }
+            // An item this version cannot read, in whole or in part, is kept
+            // as written: another version may read it, and this one must
+            // not drop it on the next save.
+            entries.add(item == null ? ExternalFinderConfiguration.Entry.kept(serialize(node))
+                    : ExternalFinderConfiguration.Entry.of(item));
         }
 
         priority = retrivePriority(document, priority);
 
-        return new ExternalFinderConfiguration(priority, finderItems);
+        return ExternalFinderConfiguration.ofEntries(priority, entries);
     }
 
-    private DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {
+    /** The element as XML without declaration and without the file's indentation. */
+    private static String serialize(Node item) throws TransformerException {
+        Node copy = item.cloneNode(true);
+        stripWhitespace(copy);
+        TransformerFactory factory = TransformerFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        Transformer transformer = factory.newTransformer();
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        StringWriter out = new StringWriter();
+        transformer.transform(new DOMSource(copy), new StreamResult(out));
+        return out.toString();
+    }
+
+    /** Drop the indentation between child elements; text of leaf elements stays as it is. */
+    private static void stripWhitespace(Node node) {
+        NodeList children = node.getChildNodes();
+        boolean hasElements = false;
+        for (int i = 0; i < children.getLength(); i++) {
+            hasElements |= children.item(i).getNodeType() == Node.ELEMENT_NODE;
+        }
+        for (int i = children.getLength() - 1; i >= 0; i--) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.TEXT_NODE) {
+                if (hasElements && child.getTextContent().trim().isEmpty()) {
+                    node.removeChild(child);
+                }
+            } else {
+                stripWhitespace(child);
+            }
+        }
+    }
+
+    /** A parser that accepts no doctype, entities or external access; the writer uses it too. */
+    static DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         documentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
@@ -240,23 +289,24 @@ public class ExternalFinderXMLLoader implements IExternalFinderItemLoader {
     }
 
     private void handleURLNode(Node urlNode, ExternalFinderItem.Builder builder) {
-        try {
-            builder.addURL(generateFinderURL(urlNode));
-        } catch (ExternalFinderValidationException ex) {
-            Log.logWarningRB(LOG_VALIDATION_EXCEPTION, ex.getMessage());
-        }
+        // A URL or command this version cannot validate makes the whole item
+        // unreadable, so the item is kept as written instead of losing it.
+        builder.addURL(generateFinderURL(urlNode));
     }
 
     private void handleCommandNode(Node commandNode, ExternalFinderItem.Builder builder) {
-        try {
-            builder.addCommand(generateFinderCommand(commandNode));
-        } catch (ExternalFinderValidationException ex) {
-            Log.logWarningRB(LOG_VALIDATION_EXCEPTION, ex.getMessage());
-        }
+        builder.addCommand(generateFinderCommand(commandNode));
     }
 
     private void handleKeystrokeNode(Node keystrokeNode, ExternalFinderItem.Builder builder) {
-        KeyStroke keyStroke = KeyStroke.getKeyStroke(keystrokeNode.getTextContent());
+        String text = keystrokeNode.getTextContent();
+        KeyStroke keyStroke = KeyStroke.getKeyStroke(text);
+        if (keyStroke == null && text != null && !text.trim().isEmpty()) {
+            // A keystroke this version cannot parse must not be dropped on
+            // save either: keep the whole item as written.
+            throw new ExternalFinderValidationException(
+                    OStrings.getString("EXTERNALFINDER_ERROR_UNKNOWN_KEYSTROKE", text));
+        }
         builder.setKeyStroke(keyStroke);
     }
 }
