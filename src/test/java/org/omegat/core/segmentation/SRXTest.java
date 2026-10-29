@@ -179,6 +179,51 @@ public final class SRXTest {
     }
 
     /**
+     * A file written by a German OmegaT of the 5.x era names the pattern-less
+     * default rule sets in German. Those names must migrate to the stable
+     * codes even when the reading instance runs another UI language, and the
+     * next save must write the codes, so the file converges.
+     */
+    public static class SRXMigrateForeignLocaleNamesTest {
+
+        @org.junit.Rule
+        public final LocaleRule localeRule = new LocaleRule(Locale.of("en"));
+
+        @org.junit.Rule
+        public final TemporaryFolder folder = TemporaryFolder.builder().assureDeletion().build();
+
+        @Test
+        public void testGermanNamesMigrateUnderEnglishUi() throws Exception {
+            File srxFile = Paths.get(SEGMENT_CONF_BASE, "locale_de_names", "segmentation.srx").toFile();
+            File configDir = folder.newFolder();
+            Files.copy(srxFile.toPath(), Paths.get(configDir.getAbsolutePath(), srxFile.getName()));
+            SRX srx = SRXManager.loadFromDir(configDir);
+            assertNotNull(srx);
+            List<MapRule> mapRuleList = srx.getMappingRules();
+            assertEquals(5, mapRuleList.size());
+            // The pattern outranks the localized name for language rule sets.
+            assertTrue(checkRules(mapRuleList, "JA", LanguageCodes.JAPANESE_CODE));
+            assertTrue(checkRules(mapRuleList, "anything", LanguageCodes.DEFAULT_CODE));
+            assertTrue(checkRules(mapRuleList, "anything", LanguageCodes.F_TEXT_CODE));
+            assertTrue(checkRules(mapRuleList, "anything", LanguageCodes.F_HTML_CODE));
+            // A user-defined rule set keeps its name to the letter.
+            assertTrue(checkRules(mapRuleList, "DE-CH", "Eigene Abkürzungen"));
+
+            File outDir = folder.newFolder();
+            SRXManager.saveToSrx(srx, outDir);
+            String written = Files.readString(new File(outDir, "segmentation.srx").toPath());
+            assertTrue(written.contains("languagerulename=\"Default\""));
+            assertTrue(written.contains("languagerulename=\"Text\""));
+            assertTrue(written.contains("languagerulename=\"HTML\""));
+            assertTrue(written.contains("languagerulename=\"Eigene Abkürzungen\""));
+            assertFalse("localized names must not survive a save",
+                    written.contains("languagerulename=\"Standard\""));
+            assertFalse(written.contains("languagerulename=\"Japanisch\""));
+            assertFalse(written.contains("Segmentierung von"));
+        }
+    }
+
+    /**
      * Test SRX writer/reader.
      * <p>
      * Previous versions have a bug when saving segmentation.conf file. It is
