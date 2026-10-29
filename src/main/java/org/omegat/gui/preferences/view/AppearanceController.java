@@ -58,6 +58,8 @@ public class AppearanceController extends BasePreferencesController {
 
     private final AppearancePreferencesPanel panel;
     private volatile boolean initialized = false;
+    /** Guards the lazy initialisation; the panel itself is handed out and must not serve as lock. */
+    private final Object initLock = new Object();
     private boolean previousFileListDialog;
 
     private List<LookAndFeelInfo> darkThemeList = new ArrayList<>();
@@ -101,7 +103,7 @@ public class AppearanceController extends BasePreferencesController {
         if (initialized) {
             return panel;
         }
-        synchronized (panel) {
+        synchronized (initLock) {
             if (!initialized) {
                 initThemeLists();
                 initGui();
