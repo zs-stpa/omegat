@@ -157,6 +157,19 @@ public class GlossaryManager implements DirectoryMonitor.Callback {
 
     @Override
     public void fileChanged(File file) {
+        // Direct callers like the team rebase pass repository-side paths
+        // (the .repositories mirror) - during project load even before the
+        // monitor exists. Only files the monitor would report are
+        // glossaries of the project; the project copy of a rebased file is
+        // picked up by the monitor itself. Without a monitor the walk is
+        // unbounded, with one it stays bounded at the glossary root. A
+        // project living under a skipped-name segment loses nothing: the
+        // monitor's initial scan loads its glossaries right after start().
+        DirectoryMonitor currentMonitor = monitor;
+        if (currentMonitor != null ? !currentMonitor.accepts(file)
+                : DirectoryMonitor.isUnderSkippedDirectory(file, null)) {
+            return;
+        }
         synchronized (this) {
             glossaries.remove(file.getPath());
         }
