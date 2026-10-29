@@ -49,3 +49,4 @@ GEMINI.md
 
 # heap dumps from GUI/OOM test runs
 *.hprof
+__pycache__/

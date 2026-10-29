@@ -40,8 +40,11 @@ import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 import org.languagetool.Language;
 import org.languagetool.broker.ResourceDataBroker;
+
+import org.omegat.filters2.master.PluginUtils;
 
 public class LanguageDataBroker implements ResourceDataBroker {
 
@@ -133,6 +136,12 @@ public class LanguageDataBroker implements ResourceDataBroker {
                 inputStream = lang.getClass().getResourceAsStream(path);
             }
         }
+        if (inputStream == null) {
+            ClassLoader modules = getModuleClassLoader();
+            if (modules != null) {
+                inputStream = modules.getResourceAsStream(stripLeadingSlash(path));
+            }
+        }
         return inputStream;
     }
 
@@ -145,7 +154,27 @@ public class LanguageDataBroker implements ResourceDataBroker {
                 url = lang.getClass().getResource(path);
             }
         }
+        if (url == null) {
+            ClassLoader modules = getModuleClassLoader();
+            if (modules != null) {
+                url = modules.getResource(stripLeadingSlash(path));
+            }
+        }
         return url;
+    }
+
+    /**
+     * Language modules other than the current LanguageTool language (their
+     * spelling dictionaries, for the preferences table) are reachable only
+     * through the shared module class loader.
+     */
+    private static @Nullable ClassLoader getModuleClassLoader() {
+        return PluginUtils.getClassLoader(PluginUtils.PluginType.LANGUAGE);
+    }
+
+    /** Class loaders take resource names without the leading slash. */
+    private static String stripLeadingSlash(String path) {
+        return path.startsWith("/") ? path.substring(1) : path;
     }
 
     @Override

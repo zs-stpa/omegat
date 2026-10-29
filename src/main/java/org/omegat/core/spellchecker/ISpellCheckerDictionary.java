@@ -59,4 +59,30 @@ public interface ISpellCheckerDictionary extends Closeable {
      * @return type of dictionary. If the module provides nothing, return null.
      */
     SpellCheckDictionaryType getDictionaryType();
+
+    /**
+     * Facts about the dictionary serving the language, for the preferences
+     * table; {@link DictionaryInfo#UNKNOWN} when the module has none.
+     */
+    default DictionaryInfo getDictionaryInfo(String language) {
+        return DictionaryInfo.UNKNOWN;
+    }
+
+    /**
+     * File name without extension of the dictionary serving the language,
+     * so its origin can be looked up in the module jar; null when unknown.
+     */
+    default @Nullable String getDictionaryStem(String language) {
+        return null;
+    }
+
+    /**
+     * Copies the dictionary files serving the language into the directory,
+     * so the user can look at a bundled dictionary.
+     *
+     * @return the main dictionary file, or null when the module has none
+     */
+    default @Nullable Path extractDictionary(Path targetDir, String language) {
+        return null;
+    }
 }

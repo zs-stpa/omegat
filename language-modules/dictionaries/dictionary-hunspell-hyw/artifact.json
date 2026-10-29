@@ -1,0 +1,37 @@
+{
+  "language": "hyw",
+  "languageName": "Western Armenian",
+  "license": "GPL-2.0 / LGPL-2.1 / MPL-1.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "hyw",
+      "codes": [],
+      "words": 68594,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hyw/index.aff",
+      "affSha256": "4223fd49fb82891911f65270982beb5b929e44763476895706567596819dcd3e",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hyw/index.dic",
+      "dicSha256": "ecfbc8af694532bfb2a40654608d8e0d6cad0b55520543d84c97d2ae8b710694",
+      "upstream": "https://sites.google.com/site/araktransfer/home/spell-checkers",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hyw/license",
+          "sha256": "4471b1cc5e45985780f3c044dcfc3725b7845f3108309aa2a7be2df5c0510d32"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hyw/readme.md",
+          "sha256": "a08798fdc7ad12bc7cfa59bc853cc9b1fed7f433ee2010dea7618aa2c22d6ce3"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "hyw",
+    "good": "հրամանագիրք",
+    "bad": "քրիգանամարհ"
+  }
+}

@@ -1,0 +1,22 @@
+// Included build that turns the upstream Hunspell pairs listed in sources.json
+// into one data artifact per language (org.omegat.dictionaries:dictionary-hunspell-<xx>).
+// The OmegaT build includes it from the root settings.gradle, so module
+// dependencies on these coordinates resolve to the jars built here until the
+// artifacts are published.
+rootProject.name = 'omegat-dictionaries'
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+    versionCatalogs {
+        libs {
+            from(files('../../gradle/libs.versions.toml'))
+        }
+    }
+}
+
+// One subproject per artifact directory; each holds an artifact.json written
+// by tools/generate_modules.py.
+file('.').listFiles().findAll { it.directory && it.name.startsWith('dictionary-hunspell-') && new File(it, 'artifact.json').file }
+        .sort { it.name }.each { include(it.name) }

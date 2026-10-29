@@ -1,0 +1,37 @@
+{
+  "language": "oc",
+  "languageName": "Occitan",
+  "license": "GPL-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "oc",
+      "codes": [],
+      "words": 87286,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/oc/index.aff",
+      "affSha256": "aad666af536d132640941b2231287600dd226fcd432f6ca5c96281ac4bfbe13f",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/oc/index.dic",
+      "dicSha256": "986e7947c13682f4a56ac46737480475ec599b51e99a146e07d66f5ed2417b7f",
+      "upstream": "https://gitlab.com/taissou/hunspell-files-for-occitan-lengadocian",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/oc/license",
+          "sha256": "92580a2a92179284e7effe4be36aad1ec6fa8fcf9ee0716945048a4554d5932e"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/oc/readme.md",
+          "sha256": "2f9d7dfa033460947434945d24a3d638586b7c45bde176020e776c832e32d225"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "oc",
+    "good": "crenilhaire",
+    "bad": "eriahlinerc"
+  }
+}

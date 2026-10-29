@@ -1,0 +1,37 @@
+{
+  "language": "hy",
+  "languageName": "Armenian",
+  "license": "GPL-2.0 / LGPL-2.1 / MPL-1.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "hy",
+      "codes": [],
+      "words": 67875,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hy/index.aff",
+      "affSha256": "aa8b49f32350a0136d112f62ee697c87cdc452256d12a70ef1fea2e7a13b32fb",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hy/index.dic",
+      "dicSha256": "53530792b4937e4b8cd387e28ff45884e42742c8218d8ba4510804efcfb81084",
+      "upstream": "https://sites.google.com/site/araktransfer/home/spell-checkers",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hy/license",
+          "sha256": "4471b1cc5e45985780f3c044dcfc3725b7845f3108309aa2a7be2df5c0510d32"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hy/readme.md",
+          "sha256": "cb792a25a355044e424a1c02c05f77a7891eed461b653a60d0a6f6836341e539"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "hy",
+    "good": "կաթնախոհանոց",
+    "bad": "ցոնահոխանթակ"
+  }
+}

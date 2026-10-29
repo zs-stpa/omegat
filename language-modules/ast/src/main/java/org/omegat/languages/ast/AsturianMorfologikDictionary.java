@@ -24,58 +24,30 @@
  */
 package org.omegat.languages.ast;
 
-import java.io.IOException;
 import java.io.InputStream;
 
-import morfologik.stemming.Dictionary;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.languagetool.JLanguageTool;
 
-import org.omegat.core.spellchecker.ISpellCheckerDictionary;
-import org.omegat.core.spellchecker.SpellCheckDictionaryType;
+import org.omegat.core.spellchecker.AbstractMorfologikDictionary;
 
-
-public class AsturianMorfologikDictionary implements ISpellCheckerDictionary, AutoCloseable {
-
-    private static final String DICTIONARY_PATH = "/org/languagetool/resource/ast/hunspell/";
-
-    private @Nullable InputStream infoInputStream;
-    private @Nullable InputStream dictInputStream;
+/**
+ * Morfologik spelling dictionary of the module, served through the shared
+ * base class so sizes, counts and extraction work like for every module.
+ */
+@NullMarked
+public class AsturianMorfologikDictionary extends AbstractMorfologikDictionary {
+    private static final String DICTIONARY_BASE = "/org/languagetool/resource/ast/hunspell/";
+    private static final String[] DICTIONARIES = { "ast_ES" };
 
     @Override
-    public @Nullable Dictionary getMorfologikDictionary(String language) {
-        if ("ast_ES".startsWith(language)) {
-            infoInputStream = JLanguageTool.getDataBroker().getAsStream(DICTIONARY_PATH + "ast_ES.info");
-            dictInputStream = JLanguageTool.getDataBroker().getAsStream(DICTIONARY_PATH + "ast_ES.dict");
-            if (infoInputStream == null || dictInputStream == null) {
-                return null;
-            }
-            try {
-                return Dictionary.read(dictInputStream, infoInputStream);
-            } catch (IOException ignored) {
-            }
-        }
-        return null;
+    protected String[] getDictionaries() {
+        return DICTIONARIES;
     }
 
     @Override
-    public SpellCheckDictionaryType getDictionaryType() {
-        return SpellCheckDictionaryType.MORFOLOGIK;
-    }
-
-    @Override
-    public void close() {
-        if (infoInputStream != null) {
-            try {
-                infoInputStream.close();
-            } catch (IOException ignored) {
-            }
-        }
-        if (dictInputStream != null) {
-            try {
-                dictInputStream.close();
-            } catch (IOException ignored) {
-            }
-        }
+    protected @Nullable InputStream getResourceAsStream(String resource) {
+        return JLanguageTool.getDataBroker().getAsStream(DICTIONARY_BASE + resource);
     }
 }
