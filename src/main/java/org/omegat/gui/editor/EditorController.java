@@ -743,7 +743,7 @@ public class EditorController implements IEditor {
             hasRTL = hasRTL || BiDiUtils.isRtl(entry.getKey().getLanguageCode().toLowerCase(Locale.ENGLISH));
         }
 
-        Document3 doc = new Document3(this);
+        Document3 doc = new Document3(this, hasRTL);
 
         // Create all SegmentBuilders now...
         ArrayList<SegmentBuilder> tmpSegList = new ArrayList<>(file.entries.size());
@@ -832,9 +832,16 @@ public class EditorController implements IEditor {
                 doc.setTrustedChangesInProgress(true);
                 StaticUIUtils.setCaretUpdateEnabled(editor, false);
                 try {
-                    doc.insertString(startOffset, Preferences.getPreferenceDefault(
-                            Preferences.MARK_PARA_TEXT, Preferences.MARK_PARA_TEXT_DEFAULT) + "\n\n",
-                            settings.getParagraphStartAttributeSet());
+                    String mark = Preferences.getPreferenceDefault(Preferences.MARK_PARA_TEXT,
+                            Preferences.MARK_PARA_TEXT_DEFAULT) + "\n\n";
+                    doc.insertString(startOffset, mark, settings.getParagraphStartAttributeSet());
+                    if (sb.hasRTL) {
+                        // the document reads per paragraph, see
+                        // Document3.useParagraphDirections: align the mark
+                        // like the editor
+                        doc.setAlignment(startOffset, startOffset + mark.length(),
+                                !editor.getComponentOrientation().isLeftToRight());
+                    }
                 } catch (BadLocationException ex) {
                     throw new RuntimeException(ex);
                 } finally {
@@ -2048,8 +2055,8 @@ public class EditorController implements IEditor {
         SegmentBuilder builder = m_docSegList[displayedEntryIndex];
         if (builder.hasRTL && targetLangIsRTL) {
             // add control bidi chars around
-            String t = SegmentBuilder.BIDI_RLM + SegmentBuilder.BIDI_LRM + tag + SegmentBuilder.BIDI_LRM
-                    + SegmentBuilder.BIDI_RLM;
+            String t = BiDiUtils.BIDI_RLM + BiDiUtils.BIDI_LRM + tag + BiDiUtils.BIDI_LRM
+                    + BiDiUtils.BIDI_RLM;
             editor.replaceSelection(t);
         } else {
             // just insert tag
