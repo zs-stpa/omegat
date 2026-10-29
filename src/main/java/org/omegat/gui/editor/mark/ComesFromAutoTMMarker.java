@@ -57,21 +57,27 @@ public class ComesFromAutoTMMarker implements IMarker {
         Mark m = new Mark(Mark.ENTRY_PART.TRANSLATION, 0, translationText.length());
         // painters are created per call so that color preference changes take
         // effect without restarting the application
+        Styles.EditorColor entry = null;
         switch (e.linked) {
         case xICE:
-            m.painter = createPainter(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XICE);
+            entry = Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XICE;
             break;
         case x100PC:
-            m.painter = createPainter(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_X100PC);
+            entry = Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_X100PC;
             break;
         case xAUTO:
-            m.painter = createPainter(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XAUTO);
+            entry = Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XAUTO;
             break;
         case xENFORCED:
-            m.painter = createPainter(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XENFORCED);
+            entry = Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XENFORCED;
             break;
         case xNUMBER:
-            m.painter = createPainter(Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XNUMBER);
+            entry = Styles.EditorColor.COLOR_MARK_COMES_FROM_TM_XNUMBER;
+            break;
+        }
+        if (entry != null) {
+            m.painter = createPainter(entry);
+            m.attributes = Styles.createTextStyleAttributeSet(entry);
         }
         return Collections.singletonList(m);
     }
