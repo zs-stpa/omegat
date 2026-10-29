@@ -31,6 +31,7 @@ import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.OStrings;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.StaticUIUtils;
+import org.omegat.util.StringUtil;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -58,6 +59,21 @@ public final class SearchWindowManager {
         SearchWindowController search = new SearchWindowController(mode);
         addSearchWindow(search);
         search.makeVisible(query);
+    }
+
+    /**
+     * Open a search window prefilled with the given query (options come from
+     * the persisted search window preferences) and optionally run the search
+     * immediately. Returns the window's controller.
+     */
+    public static SearchWindowController createSearchWindow(SearchMode mode, String query, boolean autoRun) {
+        SearchWindowController search = new SearchWindowController(mode);
+        addSearchWindow(search);
+        search.makeVisible(query);
+        if (autoRun && !StringUtil.isEmpty(query)) {
+            search.startSearch();
+        }
+        return search;
     }
 
     public static void closeSearchWindows() {

@@ -1,0 +1,28 @@
+plugins {
+    id 'org.omegat.module'
+}
+
+// #2286 moved the provided-libs locations from injected project properties to
+// the omegatModule extension; resolve against whichever this base provides.
+def moduleExt = project.extensions.findByName('omegatModule')
+def moduleLibsDir = moduleExt != null ? moduleExt.providedModuleLibsDir : providedModuleLibsDir
+def coreLibsDir = moduleExt != null ? moduleExt.providedCoreLibsDir : providedCoreLibsDir
+
+dependencies {
+    compileOnly(project.rootProject)
+    if (file(moduleLibsDir).directory) {
+        compileOnly fileTree(dir: coreLibsDir, includes: ['**/pdfbox-*.jar', '**/jspecify-*.jar',
+            '**/annotations-*.jar'])
+        implementation fileTree(dir: moduleLibsDir, includes: ['**/jsvg-*.jar'])
+    } else {
+        // SVG icon rendering; bundled into the module jar.
+        implementation(libs.jsvg)
+        // The application ships pdfbox in lib/, visible through the
+        // parent-first module class loader.
+        compileOnly(libs.apache.pdfbox)
+        compileOnly(libs.jetbrains.annotations)
+        compileOnly(libs.jspecify)
+    }
+    testImplementation(testFixtures(project.rootProject))
+    testImplementation(libs.apache.pdfbox)
+}

@@ -59,6 +59,8 @@ public final class TableColumnSizer {
     private int[] optimalColWidths;
     /** Content-width caps by column, surviving recalculations. */
     private final Map<Integer, Integer> contentCaps = new HashMap<>();
+    private final Map<Integer, Integer> minimumFloors = new HashMap<>();
+    private boolean minimumsFrozen = false;
     private int remainderColReferenceWidth = -1;
     private boolean didManuallyAdjustCols;
     private int remainderColumn = 0;
@@ -168,7 +170,27 @@ public final class TableColumnSizer {
         @Override
         public void tableChanged(TableModelEvent e) {
             reset();
-            adjustTableColumns();
+            // Model listeners run in reverse registration order, so this one
+            // fires before the JTable's own listener has updated the row
+            // sorter. Measuring cells now would go through the sorter's
+            // stale view mapping and read removed rows; defer until the
+            // whole event round is done.
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                // Content changed: release the frozen minimums so columns may
+                // shrink to the new content, then freeze the new widths
+                // again. Pure filter changes fire no model event, so the
+                // no-shrink-while-filtering behaviour is untouched.
+                if (minimumsFrozen) {
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        table.getColumnModel().getColumn(i).setMinWidth(minimumFloors.getOrDefault(i, 0));
+                    }
+                    reset();
+                }
+                adjustTableColumns();
+                if (minimumsFrozen) {
+                    freezeCurrentWidthsAsMinimum();
+                }
+            });
         }
     };
 
@@ -272,7 +294,9 @@ public final class TableColumnSizer {
             }
             optimalColWidths[column] = preferredWidth;
         }
-        contentCaps.forEach((column, width) -> table.getColumnModel().getColumn(column).setMaxWidth(width));
+        contentCaps.replaceAll((column, width) -> optimalColWidths[column]);
+        contentCaps.forEach((column, width) -> table.getColumnModel().getColumn(column)
+                .setMaxWidth(Math.max(width, minimumFloors.getOrDefault(column, 0))));
     }
 
     /**
@@ -301,7 +325,22 @@ public final class TableColumnSizer {
     public void freezeCurrentWidthsAsMinimum() {
         calculateOptimalColWidths();
         for (int i = 0; i < optimalColWidths.length; i++) {
-            table.getColumnModel().getColumn(i).setMinWidth(optimalColWidths[i]);
+            table.getColumnModel().getColumn(i)
+                    .setMinWidth(Math.max(optimalColWidths[i], minimumFloors.getOrDefault(i, 0)));
+        }
+        minimumsFrozen = true;
+    }
+
+    /**
+     * A width the column never drops below, whatever its current content —
+     * for example the width of a placeholder text shown in empty cells.
+     * Survives the re-freeze after content changes.
+     */
+    public void setMinimumFloor(int column, int width) {
+        minimumFloors.put(column, width);
+        TableColumn col = table.getColumnModel().getColumn(column);
+        if (col.getMinWidth() < width) {
+            col.setMinWidth(width);
         }
     }
 
@@ -312,7 +351,9 @@ public final class TableColumnSizer {
      */
     public void capWidthToContent(int column) {
         calculateOptimalColWidths();
-        // remembered, because every recalculation lifts the max width again
+        // remembered, because every recalculation lifts the max width again;
+        // the cap follows the content on later recalculations, so the column
+        // is never wider but also never narrower than its content needs.
         contentCaps.put(column, optimalColWidths[column]);
         table.getColumnModel().getColumn(column).setMaxWidth(optimalColWidths[column]);
     }
