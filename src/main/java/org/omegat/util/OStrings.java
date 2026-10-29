@@ -66,6 +66,12 @@ public final class OStrings {
     /** Git branch of a development checkout, empty for release builds. */
     public static final String BRANCH;
 
+    /**
+     * Commit timestamp of a development checkout ("yyyy-MM-dd HH:mm", local
+     * time of the build machine), empty for release builds.
+     */
+    public static final String COMMIT_TIME;
+
     /** Indicates whether this is a "beta" (or "latest") version or a "standard" version. */
     public static final boolean IS_BETA;
 
@@ -76,6 +82,7 @@ public final class OStrings {
         UPDATE = b.getString("update");
         REVISION = b.getString("revision");
         BRANCH = b.containsKey("branch") ? b.getString("branch") : "";
+        COMMIT_TIME = b.containsKey("committime") ? b.getString("committime") : "";
         IS_BETA = !b.getString("beta").isEmpty();
     }
 
@@ -177,22 +184,28 @@ public final class OStrings {
     }
 
     /**
-     * Returns a marker identifying a development build, made of the revision
-     * and branch of the checkout, e.g. "[6d79ee8db @ master]". Empty when
-     * this build was not made from a branch checkout (release and tag builds).
+     * Returns a marker identifying a development build, made of the revision,
+     * commit timestamp and branch of the checkout, e.g.
+     * "[6d79ee8db 2026-09-13 15:52 at master]". Empty when this build was not
+     * made from a branch checkout (release and tag builds).
      */
     public static String getDevBuildMarker() {
-        return getDevBuildMarker(REVISION, BRANCH);
+        return getDevBuildMarker(REVISION, BRANCH, COMMIT_TIME);
     }
 
     @VisibleForTesting
-    static String getDevBuildMarker(String revision, String branch) {
+    static String getDevBuildMarker(String revision, String branch, String commitTime) {
         // "HEAD" means a detached checkout, e.g. a tag build; the raw token
         // means the resource was not filtered (running from an IDE build).
         if (branch.isEmpty() || "HEAD".equals(branch) || "@gitbranch@".equals(branch)) {
             return "";
         }
-        return "[" + revision + " @ " + branch + "]";
+        // A build without the timestamp (older tooling, unfiltered resource)
+        // keeps the plain revision marker.
+        if (commitTime.isEmpty() || "@committime@".equals(commitTime)) {
+            return "[" + revision + " @ " + branch + "]";
+        }
+        return "[" + revision + " " + commitTime + " at " + branch + "]";
     }
 
     /**
