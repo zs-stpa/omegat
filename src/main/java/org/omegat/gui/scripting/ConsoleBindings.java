@@ -27,6 +27,7 @@ package org.omegat.gui.scripting;
 import java.awt.Frame;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.data.EntryKey;
 import org.omegat.core.data.SourceTextEntry;
 import org.omegat.gui.editor.IEditor;
@@ -294,7 +295,7 @@ public class ConsoleBindings implements IGlossaries, IEditor, IScriptLogger {
     }
 
     @Override
-    public final String getCurrentTranslation() {
+    public final @Nullable String getCurrentTranslation() {
         return null;
     }
 
