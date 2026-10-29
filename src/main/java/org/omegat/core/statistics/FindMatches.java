@@ -671,7 +671,7 @@ public class FindMatches {
             BigInteger value = numeralValue(text);
             String mappedText;
             if (value != null) {
-                mappedText = placeholder ? " #" : " #" + value;
+                mappedText = placeholder ? "\0#" : "\0#" + value;
             } else {
                 mappedText = text.toLowerCase(srcLocale);
             }
