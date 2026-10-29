@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OmegaT shipping ballast map — new edition, generated file.
+  DO NOT EDIT BY HAND: re-run tool/generate_shipping_ballast_svg.py
+  against a fresh installDist to refresh the numbers.
+
+  Snapshot: 2026-10-23 · installDist at commit 66d7ce5cf
+  Companion of the historic hand-made omegat-shipping-ballast.svg (2026-08-01).
+
+  🄯 2026 - This file is part of OmegaT, released under the GNU General
+  Public License version 3 or (at your option) any later version.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1760 1200" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <!-- background -->
+  <rect x="0" y="0" width="1760" height="1200" fill="#ffffff"/>
+
+  <g transform="translate(24,10) scale(0.16)">
+    <path fill="#1e282c" d="m 145.84482,32.68197 c -17.435,0 -33.882,2.683 -48.883002,7.973 -14.783,5.214 -27.816,12.832 -38.737,22.641 -11.013,9.892 -19.58,21.744 -25.462,35.229 -6.042,13.851 -9.105,29.115 -9.105,45.37 0,21.473 7.679,41.858 22.823,60.588 7.582,9.379 16.92,18.207 27.854,26.347 l -14.577,0 c -8.347,0 -12.896,-0.369 -16.173,-2.465 -3.317,-2.122 -6.026,-6.481 -9.66,-15.545 -0.609,-1.518 -2.079,-2.511 -3.713,-2.511 l -10.212,0 c -1.135,0 -2.216,0.481 -2.975,1.325 -0.759,0.845 -1.123,1.972 -1.002,3.1 l 6.201,58.031 c 0.217,2.032 1.932,3.574 3.977,3.574 l 93.382002,0 c 1.417,0 2.728,-0.75 3.447,-1.971 l 2.917,-4.955 c 0.735,-1.248 0.737,-2.797 0.006,-4.048 l -0.507,-0.867 c -6.861,-11.732 -17.231,-29.463 -25.685002,-50.082 -4.62,-11.265 -8.205,-22.288 -10.656,-32.763 -2.861,-12.226 -4.27,-24.086 -4.188,-35.254 0,-0.009 0,-0.019 0,-0.029 0,-14.669 1.357,-27.923 4.033,-39.395 2.639,-11.314 6.581,-20.977 11.715002,-28.719 10.305,-15.542 25.384,-23.422 44.816,-23.422 19.577,0 34.775,7.661 45.174,22.771 5.137,7.465 9.082,16.756 11.725,27.616 2.674,10.988 4.03,23.643 4.03,37.612 0,22.021 -5.354,46.297 -15.911,72.155 -8.788,21.52 -19.212,39.359 -25.44,50.018 l -0.416,0.712 c -0.794,1.36 -0.717,3.06 0.197,4.342 l 3.283,4.603 c 0.751,1.052 1.964,1.677 3.257,1.677 l 91.923,0 c 1.988,0 3.674,-1.46 3.959,-3.428 l 8.392,-58.031 c 0.166,-1.147 -0.175,-2.313 -0.936,-3.189 -0.76,-0.878 -1.862,-1.382 -3.023,-1.382 l -10.216,0 c -1.611,0 -3.064,0.966 -3.688,2.45 -3.762,8.958 -6.614,13.492 -9.842,15.649 -3.081,2.059 -7.149,2.421 -14.558,2.421 l -19.256,0 c 10.409,-8.448 22.111,-18.599 31.947,-31.103 6.544,-8.32 11.629,-16.954 15.112,-25.663 4.054,-10.133 6.108,-20.76 6.108,-31.585 0,-15.938 -3.008,-30.927 -8.938,-44.549 -5.799,-13.318 -14.252,-25.029 -25.125,-34.809 -10.83,-9.742 -23.774,-17.308 -38.474,-22.488 -14.97,-5.275 -31.429,-7.951 -48.92,-7.951 l 0,0 z m -118.187002,111.213 c 0,-64.045 49.244001,-107.213 118.187002,-107.213 69.307,0 117.458,43.168 117.458,105.797 l 0,0 0,0 c 0,45.646 -37.572,73.952 -60.553,92.351 l 4,0 0,0 2.41,0 0,0 24.23,0 c 15.321,0 20.063,-1.414 28.088,-20.521 l 10.216,0 0,0 0,0 -8.392,58.03 -91.922,0 -3.283,-4.603 0,0 0,0 c 12.402,-21.231 42.313,-71.829 42.313,-124.903 0,-57.323 -22.25,-91.999 -64.929,-91.999 -42.315,0 -64.564001,35.385 -64.564001,95.536 -0.002,0.292 -0.003,0.584 -0.003,0.877 -0.035,49.569 27.808001,96.569 41.586001,120.137 l 0,0 0,0 -2.917,4.955 -93.382001,0 -6.201001,-58.029 0,0 0,0 10.212001,0 c 7.660999,19.106 12.404999,20.521 29.545999,20.521 l 20.159,0 0,0 3.202001,0 0,0 4,0 c -20.793001,-13.446 -59.461001,-43.876 -59.461001,-90.936 l 0,0 0,0 z"/>
+    <path fill="#ef3b39" d="m 216.634,-2 c -2.431,0 -6.061,0.811 -9.55,4.678 0,0 0.001,-10e-4 0.002,-10e-4 -12.968,14.276 -41.592,38.801 -52.015,43.395 l -0.067,0.029 -0.066,0.032 c -4.885,2.37 -9.878,5.65 -9.878,12.002 0,2.827 1.132,5.242 3.185,6.801 1.667,1.265 3.807,1.906 6.361,1.906 l 15.028,0 -0.316,40.34 0,0.015 0,0.016 c 0,6.482 -0.182,16.369 -0.356,25.93 -0.173,9.441 -0.336,18.357 -0.336,24.156 0,8.939 4.283,17.845 11.75,24.43 3.834,3.38 8.338,6.031 13.389,7.878 5.359,1.96 11.189,2.954 17.326,2.954 19.707,0 37.266,-4.894 50.775,-14.149 l 0.046,-0.032 0.046,-0.032 c 3.351,-2.438 4.382,-6.308 2.564,-9.492 l -2.351,-4.887 -0.024,-0.054 -0.027,-0.052 c -1.671,-3.229 -3.932,-3.908 -5.533,-3.908 -1.076,0 -2.141,0.321 -3.168,0.952 -4.635,2.506 -9.133,3.484 -15.994,3.484 -3.84,0 -7.019,-1.641 -9.449,-4.874 -1.67,-2.224 -2.989,-5.201 -3.924,-8.852 -1.118,-4.365 -1.684,-9.711 -1.684,-15.889 l 0,-26.556 c 0,-14.072 0,-28.579 0.517,-41.378 l 36.72,0 c 1.664,0 5.678,-0.555 6.991,-5.7 l 0.009,-0.028 0.007,-0.029 3.387,-14.113 c 0.671,-1.711 0.509,-3.624 -0.467,-5.223 -1.175,-1.926 -3.331,-3.076 -5.768,-3.076 l -39.854,0 1.225,-31.475 0.003,-0.078 0,-0.078 C 225.138,1.718 221.641,-2 216.634,-2 l 0,0 z M 149.06,58.135 c 0,-3.361 2.078,-5.712 7.624,-8.403 11.438,-5.04 40.544,-30.252 53.366,-44.37 2.426,-2.69 4.852,-3.362 6.584,-3.362 3.117,0 4.504,2.354 4.504,5.042 l 0,0 0,0 -1.387,35.631 4,0 0,0 0.003,0 0,0 40.009,0 c 1.64,0 2.633,1.046 2.639,2.148 0.002,0.294 -0.066,0.593 -0.212,0.876 l -3.47,14.455 c -0.344,1.346 -1.038,2.69 -3.116,2.69 l -40.543,0 c -0.683,13.567 -0.693,29.414 -0.693,44.653 0,0.242 0,0.483 0,0.725 l 0,26.556 c 0,27.563 10.742,33.615 19.057,33.615 7.279,0 12.479,-1.008 18.021,-4.033 0.38,-0.246 0.76,-0.403 1.141,-0.403 0.659,0 1.319,0.468 1.98,1.746 l 2.424,5.041 c 0.292,0.474 0.42,0.946 0.422,1.404 0.006,1.17 -0.812,2.241 -1.809,2.966 -5.892,4.037 -21.483,13.449 -48.514,13.449 -23.564,0 -38.465,-15.799 -38.465,-31.262 l 0,0 0,0 c 0,-11.767 0.692,-37.313 0.692,-50.086 l 0.316,-40.371 0,0 0,0 0,0 0.031,-4 -19.06,0 c -3.118,0 -5.544,-1.344 -5.544,-4.707 l 0,0 0,0 z"/>
+  </g>
+
+  <!-- title -->
+  <text x="880" y="50" text-anchor="middle" font-size="28" font-weight="bold" fill="#1a1a1a">OmegaT — Shipping Ballast Map — ΩᵗSBMap</text>
+  <text x="880" y="78" text-anchor="middle" font-size="14" fill="#666666">installDist size anatomy (299.6 MB, to scale) — what could go without losing function · snapshot 2026-10-23, generated by tool/generate_shipping_ballast_svg.py · −107 MB vs. 2026-08-01</text>
+
+  <!-- ============ proportional stacked bar (3.27 px per MB) ============ -->
+  <text x="145" y="128" text-anchor="middle" font-size="14" font-weight="bold" fill="#333333">installDist — 299.6 MB</text>
+
+  <!-- language module segments -->
+  <g stroke="#ffffff" stroke-width="0.6">
+    <rect x="60" y="140.0" width="170" height="118.2" fill="#ffe9a8"/>
+    <rect x="60" y="258.2" width="170" height="71.0" fill="#f6dd90"/>
+    <rect x="60" y="329.2" width="170" height="54.7" fill="#ffe9a8"/>
+    <rect x="60" y="383.9" width="170" height="45.5" fill="#f6dd90"/>
+    <rect x="60" y="429.3" width="170" height="44.0" fill="#ffe9a8"/>
+    <rect x="60" y="473.3" width="170" height="27.0" fill="#f6dd90"/>
+    <rect x="60" y="500.3" width="170" height="26.7" fill="#ffe9a8"/>
+    <rect x="60" y="527.0" width="170" height="26.4" fill="#f6dd90"/>
+    <rect x="60" y="553.4" width="170" height="25.8" fill="#ffe9a8"/>
+    <rect x="60" y="579.2" width="170" height="19.3" fill="#f6dd90"/>
+    <rect x="60" y="598.5" width="170" height="19.0" fill="#ffe9a8"/>
+    <rect x="60" y="617.5" width="170" height="17.3" fill="#f6dd90"/>
+    <rect x="60" y="634.7" width="170" height="12.5" fill="#ffe9a8"/>
+    <rect x="60" y="647.3" width="170" height="11.0" fill="#f6dd90"/>
+    <rect x="60" y="658.2" width="170" height="8.1" fill="#ffe9a8"/>
+    <rect x="60" y="666.3" width="170" height="33.2" fill="#f6dd90"/>
+  </g>
+  <rect x="60" y="140.0" width="170" height="559.5" fill="none" stroke="#c9971a" stroke-width="1.8"/>
+
+  <!-- lib segments (orange = gRPC chain) -->
+  <g stroke="#ffffff" stroke-width="0.6">
+    <rect x="60" y="699.5" width="170" height="47.2" fill="#dfeefb"/>
+    <rect x="60" y="746.8" width="170" height="25.6" fill="#cde2f5"/>
+    <rect x="60" y="772.4" width="170" height="22.5" fill="#dfeefb"/>
+    <rect x="60" y="794.9" width="170" height="20.7" fill="#cde2f5"/>
+    <rect x="60" y="815.5" width="170" height="14.8" fill="#dfeefb"/>
+    <rect x="60" y="830.3" width="170" height="13.5" fill="#cde2f5"/>
+    <rect x="60" y="843.8" width="170" height="13.3" fill="#dfeefb"/>
+    <rect x="60" y="857.1" width="170" height="11.2" fill="#cde2f5"/>
+    <rect x="60" y="868.3" width="170" height="10.7" fill="#dfeefb"/>
+    <rect x="60" y="879.0" width="170" height="9.5" fill="#cde2f5"/>
+    <rect x="60" y="888.5" width="170" height="6.7" fill="#dfeefb"/>
+    <rect x="60" y="895.2" width="170" height="6.5" fill="#cde2f5"/>
+    <rect x="60" y="901.7" width="170" height="1.2" fill="#f5d0a8"/>
+    <rect x="60" y="902.9" width="170" height="159.0" fill="#dfeefb"/>
+  </g>
+  <rect x="60" y="699.5" width="170" height="362.3" fill="none" stroke="#4a7ba6" stroke-width="1.8"/>
+
+  <!-- other segments -->
+  <g stroke="#ffffff" stroke-width="0.6">
+    <rect x="60" y="1061.9" width="170" height="21.5" fill="#ececec"/>
+    <rect x="60" y="1083.4" width="170" height="14.0" fill="#e0e0e0"/>
+    <rect x="60" y="1097.3" width="170" height="13.9" fill="#ececec"/>
+    <rect x="60" y="1111.2" width="170" height="4.0" fill="#e0e0e0"/>
+    <rect x="60" y="1115.2" width="170" height="1.8" fill="#ececec"/>
+    <rect x="60" y="1117.0" width="170" height="1.0" fill="#e0e0e0"/>
+  </g>
+  <rect x="60" y="1061.9" width="170" height="56.1" fill="none" stroke="#8a8a8a" stroke-width="1.8"/>
+
+  <!-- rotated group captions -->
+  <text transform="rotate(-90 44 420)" x="44" y="420" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#a8842a">30 language modules · 171.3 MB · 57 %</text>
+  <text transform="rotate(-90 44 881)" x="44" y="881" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#4a7ba6">lib/ · 174 jars · 110.9 MB · 37 %</text>
+  <text x="145" y="1135" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#666666">other · 17.4 MB · 6 %</text>
+
+  <!-- segment labels with leader ticks -->
+  <g stroke="#999999" stroke-width="0.8">
+    <line x1="232" y1="199.1" x2="244" y2="199"/>
+    <line x1="232" y1="293.7" x2="244" y2="258"/>
+    <line x1="232" y1="356.5" x2="244" y2="329"/>
+    <line x1="232" y1="406.6" x2="244" y2="384"/>
+    <line x1="232" y1="451.3" x2="244" y2="429"/>
+    <line x1="232" y1="486.8" x2="244" y2="473"/>
+    <line x1="232" y1="513.7" x2="244" y2="500"/>
+    <line x1="232" y1="540.2" x2="244" y2="527"/>
+    <line x1="232" y1="566.3" x2="244" y2="553"/>
+    <line x1="232" y1="588.9" x2="244" y2="579"/>
+    <line x1="232" y1="608.0" x2="244" y2="598"/>
+    <line x1="232" y1="626.1" x2="244" y2="617"/>
+    <line x1="232" y1="641.0" x2="244" y2="635"/>
+    <line x1="232" y1="652.7" x2="244" y2="647"/>
+    <line x1="232" y1="662.3" x2="244" y2="658"/>
+    <line x1="232" y1="682.9" x2="244" y2="666"/>
+    <line x1="232" y1="723.2" x2="244" y2="700"/>
+    <line x1="232" y1="759.6" x2="244" y2="747"/>
+    <line x1="232" y1="783.6" x2="244" y2="772"/>
+    <line x1="232" y1="805.2" x2="244" y2="795"/>
+    <line x1="232" y1="822.9" x2="244" y2="816"/>
+    <line x1="232" y1="837.1" x2="244" y2="830"/>
+    <line x1="232" y1="850.5" x2="244" y2="844"/>
+    <line x1="232" y1="862.7" x2="244" y2="857"/>
+    <line x1="232" y1="873.7" x2="244" y2="868"/>
+    <line x1="232" y1="883.8" x2="244" y2="879"/>
+    <line x1="232" y1="891.9" x2="244" y2="889"/>
+    <line x1="232" y1="898.4" x2="244" y2="895"/>
+    <line x1="232" y1="982.4" x2="244" y2="903"/>
+    <line x1="232" y1="1072.6" x2="244" y2="1062"/>
+    <line x1="232" y1="1090.4" x2="244" y2="1083"/>
+    <line x1="232" y1="1104.3" x2="244" y2="1097"/>
+    <line x1="232" y1="1113.2" x2="244" y2="1111"/>
+  </g>
+  <g font-size="10.5" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" fill="#555555">
+    <text x="248" y="202.6">nl 36.2</text>
+    <text x="248" y="261.7">de 21.7</text>
+    <text x="248" y="332.7">en 16.7</text>
+    <text x="248" y="387.4">ar 13.9</text>
+    <text x="248" y="432.8">ga 13.5</text>
+    <text x="248" y="476.8">ca 8.3</text>
+    <text x="248" y="503.8">pt 8.2</text>
+    <text x="248" y="530.5">zh 8.1</text>
+    <text x="248" y="556.9">uk 7.9</text>
+    <text x="248" y="582.7">gl 5.9</text>
+    <text x="248" y="602.0">ru 5.8</text>
+    <text x="248" y="621.0">pl 5.3</text>
+    <text x="248" y="638.2">es 3.8</text>
+    <text x="248" y="650.8">fr 3.4</text>
+    <text x="248" y="661.7">sk 2.5</text>
+    <text x="248" y="669.8">15 more 10.2</text>
+    <text x="248" y="703.0">icu4j 14.5</text>
+    <text x="248" y="750.3">groovy 7.8</text>
+    <text x="248" y="775.9">bcprov-jdk18on 6.9</text>
+    <text x="248" y="798.4">fastutil-core 6.3</text>
+    <text x="248" y="819.0">kuromoji 4.5</text>
+    <text x="248" y="833.8">svnkit 4.1</text>
+    <text x="248" y="847.3">lucene-core 4.1</text>
+    <text x="248" y="860.6">smartcn 3.4</text>
+    <text x="248" y="871.8">jgit 3.3</text>
+    <text x="248" y="882.5">guava 2.9</text>
+    <text x="248" y="892.0">nashorn-core 2.0</text>
+    <text x="248" y="898.7">pdfbox 2.0</text>
+    <text x="248" y="906.4">159 further jars 48.7</text>
+    <text x="248" y="1065.4">docs 6.6</text>
+    <text x="248" y="1086.9">OmegaT.jar 4.3</text>
+    <text x="248" y="1100.8">other modules 4.2</text>
+    <text x="248" y="1114.7">images 1.2</text>
+  </g>
+
+  <!-- bar mini-legend -->
+  <rect x="60" y="1152" width="14" height="10" fill="#f5d0a8" stroke="#d07020" stroke-width="0.8"/>
+  <text x="80" y="1160" font-size="10.5" fill="#555555">gRPC chain remainder (linking only)</text>
+
+  <rect x="420" y="140" width="1300" height="140" rx="10" fill="#eaf5ec" stroke="#3a7d44" stroke-width="1.6"/>
+  <text x="440" y="170" font-size="16" font-weight="bold" fill="#2c5e34">Fixed since 2026-08-01 — kuromoji duplicate and rhino are gone</text>
+  <g font-size="12.5" fill="#2f4f36">
+    <text x="440" y="196">The ja module no longer carries the kuromoji classes: modules/omegat-language-ja.jar is now 0.05 MB (tokenizer only, 0 shared classes); the single kuromoji copy stays in lib/lucene-</text>
+    <text x="440" y="220">analysis-kuromoji-9.12.3.jar (4.5 MB), where it belongs for LanguageTool.</text>
+    <text x="440" y="244">rhino is gone from lib/ — scripting runs on nashorn-core (2.0 MB) only.</text>
+    <text x="440" y="268">Counter-check: the zh module contains 0 org/apache/lucene classes (smartcn is not duplicated).</text>
+  </g>
+
+  <rect x="420" y="300" width="1300" height="164" rx="10" fill="#eaf5ec" stroke="#3a7d44" stroke-width="1.6"/>
+  <text x="440" y="330" font-size="16" font-weight="bold" fill="#2c5e34">gRPC chain excluded — 3 jars / 0.4 MB remain for class linking</text>
+  <g font-size="12.5" fill="#2f4f36">
+    <text x="440" y="356">The LanguageTool core fork (6.8-omt6.2-2) pulls a gRPC client chain for its Synthesizer server, remote BERT and remote ML rules — OmegaT runs none of them; its only LT server is the</text>
+    <text x="440" y="380">plain-HTTP bridge.</text>
+    <text x="440" y="404">build.gradle excludes the transports and protobuf bindings; absent from lib/: grpc-netty-shaded, grpc-core, grpc-util, grpc-protobuf, grpc-protobuf-lite, proto-google-common-protos.</text>
+    <text x="440" y="428">Kept: grpc-api 0.3 MB, grpc-stub 0.1 MB, animal-sniffer-annotations 3 KB — JLanguageTool.check links GRPCPostProcessing and its io.grpc.StatusRuntimeException handlers on every rule</text>
+    <text x="440" y="452">match (verified by distributionSmokeTest). protobuf-java 1.8 MB stays for dsl4j (Lingvo DSL).</text>
+  </g>
+
+  <rect x="420" y="484" width="1300" height="188" rx="10" fill="#fff8e0" stroke="#c9971a" stroke-width="1.6"/>
+  <text x="440" y="514" font-size="16" font-weight="bold" fill="#6b5210">Structural option — up to 171.3 MB (57 %): slim distribution + language packs</text>
+  <g font-size="12.5" fill="#5c4a1a">
+    <text x="440" y="540">The 30 language jars carry LanguageTool data: spelling dictionaries, synthesis dictionaries, grammar rules — nl alone is 36.2 MB (nl_NL.dict 14.3, dutch_synth.dict 13.5, dutch.dict</text>
+    <text x="440" y="564">12.8, unpacked 55.5 MB).</text>
+    <text x="440" y="588">Since 2026-08-01 the set went from ≈249 to 171.3 MB and from 29 to 30 modules.</text>
+    <text x="440" y="612">Largest modules: nl 36.2 MB, de 21.7 MB, en 16.7 MB, ar 13.9 MB.</text>
+    <text x="440" y="636">They remain cleanly modular: no LanguageTool core classes are duplicated inside them (verified). A slim default install with on-demand language</text>
+    <text x="440" y="660">packs would lose no function — every pack stays available, just not preinstalled. Every user pays today for all 30 languages; hardly anyone uses more than a handful.</text>
+  </g>
+
+  <rect x="420" y="692" width="1300" height="188" rx="10" fill="#eaf5ec" stroke="#3a7d44" stroke-width="1.6"/>
+  <text x="440" y="722" font-size="16" font-weight="bold" fill="#2c5e34">Earns its size — keep</text>
+  <g font-size="12.5" fill="#2f4f36">
+    <text x="440" y="748">icu4j 78.3 (14.5 MB) — used by OmegaT itself (NumeralValueParser, EditorUtils), not by the LanguageTool build (6.8-omt6.2-2, ICU-free).   Team stack ≈ 18.7 MB — bcprov-jdk18on 6.9 ·</text>
+    <text x="440" y="772">svnkit 4.1 · jgit 3.3 · sshd-osgi 1.8 (team projects, modern SSH).</text>
+    <text x="440" y="796">groovy 8.6 MB in 7 jars — the scripting feature.   lucene-core 4.1 + CJK analyzers — the tokenizers.   fastutil 6.3 — LanguageTool performance.   nashorn-core 2.0 MB — the script</text>
+    <text x="440" y="820">engine.</text>
+    <text x="440" y="844">docs 6.6 MB — offline manuals.   pdfbox + fontbox 3.6 MB in 3 jars — PDF support.</text>
+    <text x="440" y="868">Also checked: No duplicate artifact versions in lib/.</text>
+  </g>
+
+  <rect x="420" y="900" width="1300" height="116" rx="10" fill="#f2f2f2" stroke="#555555" stroke-width="1.6"/>
+  <text x="440" y="930" font-size="16" font-weight="bold" fill="#222222">Verdict</text>
+  <g font-size="12.5" fill="#333333">
+    <text x="440" y="956">Since 2026-08-01: −107 MB (−26 %) — the language-set slimming (249 → 171.3 MB) and the kuromoji dedup / rhino removal already landed. The gRPC transports are excluded already; 3 jars /</text>
+    <text x="440" y="980">0.4 MB stay for class linking.</text>
+    <text x="440" y="1004">The real lever is distribution shape: slim installer + language packs (−57 %). Findings re-verified on this installDist via class-set comparison (jarfile scan).</text>
+  </g>
+
+  <text x="420" y="1150" font-size="11.5" fill="#888888">Snapshot of an installDist, 2026-10-23 (commit 66d7ce5cf), generated by tool/generate_shipping_ballast_svg.py — re-run to refresh.</text>
+  <text x="420" y="1170" font-size="11.5" fill="#888888">Historic predecessor: omegat-shipping-ballast.svg (2026-08-01, 407 MB). Companions: omegat-architecture-overview.svg · omegat-event-flow-overview.svg</text>
+  <circle cx="30" cy="1168.2" r="5.6" fill="none" stroke="#5f6b71" stroke-width="1.1"/>
+  <path d="M 27.2,1166.5 A 3.3 3.3 0 1 1 27.2,1169.9" fill="none" stroke="#5f6b71" stroke-width="1.2" stroke-linecap="round"/>
+  <text x="42" y="1172" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#5f6b71">2026  -  OmegaT - Computer Assisted Translation (CAT) tool  -  This file is part of OmegaT, released under the GNU General Public License v3 or later</text>
+  <text x="42" y="1187" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#5f6b71">OmegaT is distributed WITHOUT ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE - see the GNU General Public License for more details.</text>
+</svg>
