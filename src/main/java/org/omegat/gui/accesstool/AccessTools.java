@@ -28,6 +28,7 @@ package org.omegat.gui.accesstool;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.io.File;
+import java.io.Serial;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -46,11 +47,14 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.events.IProjectEventListener;
 import org.omegat.gui.main.BaseMainWindowMenuHandler;
 import org.omegat.gui.main.MainMenuIcons;
+import org.omegat.gui.main.MainWindow;
+import org.omegat.gui.main.MainWindowMenuHandler;
 import org.omegat.gui.main.ProjectUICommands;
 import org.omegat.util.OConsts;
 import org.omegat.util.OStrings;
@@ -60,8 +64,9 @@ import org.omegat.util.gui.ResourcesUtil;
 /**
  * @author Hiroshi Miura
  */
-@SuppressWarnings("serial")
 public class AccessTools extends JPanel {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     JComboBox<URI> recentProjectCB;
     JButton goButton;
@@ -73,7 +78,7 @@ public class AccessTools extends JPanel {
     private SourceComboBoxModel sourceComboBoxModel;
     private final BaseMainWindowMenuHandler mainWindowMenuHandler;
 
-    private URI selectedProject = null;
+    private @Nullable URI selectedProject = null;
 
     private static final int MAX_PATH_LENGTH_SHOWN = 25;
     private static final float CHECKBOX_HEIGHT_RATIO = 1.8f;
@@ -81,6 +86,14 @@ public class AccessTools extends JPanel {
     public AccessTools(final BaseMainWindowMenuHandler mainWindowMenuHandler) {
         this.mainWindowMenuHandler = mainWindowMenuHandler;
         initComponents();
+    }
+
+    /**
+     * Matches the reflective toolbar instantiation in
+     * MainWindow.initMainMenu, which looks this signature up exactly.
+     */
+    public AccessTools(MainWindow mainWindow, MainWindowMenuHandler mainWindowMenuHandler) {
+        this(mainWindowMenuHandler);
     }
 
     public void initComponents() {
@@ -143,20 +156,15 @@ public class AccessTools extends JPanel {
         add(searchButton);
         add(settingsButton);
 
-        searchButton.addActionListener(actionEvent -> {
-            mainWindowMenuHandler.editFindInProjectMenuItemActionPerformed();
-        });
-        settingsButton.addActionListener(actionEvent -> {
-            mainWindowMenuHandler.optionsPreferencesMenuItemActionPerformed();
-        });
+        searchButton.addActionListener(actionEvent -> mainWindowMenuHandler.editFindInProjectMenuItemActionPerformed());
+        settingsButton.addActionListener(actionEvent -> mainWindowMenuHandler.optionsPreferencesMenuItemActionPerformed());
         recentProjectCB.addActionListener(actionEvent -> {
             // when select a project from the list, we open it.
             final Object item = recentProjectCB.getSelectedItem();
             if (item == null) {
                 return;
             }
-            if (item instanceof URI) {
-                URI projectUri = (URI) item;
+            if (item instanceof URI projectUri) {
                 if (projectUri.getScheme().equals("omegat")) {
                     switch (projectUri.getSchemeSpecificPart()) {
                     case "new":
@@ -226,7 +234,7 @@ public class AccessTools extends JPanel {
         }
     }
 
-    private synchronized void updateProjectFiles(String activeFileName) {
+    private synchronized void updateProjectFiles(@Nullable String activeFileName) {
         sourceComboBoxModel.clear();
         final List<ProjectFileInformation> files;
         if (activeFileName != null) {
@@ -252,8 +260,9 @@ public class AccessTools extends JPanel {
     /**
      * ComboBoxModel for project access tool.
      */
-    @SuppressWarnings("serial")
     static class ProjectComboBoxModel extends DefaultComboBoxModel<URI> {
+        @Serial
+        private static final long serialVersionUID = 1L;
 
         ProjectComboBoxModel(List<URI> list) {
             super(list.toArray(URI[]::new));
@@ -275,8 +284,9 @@ public class AccessTools extends JPanel {
     /**
      * CombBoxModel for file access tool.
      */
-    @SuppressWarnings("serial")
     static class SourceComboBoxModel extends DefaultComboBoxModel<ProjectFileInformation> {
+        @Serial
+        private static final long serialVersionUID = 1L;
 
         /**
          * Constructor.

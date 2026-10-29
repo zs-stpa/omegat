@@ -47,7 +47,7 @@ import org.omegat.util.gui.ResourcesUtil;
 public final class MainWindowBurgerMenu extends BaseMainWindowMenu
         implements ActionListener, MenuListener, IMainMenu {
 
-    JMenu burgerMenu;
+    JMenu burgerMenu = new JMenu();
 
     public MainWindowBurgerMenu(MainWindow mainWindow, MainWindowMenuHandler mainWindowMenuHandler) {
         super(mainWindow, mainWindowMenuHandler);
@@ -57,7 +57,6 @@ public final class MainWindowBurgerMenu extends BaseMainWindowMenu
     @Override
     void createMenuBar() {
         // build burger menu
-        burgerMenu = new JMenu();
         Icon burgerIcon = UIManager.getIcon("OmegaT.newUI.menu.icon");
         burgerMenu.setIcon(Objects.requireNonNullElseGet(burgerIcon,
                 () -> new ImageIcon(ResourcesUtil.getBundledImage("newUI.burgerMenu.png"))));
@@ -70,7 +69,6 @@ public final class MainWindowBurgerMenu extends BaseMainWindowMenu
         burgerMenu.add(toolsMenu);
         burgerMenu.add(optionsMenu);
         burgerMenu.add(helpMenu);
-        burgerMenu.add(burgerMenu);
         mainMenu.add(burgerMenu);
         mainMenu.add(new AccessTools(mainWindowMenuHandler));
     }

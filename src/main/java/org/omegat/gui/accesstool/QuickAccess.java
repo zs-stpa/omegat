@@ -25,14 +25,15 @@
 
 package org.omegat.gui.accesstool;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.gui.main.MainWindowBurgerMenu;
 import org.omegat.gui.main.MainWindowMenu;
-import org.omegat.gui.preferences.IMenuPreferece;
+import org.omegat.gui.preferences.IMenuPreference;
 import org.omegat.util.Platform;
 import org.omegat.util.gui.UIDesignManager;
 
 @SuppressWarnings("unused")
-public final class QuickAccess implements IMenuPreferece {
+public final class QuickAccess implements IMenuPreference {
 
     public static void loadPlugins() {
         UIDesignManager.addMenuUIPreference(new QuickAccess());
@@ -56,7 +57,7 @@ public final class QuickAccess implements IMenuPreferece {
     }
 
     @Override
-    public String getToolbarClassName() {
+    public @Nullable String getToolbarClassName() {
         if (Platform.isMacOSX()) {
             return AccessTools.class.getName();
         }

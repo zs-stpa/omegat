@@ -47,7 +47,7 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
 import org.omegat.gui.main.BaseMainWindowMenu;
-import org.omegat.gui.preferences.IMenuPreferece;
+import org.omegat.gui.preferences.IMenuPreference;
 import org.omegat.util.Log;
 import org.omegat.util.Platform;
 import org.omegat.util.Preferences;
@@ -81,7 +81,7 @@ public final class UIDesignManager {
     public static final String menuClassID = "OmegaTMainWindowMenu";
     public static final String toolbarClassID = "OmegaTMainWindowToolbar";
 
-    private static final List<IMenuPreferece> menuPreferences = new ArrayList<>();
+    private static final List<IMenuPreference> menuPreferences = new ArrayList<>();
     public static final String THEME_FOLLOW_OS_COLOR_DEFAULT = "default";
     public static final String DARK_CLASS_NAME_DEFAULT = "org.omegat.gui.theme.DefaultFlatDarkTheme";
     public static final String LIGHT_CLASS_NAME_DEFAULT = "org.omegat.gui.theme.DefaultFlatTheme";
@@ -89,11 +89,11 @@ public final class UIDesignManager {
     private UIDesignManager() {
     }
 
-    public static void addMenuUIPreference(IMenuPreferece menuUIPreference) {
+    public static void addMenuUIPreference(IMenuPreference menuUIPreference) {
         menuPreferences.add(menuUIPreference);
     }
 
-    public static List<IMenuPreferece> getMenuUIPreferences() {
+    public static List<IMenuPreference> getMenuUIPreferences() {
         return menuPreferences;
     }
 
@@ -106,8 +106,7 @@ public final class UIDesignManager {
             Class<?> prefClazz = classLoader.loadClass(menuUIPrefClassName);
             if (prefClazz != null) {
                 Object o = prefClazz.getDeclaredConstructor().newInstance();
-                if (o instanceof IMenuPreferece) {
-                    IMenuPreferece pref = (IMenuPreferece) o;
+                if (o instanceof IMenuPreference pref) {
                     String menuUIClassName = pref.getMenuUIClassName();
                     Class<?> clazz = classLoader.loadClass(menuUIClassName);
                     if (BaseMainWindowMenu.class.isAssignableFrom(clazz)) {
