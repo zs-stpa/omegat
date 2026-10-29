@@ -99,6 +99,31 @@ public class CustomContainerFactory extends DefaultDockableContainerFactory {
             });
         }
 
+        /**
+         * VLDocking drops its DockKey listener in removeNotify and never
+         * re-adds it, so a title bar re-parented in place (the framework
+         * splits a container to dock a pane added after the layout was
+         * read) stops following renames: the editor kept "First Steps"
+         * after a project load. Rebind when the bar is inserted again;
+         * setDockable with the same target also catches up on the name.
+         */
+        private boolean keyListenerDropped;
+
+        @Override
+        public void removeNotify() {
+            super.removeNotify();
+            keyListenerDropped = getDockable() != null;
+        }
+
+        @Override
+        public void addNotify() {
+            super.addNotify();
+            if (keyListenerDropped) {
+                keyListenerDropped = false;
+                setDockable(getDockable());
+            }
+        }
+
         private IPaneMenu getSettingsCallback() {
             return (IPaneMenu) getDockable().getDockKey().getProperty(IPaneMenu.PROPERTY_PANE_MENU_ACTION_LISTENER);
         }
