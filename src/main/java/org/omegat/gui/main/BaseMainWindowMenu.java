@@ -889,6 +889,11 @@ public abstract class BaseMainWindowMenu implements ActionListener, MenuListener
         }
     }
 
+    @Override
+    public JMenuBar getMenuBar() {
+        return mainMenu;
+    }
+
     /**
      * Re-reads the shortcut definitions and rebinds the menu accelerators
      * and the window-level find-in-project binding; unbound functions lose
