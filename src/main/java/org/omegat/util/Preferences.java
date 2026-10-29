@@ -383,6 +383,11 @@ public final class Preferences {
     public static final String MARK_IDENTICAL_SEGMENTS = "mark_identical_segments";
 
     /**
+     * last folder used to import/export a colour scheme
+     */
+    public static final String COLOR_SCHEME_DIRECTORY = "color_scheme_directory";
+
+    /**
      * display modification info (author and modification date)
      */
     public static final String DISPLAY_MODIFICATION_INFO = "display_modification_info";
