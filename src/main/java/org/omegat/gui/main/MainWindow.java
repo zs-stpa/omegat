@@ -48,6 +48,8 @@ import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseWheelEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -116,6 +118,13 @@ import com.vlsolutions.swing.docking.FloatingDialog;
 @SuppressWarnings("serial")
 public class MainWindow implements IMainWindow {
     private final JFrame applicationFrame;
+
+    /**
+     * Width the window title cannot use: the window buttons and the padding
+     * on both sides of a centred title, plus some slack because the title is
+     * measured with the root pane's font, not the window manager's.
+     */
+    private static final int TITLE_MARGIN = 200;
     public BaseMainWindowMenu menu;
 
     /**
@@ -167,6 +176,12 @@ public class MainWindow implements IMainWindow {
         MainWindowUI.handlePerProjectLayouts(this);
 
         updateTitle();
+        applicationFrame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                updateTitle();
+            }
+        });
 
         // Set up prompt to reload if segmentation or filters settings change
         Preferences.addPropertyChangeListener(evt -> {
@@ -349,7 +364,12 @@ public class MainWindow implements IMainWindow {
         if (Core.getProject().isProjectLoaded()) {
             s += " :: " + Core.getProject().getProjectProperties().getProjectName();
         }
-        applicationFrame.setTitle(s);
+        // The window manager cuts an overlong title at its end, where the
+        // project name sits; cut it in the middle instead.
+        String title = StaticUIUtils.truncateToFit(s, applicationFrame.getRootPane(), TITLE_MARGIN);
+        if (!title.equals(applicationFrame.getTitle())) {
+            applicationFrame.setTitle(title);
+        }
     }
 
     /** insert current fuzzy match or selection at cursor position */
