@@ -80,7 +80,9 @@ public class PreferenceDialogContractTest {
             Map.entry("TF_SRC_FONT_NAME", "font family chooser"),
             Map.entry("PROJECT_FILES_SHOW_ON_LOAD", "no dialog control, internal restore only"),
             Map.entry("PROXY_USER_NAME", "credential"), Map.entry("PROXY_PASSWORD", "credential"),
-            Map.entry("TARGET_LOCALE", "read only, to pick the spellchecker language"));
+            Map.entry("TARGET_LOCALE", "read only, to pick the spellchecker language"),
+            Map.entry("COLOR_SCHEME_DIRECTORY", "integration: path text field from color-theme-import-export"),
+            Map.entry("SEARCH_SOURCE_SEGMENT_IMMEDIATELY", "integration: toggle from source-concordance-search"));
 
     private static final Pattern USAGE = Pattern.compile("\\bPreferences\\.([A-Z][A-Z0-9_]+)\\b");
 
