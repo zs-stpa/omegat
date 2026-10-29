@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.filters2.AbstractFilter;
 import org.omegat.filters2.FilterContext;
@@ -257,8 +258,8 @@ public class DokuWikiFilter extends AbstractFilter {
      * @throws IOException
      *             If an I/O error occurs
      */
-    private void writeTranslate(BufferedWriter outfile, String value, LinebreakPreservingReader lbpr)
-            throws IOException {
+    private void writeTranslate(BufferedWriter outfile, String value,
+            @Nullable LinebreakPreservingReader lbpr) throws IOException {
         value = value.trim();
         if (!value.isEmpty()) {
             while (true) {

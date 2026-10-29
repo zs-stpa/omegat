@@ -570,11 +570,10 @@ public class SegmentBuilder {
     }
 
     /**
-     * Adds a string that displays the modification info (author and date). Does
-     * nothing if the translation entry is null.
+     * Adds a string that displays the modification info (author and date).
      *
      * @param trans
-     *            The translation entry (can be null)
+     *            The translation entry
      */
     private void addModificationInfoPart(TMXEntry trans) throws BadLocationException {
         if (!trans.isTranslated()) {

@@ -33,6 +33,7 @@ import java.util.List;
 
 import javax.swing.text.Highlighter.HighlightPainter;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.data.SourceTextEntry;
 import org.omegat.gui.editor.UnderlineFactory;
@@ -49,8 +50,8 @@ import org.omegat.util.gui.Styles;
 public class TransTipsMarker implements IMarker {
 
     @Override
-    public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText,
-            boolean isActive) {
+    public List<Mark> getMarksForEntry(SourceTextEntry ste, @Nullable String sourceText,
+            @Nullable String translationText, boolean isActive) {
         if (!isActive || sourceText == null) {
             return null;
         }
