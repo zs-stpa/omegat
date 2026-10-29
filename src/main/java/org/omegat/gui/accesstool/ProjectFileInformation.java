@@ -31,12 +31,12 @@ import java.util.List;
 import org.omegat.core.Core;
 import org.omegat.core.data.IProject;
 
-class ProjectFileInformation {
+public class ProjectFileInformation {
 
     private final String filePath;
     private final int segments;
 
-    ProjectFileInformation(final String activeFileName) {
+    public ProjectFileInformation(final String activeFileName) {
         filePath = Paths.get(activeFileName).getFileName().toString();
         segments =
                 Core.getProject().getProjectFiles().stream()
@@ -46,7 +46,7 @@ class ProjectFileInformation {
                         .orElse(0);
     }
 
-    ProjectFileInformation(final IProject.FileInfo f) {
+    public ProjectFileInformation(final IProject.FileInfo f) {
         filePath = Paths.get(f.filePath).getFileName().toString();
         segments = f.entries.size();
     }
