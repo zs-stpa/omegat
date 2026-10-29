@@ -34,6 +34,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -45,7 +46,9 @@ import jakarta.xml.bind.Unmarshaller;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import org.omegat.core.data.ProjectProperties;
 import org.omegat.core.data.ProtectedPart;
@@ -55,11 +58,15 @@ import org.omegat.filters2.IFilter;
 import org.omegat.filters2.IParseCallback;
 import org.omegat.filters2.TranslationException;
 
+import gen.core.filters.Filter;
 import gen.core.filters.Filter.Option;
 import gen.core.filters.Filters;
 
 public class FilterMasterTest {
     private File tempFilter;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
     public final void setUpCore() throws Exception {
@@ -115,6 +122,68 @@ public class FilterMasterTest {
         List<Option> option2 = filtersConfig2.getFilters().getFirst().getOption();
         assertFalse("Desierialized <option/> is empty", option2.isEmpty());
         assertNull(option2.get(0).getName());
+    }
+
+    /**
+     * A filters.xml written by a newer OmegaT may carry elements and
+     * attributes this version does not know. They must not prevent loading,
+     * and loading must not rewrite the file as long as no registered filter
+     * is missing from it (here: only XHTMLFilter is registered).
+     */
+    @Test
+    public void loadConfigSkipsUnknownContent() throws Exception {
+        String xml = "<?xml version='1.0' encoding='UTF-8'?>" //
+                + "<filters removeTags='false' removeSpacesNonseg='true' preserveSpaces='false'"
+                + " ignoreFileContext='false' futureFlag='yes'>" //
+                + "<futureSettings><entry key='a'>1</entry></futureSettings>" //
+                + "<filter className='org.omegat.filters3.xml.xhtml.XHTMLFilter' enabled='false'"
+                + " futureAttr='x'>" //
+                + "<files sourceFilenameMask='*.html' targetFilenamePattern='${filename}'"
+                + " futureEncoding='utf-8'/>" //
+                + "<futureChild><deep/></futureChild>" //
+                + "<option name='skipRegExp' value='future'/>" //
+                + "</filter>" //
+                + "</filters>";
+        File file = tempFolder.newFile(FilterMaster.FILE_FILTERS);
+        FileUtils.writeStringToFile(file, xml, StandardCharsets.UTF_8);
+
+        Filters loaded = FilterMaster.loadConfig(file);
+
+        assertNotNull(loaded);
+        assertFalse(loaded.isRemoveTags());
+        assertEquals(1, loaded.getFilters().size());
+        Filter filter = loaded.getFilters().get(0);
+        assertFalse(filter.isEnabled());
+        assertEquals("*.html", filter.getFiles().get(0).getSourceFilenameMask());
+        assertEquals("skipRegExp", filter.getOption().get(0).getName());
+        assertEquals("File must stay untouched", xml, FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+        assertEquals("No backup expected", 1, tempFolder.getRoot().list().length);
+    }
+
+    /**
+     * An unreadable filters.xml is kept as a dated copy and left in place;
+     * only the in-memory configuration falls back to the defaults.
+     */
+    @Test
+    public void loadConfigKeepsUnreadableFile() throws Exception {
+        String broken = "<?xml version='1.0' encoding='UTF-8'?>" //
+                + "<filters removeTags='true'><filter className='org.example.Future' enabled='true'>";
+        File file = tempFolder.newFile(FilterMaster.FILE_FILTERS);
+        FileUtils.writeStringToFile(file, broken, StandardCharsets.UTF_8);
+
+        Filters loaded = FilterMaster.loadConfig(file);
+
+        assertNotNull(loaded);
+        assertEquals("Defaults expected", 1, loaded.getFilters().size());
+        assertEquals(org.omegat.filters3.xml.xhtml.XHTMLFilter.class.getName(),
+                loaded.getFilters().get(0).getClassName());
+        assertEquals("File must stay untouched", broken,
+                FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+        File[] backups = tempFolder.getRoot().listFiles(
+                (dir, name) -> name.startsWith(FilterMaster.FILE_FILTERS + ".") && name.endsWith(".bak"));
+        assertNotNull(backups);
+        assertEquals(1, backups.length);
+        assertEquals(broken, FileUtils.readFileToString(backups[0], StandardCharsets.UTF_8));
     }
 
     @Test
