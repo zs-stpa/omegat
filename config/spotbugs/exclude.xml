@@ -296,4 +296,9 @@
         </Or>
         <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD,UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
     </Match>
+    <!-- Token streams compare by identity like Lucene's own; AttributeSource.equals is inherited on purpose -->
+    <Match>
+        <Class name="org.omegat.tokenizer.IcuTokenizer$BreakIteratorTokenStream"/>
+        <Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
+    </Match>
 </FindBugsFilter>
