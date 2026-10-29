@@ -859,11 +859,7 @@ public class RealProject implements IProject {
                 } catch (KnownException ex) {
                     throw ex;
                 } catch (IRemoteRepository2.NetworkException e) {
-                    if (isOnlineMode) {
-                        Log.logErrorRB("TEAM_NETWORK_ERROR",
-                                e.getCause() == null ? e.getLocalizedMessage() : e.getCause());
-                        setOfflineMode();
-                    }
+                    handleTeamNetworkError(e);
                 } catch (Exception e) {
                     Log.logErrorRB(e, "CT_ERROR_SAVING_PROJ");
                     Objects.requireNonNull(Core.getMainWindow()).displayErrorRB(e, "CT_ERROR_SAVING_PROJ");
@@ -973,6 +969,8 @@ public class RealProject implements IProject {
                             glossaryPrepared = null;
 
                             remoteRepositoryProvider.cleanPrepared();
+                        } catch (IRemoteRepository2.NetworkException ex) {
+                            handleTeamNetworkError(ex);
                         } catch (Exception ex) {
                             Log.logErrorRB(ex, "CT_ERROR_SAVING_PROJ");
                         }
@@ -982,9 +980,24 @@ public class RealProject implements IProject {
                     Log.logErrorRB(ex, "CT_ERROR_SAVING_PROJ");
                 }
             }).start();
+        } catch (IRemoteRepository2.NetworkException ex) {
+            handleTeamNetworkError(ex);
+            preparedStatus = PreparedStatus.NONE;
         } catch (Exception ex) {
             Log.logErrorRB(ex, "CT_ERROR_SAVING_PROJ");
             preparedStatus = PreparedStatus.NONE;
+        }
+    }
+
+    /**
+     * Network failure while syncing: switch to offline mode instead of
+     * logging a save error every auto-save interval.
+     */
+    private void handleTeamNetworkError(IRemoteRepository2.NetworkException ex) {
+        if (isOnlineMode) {
+            Log.logErrorRB("TEAM_NETWORK_ERROR",
+                    ex.getCause() == null ? ex.getLocalizedMessage() : ex.getCause());
+            setOfflineMode();
         }
     }
 
