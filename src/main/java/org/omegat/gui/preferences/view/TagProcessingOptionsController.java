@@ -95,13 +95,24 @@ public class TagProcessingOptionsController extends BasePreferencesController {
     }
 
     private void checkReloadRequired() {
-        boolean customPatternChanged = valueIsDifferent(Preferences.CHECK_CUSTOM_PATTERN,
-                panel.customPatternRegExpTF.getText());
+        boolean customPatternChanged = !storedCustomPattern().equals(panel.customPatternRegExpTF.getText());
         boolean removePatternChanged = valueIsDifferent(Preferences.CHECK_REMOVE_PATTERN,
                 panel.removePatternRegExpTF.getText());
         boolean statsHandlingChanged = (StatisticsSettings.isCountingProtectedText()
                 || StatisticsSettings.isCountingCustomTags()) != panel.cbCountingProtectedText.isSelected();
         setReloadRequired(customPatternChanged || removePatternChanged || statsHandlingChanged);
+    }
+
+    /**
+     * Pattern as stored, or coded default when never saved. Shown in the
+     * field and compared against it: a never saved pattern reads as empty
+     * from the raw preference, which is no change. A saved empty pattern
+     * stays empty (no custom tags).
+     */
+    private static String storedCustomPattern() {
+        return Preferences.existsPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                ? Preferences.getPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                : PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT;
     }
 
     @Override
@@ -113,11 +124,7 @@ public class TagProcessingOptionsController extends BasePreferencesController {
         panel.javaPatternCheckBox.setSelected(Preferences.isPreference(Preferences.CHECK_JAVA_PATTERN_TAGS));
         panel.cbCountingProtectedText.setSelected(
                 StatisticsSettings.isCountingProtectedText() || StatisticsSettings.isCountingCustomTags());
-        if (Preferences.existsPreference(Preferences.CHECK_CUSTOM_PATTERN)) {
-            panel.customPatternRegExpTF.setText(Preferences.getPreference(Preferences.CHECK_CUSTOM_PATTERN));
-        } else {
-            panel.customPatternRegExpTF.setText(PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT);
-        }
+        panel.customPatternRegExpTF.setText(storedCustomPattern());
         panel.removePatternRegExpTF.setText(Preferences.getPreference(Preferences.CHECK_REMOVE_PATTERN));
         panel.looseTagOrderCheckBox.setSelected(Preferences.isPreference(Preferences.LOOSE_TAG_ORDERING));
         panel.cbTagsValidRequired.setSelected(Preferences.isPreference(Preferences.TAGS_VALID_REQUIRED));
