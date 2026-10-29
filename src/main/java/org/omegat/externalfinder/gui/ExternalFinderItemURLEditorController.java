@@ -69,6 +69,15 @@ public class ExternalFinderItemURLEditorController {
         this.panel = new ExternalFinderSubItemEditorPanel();
     }
 
+    /**
+     * Hide the target choice (ASCII or non-ASCII selection only); for a URL
+     * that is not tied to the selection it has nothing to decide.
+     */
+    public ExternalFinderItemURLEditorController hideTargetChoice() {
+        panel.targetComboBox.getParent().setVisible(false);
+        return this;
+    }
+
     public boolean show(Window parent) {
         JDialog dialog = new JDialog(parent, OStrings.getString("EXTERNALFINDER_URLEDITOR_TITLE"));
         dialog.setModal(true);
@@ -78,6 +87,8 @@ public class ExternalFinderItemURLEditorController {
         StaticUIUtils.setEscapeClosable(dialog);
 
         panel.commandPanel.setVisible(false);
+        // Below the explanatory text, above the field.
+        panel.urlPanel.add(PlaceholderLinks.create(panel.urlTextArea), 1);
 
         panel.urlTextArea.setText(builder.getURL());
         panel.urlTextArea.getDocument().addDocumentListener(new DocumentListener() {
