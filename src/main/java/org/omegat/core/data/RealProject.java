@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -296,9 +297,21 @@ public class RealProject implements IProject {
      */
     private volatile Map<String, @Nullable String> supersededLocalSettings = Collections.emptyMap();
 
+    /**
+     * Keys of the settings with a user fallback that the team carries no
+     * value for, as found by the last load; see
+     * {@link #getTeamUnmanagedSettings}.
+     */
+    private volatile Set<String> teamUnmanagedSettings = Collections.emptySet();
+
     @Override
     public Map<String, @Nullable String> getSupersededLocalSettings() {
         return supersededLocalSettings;
+    }
+
+    @Override
+    public Set<String> getTeamUnmanagedSettings() {
+        return teamUnmanagedSettings;
     }
 
     @Override
@@ -393,7 +406,10 @@ public class RealProject implements IProject {
      * either - the team default stays active until the value is shared.
      * Either way the superseded local values are kept for the question shown
      * after the load, so every open asks again until the value is shared or
-     * dropped, as the share prompt promises.
+     * dropped, as the share prompt promises. A setting with a user fallback
+     * that neither the team nor this checkout carries runs on this member's
+     * user configuration, which other members' may differ from; such
+     * settings are kept as unmanaged for the hint shown after the load.
      *
      * @param preSyncValues
      *            the locally stored normalized values from before the team
@@ -402,10 +418,12 @@ public class RealProject implements IProject {
     private void loadProjectSettings(Map<String, @Nullable String> preSyncValues) {
         if (TeamSettingsRegistry.all().isEmpty()) {
             supersededLocalSettings = Collections.emptyMap();
+            teamUnmanagedSettings = Collections.emptySet();
             return;
         }
         boolean teamOnline = remoteRepositoryProvider.isManaged() && isOnlineMode;
         Map<String, @Nullable String> superseded = new HashMap<>();
+        Set<String> unmanaged = new LinkedHashSet<>();
         for (TeamSetting setting : TeamSettingsRegistry.all()) {
             // The team's value is read from the repository checkouts by
             // content, not by byte comparison: a repository copy may be
@@ -421,9 +439,38 @@ public class RealProject implements IProject {
             setting.apply(config, state.effective);
             if (state.asks) {
                 superseded.put(setting.getKey(), state.supersededLocal);
+            } else if (unmanagedByTeam(teamOnline, teamValue != null,
+                    teamOnline && teamCarriesFiles(setting), setting.hasUserFallback())) {
+                unmanaged.add(setting.getKey());
             }
         }
+        // The team may have recorded that some settings are left to the
+        // members; that value was applied above, whatever the registry order.
+        unmanaged.removeAll(config.getUserLevelTeamSettings());
         supersededLocalSettings = Collections.unmodifiableMap(superseded);
+        teamUnmanagedSettings = Collections.unmodifiableSet(unmanaged);
+    }
+
+    /**
+     * Whether a quietly resolved setting counts as unmanaged by the team:
+     * the team project carries neither a value nor any of the setting's
+     * files - a file that exists but could not be read or that the
+     * repositories disagree on is not a missing one, and must not invite
+     * overriding it - and the setting would otherwise run on the user
+     * configuration. Pure function for testability.
+     */
+    static boolean unmanagedByTeam(boolean teamOnline, boolean teamCarriesValue, boolean teamFilesExist,
+            boolean hasUserFallback) {
+        return teamOnline && !teamCarriesValue && !teamFilesExist && hasUserFallback;
+    }
+
+    private boolean teamCarriesFiles(TeamSetting setting) {
+        for (String path : setting.storagePaths(config)) {
+            if (remoteRepositoryProvider.existsInRepositories(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

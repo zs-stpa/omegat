@@ -127,7 +127,13 @@
                OmegaT offers to share the change, and when the local version
                differs from the team version on opening the project, it asks
                whether to share the local version, use the team version, or
-               keep the local version for the current session.</para>
+               keep the local version for the current session. When the
+               team project carries none of these files and your user-level
+               settings differ from the defaults, each member may be working
+               with different settings; OmegaT says so after opening the
+               project and offers to distribute your user-level settings to
+               the team, or to record for the team that these settings are
+               left to each member.</para>
             <para>The first time the project is downloaded, OmegaT retrieves the
                
                <filename>omegat.project</filename> file from the server. This file

@@ -119,4 +119,21 @@ public class TeamSettingTest {
         assertNull(TeamSettingsRegistry.byKey(KEY));
         assertTrue(TeamSettingsRegistry.all().stream().noneMatch(s -> s.getKey().equals(KEY)));
     }
+
+    @Test
+    public void testUserFallbackIsOptionalAndNormalized() throws Exception {
+        AtomicBoolean holder = new AtomicBoolean(false);
+        TeamSetting plain = TeamSetting.ofBoolean(KEY, "TEAM_SETTING_DIVERGED_TITLE", false,
+                config -> holder.get(), (config, value) -> holder.set(value));
+        ProjectProperties config = new ProjectProperties(folder.newFolder("p"));
+        assertFalse("a plain descriptor has no user fallback", plain.hasUserFallback());
+        assertNull(plain.readUserFallback(config));
+        TeamSetting withFallback = plain.withUserFallback(c -> "true");
+        assertTrue(withFallback.hasUserFallback());
+        assertEquals("true", withFallback.readUserFallback(config));
+        assertEquals("the copy keeps the key", KEY, withFallback.getKey());
+        // the fallback goes through the normalizer like every raw value
+        assertNull("an explicit default folds to null", plain.withUserFallback(c -> "false")
+                .readUserFallback(config));
+    }
 }

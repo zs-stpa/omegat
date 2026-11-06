@@ -36,7 +36,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.TreeSet;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -44,8 +46,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import org.omegat.core.segmentation.SRX;
 import org.omegat.core.segmentation.SRXManager;
 import org.omegat.filters2.master.FilterMaster;
+import org.omegat.util.PatternConsts;
+import org.omegat.util.Preferences;
 import org.omegat.util.TagPatternsStorage;
 import org.omegat.util.TestPreferencesInitializer;
 
@@ -318,5 +323,138 @@ public class TeamSettingFilesTest {
         RealProject.persistSessionSettings(config, Collections.emptySet());
         assertNull("without the pending question the default deletes the file",
                 TeamSettingFiles.FILTERS.loadStored(config));
+    }
+
+    @Test
+    public void testUserFallbacksAreNullForDefaultsAndExposeDeviations() throws Exception {
+        assertTrue(TeamSettingFiles.FILTERS.hasUserFallback());
+        assertTrue(TeamSettingFiles.SEGMENTATION.hasUserFallback());
+        assertTrue(TeamSettingFiles.TAG_PATTERNS.hasUserFallback());
+        // fresh test preferences carry the installed defaults: nothing of
+        // this member's own to distribute
+        assertNull(TeamSettingFiles.FILTERS.readUserFallback(config));
+        assertNull(TeamSettingFiles.SEGMENTATION.readUserFallback(config));
+        assertNull(TeamSettingFiles.TAG_PATTERNS.readUserFallback(config));
+        Filters originalFilters = Preferences.getFilters();
+        SRX originalSrx = Preferences.getSRX();
+        try {
+            // a deviating user configuration is exposed in canonical form,
+            // so distributing it yields a project file that reads back as
+            // the same value
+            Filters changed = FilterMaster.loadConfigFromString(sampleFiltersRaw());
+            Preferences.setFilters(changed);
+            String filters = TeamSettingFiles.FILTERS.readUserFallback(config);
+            assertEquals(sampleFiltersRaw(), filters);
+            TeamSettingFiles.FILTERS.saveStored(config, filters);
+            assertEquals(filters, TeamSettingFiles.FILTERS.loadStored(config));
+            SRX changedSrx = SRX.getDefault();
+            changedSrx.setSegmentSubflows(false);
+            Preferences.setSRX(changedSrx);
+            assertEquals(SRXManager.writeToString(changedSrx),
+                    TeamSettingFiles.SEGMENTATION.readUserFallback(config));
+            Preferences.setPreference(Preferences.CHECK_CUSTOM_PATTERN, "\\d+x");
+            String tagPatterns = TeamSettingFiles.TAG_PATTERNS.readUserFallback(config);
+            assertNotNull("a custom tag expression of the user's own must be exposed", tagPatterns);
+            TagPatternsStorage.TagPatterns patterns = TagPatternsStorage.loadFromString(tagPatterns);
+            assertEquals("\\d+x", patterns.getCustomTagPattern());
+            assertEquals("", patterns.getRemoveTextPattern());
+            // an explicitly set default is still the default
+            Preferences.setPreference(Preferences.CHECK_CUSTOM_PATTERN,
+                    PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT);
+            assertNull(TeamSettingFiles.TAG_PATTERNS.readUserFallback(config));
+        } finally {
+            Preferences.setFilters(originalFilters);
+            Preferences.setSRX(originalSrx);
+            Preferences.setPreference(Preferences.CHECK_CUSTOM_PATTERN,
+                    PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT);
+        }
+    }
+
+    @Test
+    public void testDefaultsSurviveTheUserConfigurationFilesAsDefaults() throws Exception {
+        // The user configuration directory holds the defaults as files once
+        // the preferences were saved; read back from disk they must still
+        // count as defaults, or every member would be told to distribute.
+        File dir = folder.newFolder("userconfig");
+        FilterMaster.saveConfig(FilterMaster.createDefaultFiltersConfig(),
+                new File(dir, FilterMaster.FILE_FILTERS));
+        Filters reloaded = FilterMaster.loadConfig(new File(dir, FilterMaster.FILE_FILTERS));
+        assertEquals(
+                FilterMaster.writeConfigToString(
+                        FilterMaster.completeWithAvailableFilters(FilterMaster.createDefaultFiltersConfig())),
+                FilterMaster.writeConfigToString(FilterMaster.completeWithAvailableFilters(reloaded)));
+        SRXManager.saveToSrx(SRX.getDefault(), dir);
+        SRX reloadedSrx = SRXManager.loadFromDir(dir);
+        assertNotNull(reloadedSrx);
+        assertEquals(SRXManager.writeToString(SRX.getDefault()), SRXManager.writeToString(reloadedSrx));
+    }
+
+    @Test
+    public void testUserLevelSettingRecordsTheKeysLeftToTheMembers() {
+        assertFalse("the decision itself has no user fallback",
+                TeamSettingFiles.USER_LEVEL.hasUserFallback());
+        assertNull("no keys fold to not configured", TeamSettingFiles.USER_LEVEL.normalize(" , "));
+        assertEquals("sorted and unique", "filters,segmentation",
+                TeamSettingFiles.USER_LEVEL.normalize("segmentation, filters,,segmentation"));
+        assertEquals("filters,segmentation",
+                TeamSettingFiles.withKeysLeftToMembers("filters", Collections.singletonList("segmentation")));
+        assertEquals("segmentation", TeamSettingFiles.withKeysLeftToMembers(null,
+                Collections.singletonList("segmentation")));
+        TeamSettingFiles.USER_LEVEL.apply(config, "tag_patterns,filters");
+        assertEquals(new TreeSet<>(Arrays.asList("filters", "tag_patterns")),
+                config.getUserLevelTeamSettings());
+        assertEquals("filters,tag_patterns", TeamSettingFiles.USER_LEVEL.read(config));
+        TeamSettingFiles.USER_LEVEL.apply(config, null);
+        assertTrue(config.getUserLevelTeamSettings().isEmpty());
+        assertNull(TeamSettingFiles.USER_LEVEL.read(config));
+        assertTrue(TeamSettingFiles.USER_LEVEL.describe("filters")
+                .contains(TeamSettingFiles.FILTERS.getDisplayName()));
+    }
+
+    @Test
+    public void testFilterOrderDoesNotCountAsADeviationFromTheDefaults() throws Exception {
+        // an older user file carries the filters added since at its end,
+        // and the options dialog persists options in its own order
+        Filters a = new Filters();
+        a.getFilters().add(sampleFilter("org.omegat.filters2.text.TextFilter", true, "x", "1", "y", "2"));
+        a.getFilters().add(sampleFilter("org.omegat.filters2.html2.HTMLFilter2", true));
+        a.getFilters().add(sampleFilter("org.omegat.filters3.xml.xhtml.XHTMLFilter", false));
+        Filters b = new Filters();
+        b.getFilters().add(sampleFilter("org.omegat.filters3.xml.xhtml.XHTMLFilter", false));
+        b.getFilters().add(sampleFilter("org.omegat.filters2.text.TextFilter", true, "y", "2", "x", "1"));
+        b.getFilters().add(sampleFilter("org.omegat.filters2.html2.HTMLFilter2", true));
+        assertNotEquals("the raw values differ", FilterMaster.writeConfigToString(a),
+                FilterMaster.writeConfigToString(b));
+        assertEquals("the comparable forms must not", TeamSettingFiles.comparableForm(a),
+                TeamSettingFiles.comparableForm(b));
+        // but a flipped flag is a deviation, wherever it sits
+        b.getFilters().get(0).setEnabled(true);
+        assertNotEquals(TeamSettingFiles.comparableForm(a), TeamSettingFiles.comparableForm(b));
+    }
+
+    private static Filter sampleFilter(String className, boolean enabled, String... optionNamesAndValues) {
+        Filter filter = new Filter();
+        filter.setClassName(className);
+        filter.setEnabled(enabled);
+        for (int i = 0; i < optionNamesAndValues.length; i += 2) {
+            Filter.Option option = new Filter.Option();
+            option.setName(optionNamesAndValues[i]);
+            option.setValue(optionNamesAndValues[i + 1]);
+            filter.getOption().add(option);
+        }
+        return filter;
+    }
+
+    @Test
+    public void testEveryRegisteredFallbackIsQuietOnDefaultPreferences() {
+        // contract for future settings: fresh test preferences are the
+        // installed defaults, nothing may report a deviation
+        TeamSettingFiles.ensureRegistered();
+        for (TeamSetting setting : TeamSettingsRegistry.all()) {
+            if (setting.hasUserFallback()) {
+                assertNull(setting.getKey() + " must not deviate on default preferences",
+                        setting.readUserFallback(config));
+            }
+        }
     }
 }

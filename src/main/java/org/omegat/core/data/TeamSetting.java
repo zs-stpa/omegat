@@ -138,6 +138,7 @@ public final class TeamSetting {
     private final Function<@Nullable String, String> valueDescriber;
     private final UnaryOperator<@Nullable String> normalizer;
     private final Storage storage;
+    private final @Nullable Function<ProjectProperties, @Nullable String> userFallback;
 
     private TeamSetting(String key, String nameKey, Function<ProjectProperties, @Nullable String> reader,
             BiConsumer<ProjectProperties, @Nullable String> applier,
@@ -150,6 +151,18 @@ public final class TeamSetting {
         this.valueDescriber = valueDescriber;
         this.normalizer = normalizer;
         this.storage = storage;
+        this.userFallback = null;
+    }
+
+    private TeamSetting(TeamSetting base, Function<ProjectProperties, @Nullable String> userFallback) {
+        this.key = base.key;
+        this.nameKey = base.nameKey;
+        this.reader = base.reader;
+        this.applier = base.applier;
+        this.valueDescriber = base.valueDescriber;
+        this.normalizer = base.normalizer;
+        this.storage = base.storage;
+        this.userFallback = userFallback;
     }
 
     /**
@@ -205,6 +218,22 @@ public final class TeamSetting {
             Function<@Nullable String, String> valueDescriber, Storage storage) {
         UnaryOperator<@Nullable String> normalizer = raw -> raw == null || raw.isBlank() ? null : raw;
         return new TeamSetting(key, nameKey, reader, applier, valueDescriber, normalizer, storage);
+    }
+
+    /**
+     * Copy of this descriptor that knows the user-level counterpart of the
+     * setting: the value this installation's user configuration contributes
+     * when the project carries none, in the project's raw form. A team
+     * project that carries no value for such a setting runs on every
+     * member's own user configuration, so the load reports it as unmanaged
+     * and the user is offered to distribute the user value to the team.
+     *
+     * @param reader
+     *            user-level value as raw project value, null when the user
+     *            configuration has nothing to contribute
+     */
+    public TeamSetting withUserFallback(Function<ProjectProperties, @Nullable String> reader) {
+        return new TeamSetting(this, reader);
     }
 
     /**
@@ -289,6 +318,25 @@ public final class TeamSetting {
     /** Current session value as normalized raw string, null for default. */
     public @Nullable String read(ProjectProperties config) {
         return normalize(reader.apply(config));
+    }
+
+    /**
+     * Whether the setting falls back to a user-level configuration when the
+     * project carries no value, so a team project without the value runs
+     * on possibly differing user configurations - see
+     * {@link #withUserFallback}.
+     */
+    public boolean hasUserFallback() {
+        return userFallback != null;
+    }
+
+    /**
+     * The user-level value as normalized raw project value, null when the
+     * setting has no user fallback or the user configuration has nothing
+     * to contribute.
+     */
+    public @Nullable String readUserFallback(ProjectProperties config) {
+        return userFallback == null ? null : normalize(userFallback.apply(config));
     }
 
     /** Applies raw value (null = default) to session. */

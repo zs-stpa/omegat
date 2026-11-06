@@ -223,6 +223,17 @@ public class ConfigFilesTeamRoundTripTest {
         return f;
     }
 
+    @Test
+    public void testLeavingSettingsToTheMembersReachesTheTeam() throws Exception {
+        TeamSettingFiles.USER_LEVEL.saveStored(config, "segmentation, filters");
+        RealProject.commitProjectSettings(provider, config, TeamSettingFiles.USER_LEVEL);
+        ProjectProperties member = syncNewMember("member2");
+        assertEquals("the team must receive the decision", "filters,segmentation",
+                TeamSettingFiles.USER_LEVEL.loadStored(member));
+        TeamSettingFiles.USER_LEVEL.apply(member, TeamSettingFiles.USER_LEVEL.loadStored(member));
+        assertTrue(member.getUserLevelTeamSettings().contains("filters"));
+    }
+
     private void commitRemote(String message) throws Exception {
         try (Git git = new File(remoteDir, ".git").exists() ? Git.open(remoteDir)
                 : Git.init().setDirectory(remoteDir).call()) {

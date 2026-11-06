@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 import org.omegat.core.statistics.StatisticsInfo;
@@ -151,6 +152,17 @@ public interface IProject {
      */
     default Map<String, @Nullable String> getSupersededLocalSettings() {
         return Collections.emptyMap();
+    }
+
+    /**
+     * Keys of the registered team settings that fall back to the user
+     * configuration and that the team project carried no value for during
+     * the last load: this member runs on their own user configuration,
+     * which may differ from other members'. Empty when the team carries all
+     * such settings, always empty for non-team projects.
+     */
+    default Set<String> getTeamUnmanagedSettings() {
+        return Collections.emptySet();
     }
 
     /**
