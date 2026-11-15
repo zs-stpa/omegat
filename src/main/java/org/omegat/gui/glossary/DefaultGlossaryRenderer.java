@@ -45,7 +45,7 @@ public class DefaultGlossaryRenderer implements IGlossaryRenderer {
 
     @Override
     public void render(GlossaryEntry entry, IRenderTarget<?> trg) {
-        trg.append(entry.getSrcText(), SOURCE_ATTRIBUTES);
+        trg.append(entry.getSrcText(), IGlossaryRenderer.sourceAttributes());
         trg.append(" = ");
 
         String[] targets = entry.getLocTerms(false);
@@ -58,7 +58,7 @@ public class DefaultGlossaryRenderer implements IGlossaryRenderer {
                 appendCommentsBuf(commentsBuf, commentIndex, comments[i]);
                 continue;
             }
-            SimpleAttributeSet attrs = new SimpleAttributeSet(TARGET_ATTRIBUTES);
+            SimpleAttributeSet attrs = new SimpleAttributeSet(IGlossaryRenderer.targetAttributes());
             if (i > 0) {
                 trg.append(", ", attrs);
             }
@@ -71,7 +71,7 @@ public class DefaultGlossaryRenderer implements IGlossaryRenderer {
             commentIndex++;
             appendCommentsBuf(commentsBuf, commentIndex, comments[i]);
         }
-        trg.append(commentsBuf.toString(), NOTES_ATTRIBUTES);
+        trg.append(commentsBuf.toString(), IGlossaryRenderer.notesAttributes());
     }
 
     private void appendCommentsBuf(StringBuilder commentsBuf, int commentIndex, String comment) {

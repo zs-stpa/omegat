@@ -110,8 +110,6 @@ public final class LanguageToolWrapper {
     }
 
     static class LanguageToolMarker implements IMarker {
-        static final HighlightPainter PAINTER = new UnderlineFactory.WaveUnderline(
-                Styles.EditorColor.COLOR_LANGUAGE_TOOLS.getColor());
 
         @Override
         public List<Mark> getMarksForEntry(SourceTextEntry ste, String sourceText, String translationText,
@@ -142,10 +140,14 @@ public final class LanguageToolWrapper {
                 sourceText = ste.getSrcText();
             }
 
+            // Not a field: create the painter per call, so a color changed
+            // in the preferences applies without restarting.
+            HighlightPainter painter = new UnderlineFactory.WaveUnderline(
+                    Styles.EditorColor.COLOR_LANGUAGE_TOOLS.getColor());
             return bridge.getCheckResults(sourceText, translationText).stream().map(match -> {
                 Mark m = new Mark(Mark.ENTRY_PART.TRANSLATION, match.start, match.end);
                 m.toolTipText = match.message;
-                m.painter = PAINTER;
+                m.painter = painter;
                 return m;
             }).collect(Collectors.toList());
         }

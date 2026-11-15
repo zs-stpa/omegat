@@ -40,12 +40,44 @@ import org.omegat.util.gui.Styles;
 public interface IGlossaryRenderer {
     AttributeSet NO_ATTRIBUTES = Styles.createAttributeSet(null, null, false, null);
     AttributeSet PRIORITY_ATTRIBUTES = Styles.createAttributeSet(null, null, true, null);
-    AttributeSet SOURCE_ATTRIBUTES = Styles
-            .createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_SOURCE.getColor(), null, null, null);
-    AttributeSet TARGET_ATTRIBUTES = Styles
-            .createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_TARGET.getColor(), null, null, null);
-    AttributeSet NOTES_ATTRIBUTES = Styles
-            .createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_NOTE.getColor(), null, null, null);
+
+    /**
+     * @deprecated the constant froze the color at class load, so a color
+     *             changed in the preferences only applied after a restart;
+     *             use {@link #sourceAttributes()} instead.
+     */
+    @Deprecated(since = "6.2.0")
+    AttributeSet SOURCE_ATTRIBUTES = sourceAttributes();
+    /**
+     * @deprecated see {@link #SOURCE_ATTRIBUTES}; use
+     *             {@link #targetAttributes()} instead.
+     */
+    @Deprecated(since = "6.2.0")
+    AttributeSet TARGET_ATTRIBUTES = targetAttributes();
+    /**
+     * @deprecated see {@link #SOURCE_ATTRIBUTES}; use
+     *             {@link #notesAttributes()} instead.
+     */
+    @Deprecated(since = "6.2.0")
+    AttributeSet NOTES_ATTRIBUTES = notesAttributes();
+
+    /** Source term attributes with the currently configured color. */
+    static AttributeSet sourceAttributes() {
+        return Styles.createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_SOURCE.getColor(), null, null,
+                null);
+    }
+
+    /** Target term attributes with the currently configured color. */
+    static AttributeSet targetAttributes() {
+        return Styles.createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_TARGET.getColor(), null, null,
+                null);
+    }
+
+    /** Note attributes with the currently configured color. */
+    static AttributeSet notesAttributes() {
+        return Styles.createAttributeSet(Styles.EditorColor.COLOR_GLOSSARY_NOTE.getColor(), null, null,
+                null);
+    }
 
     interface IRenderTarget<T> {
         void append(String str);
