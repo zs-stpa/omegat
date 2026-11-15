@@ -1349,13 +1349,13 @@
                      <entry>Open Autocompleter Next View</entry>
                      <entry>autocompleterNextView</entry>
                      <entry>ctrl SPACE</entry>
-                     <entry>ctrl DOWN</entry>
+                     <entry>alt DOWN</entry>
                   </row>
                   <row>
                      <entry>Open Autocompleter Previous View</entry>
                      <entry>autocompleterPrevView</entry>
                      <entry>ctrl shift SPACE</entry>
-                     <entry>ctrl UP</entry>
+                     <entry>alt UP</entry>
                   </row>
                   <row>
                      <entry>Confirm and Close Autocompleter</entry>
