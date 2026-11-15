@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<srx xmlns="http://www.lisa.org/srx20" version="2.0">
+  <header segmentsubflows="true" cascade="true">
+    <formathandle type="start" include="false"/>
+    <formathandle type="end" include="true"/>
+    <formathandle type="isolated" include="true"/>
+  </header>
+  <body>
+    <languagerules>
+      <languagerule languagerulename="Japanisch">
+        <rule break="no">
+          <beforebreak>。</beforebreak>
+          <afterbreak>」</afterbreak>
+        </rule>
+      </languagerule>
+      <languagerule languagerulename="Standard">
+        <rule break="no">
+          <beforebreak>\betc\.</beforebreak>
+          <afterbreak>\s</afterbreak>
+        </rule>
+      </languagerule>
+      <languagerule languagerulename="Segmentierung von Textdateien">
+        <rule break="yes">
+          <beforebreak>\n</beforebreak>
+          <afterbreak></afterbreak>
+        </rule>
+      </languagerule>
+      <languagerule languagerulename="Segmentierung von HTML-, XHTML-, ODF- und Infix-Dateien">
+        <rule break="yes">
+          <beforebreak>&lt;br\d+&gt;</beforebreak>
+          <afterbreak></afterbreak>
+        </rule>
+      </languagerule>
+      <languagerule languagerulename="Eigene Abkürzungen">
+        <rule break="no">
+          <beforebreak>\bggf\.</beforebreak>
+          <afterbreak>\s</afterbreak>
+        </rule>
+      </languagerule>
+    </languagerules>
+    <maprules>
+      <languagemap languagepattern="JA.*" languagerulename="Japanisch"/>
+      <languagemap languagepattern="DE-CH.*" languagerulename="Eigene Abkürzungen"/>
+      <languagemap languagepattern=".*" languagerulename="Standard"/>
+      <languagemap languagepattern=".*" languagerulename="Segmentierung von Textdateien"/>
+      <languagemap languagepattern=".*" languagerulename="Segmentierung von HTML-, XHTML-, ODF- und Infix-Dateien"/>
+    </maprules>
+  </body>
+</srx>
