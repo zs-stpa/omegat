@@ -95,7 +95,7 @@ public class GeneralOptionsController extends BasePreferencesController {
 
     @Override
     public void persist() {
-        Core.getEditor().getSettings().setUseTabForAdvance(panel.tabAdvanceCheckBox.isSelected());
+        Preferences.setPreference(Preferences.USE_TAB_TO_ADVANCE, panel.tabAdvanceCheckBox.isSelected());
         Preferences.setPreference(Preferences.ALWAYS_CONFIRM_QUIT, panel.confirmQuitCheckBox.isSelected());
     }
 }

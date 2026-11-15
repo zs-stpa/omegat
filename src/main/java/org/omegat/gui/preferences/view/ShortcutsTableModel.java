@@ -65,7 +65,9 @@ public class ShortcutsTableModel extends AbstractTableModel {
     public enum Scope {
         MENU("PREFS_SHORTCUTS_SCOPE_MENU"),
         EDITOR("PREFS_SHORTCUTS_SCOPE_EDITOR"),
-        AUTOCOMPLETER("PREFS_SHORTCUTS_SCOPE_AUTOCOMPLETER");
+        AUTOCOMPLETER("PREFS_SHORTCUTS_SCOPE_AUTOCOMPLETER"),
+        /** Keys a module contributed; they bind window-wide like menu accelerators. */
+        WINDOW("PREFS_SHORTCUTS_SCOPE_WINDOW");
 
         private final String nameKey;
 
@@ -75,6 +77,18 @@ public class ShortcutsTableModel extends AbstractTableModel {
 
         public String getDisplayName() {
             return OStrings.getString(nameKey);
+        }
+
+        /**
+         * Whether two functions in these scopes fight over one keystroke:
+         * the same scope, or window-wide bindings against menu accelerators
+         * (a window binding fires before the menu bar sees the key).
+         */
+        boolean collidesWith(Scope other) {
+            if (this == other) {
+                return true;
+            }
+            return (this == MENU || this == WINDOW) && (other == MENU || other == WINDOW);
         }
     }
 
@@ -97,6 +111,8 @@ public class ShortcutsTableModel extends AbstractTableModel {
     static final class Row {
         private final String key;
         private final Scope scope;
+        /** Scope column text: the contributing module's name for WINDOW keys. */
+        private final String scopeName;
         private final String label;
         private final String location;
         private final PropertiesShortcuts set;
@@ -104,10 +120,11 @@ public class ShortcutsTableModel extends AbstractTableModel {
         private final @Nullable KeyStroke original;
         private @Nullable KeyStroke staged;
 
-        private Row(String key, Scope scope, String label, String location, PropertiesShortcuts set,
-                @Nullable KeyStroke staged) {
+        private Row(String key, Scope scope, String scopeName, String label, String location,
+                PropertiesShortcuts set, @Nullable KeyStroke staged) {
             this.key = key;
             this.scope = scope;
+            this.scopeName = scopeName;
             this.label = label;
             this.location = location;
             this.set = set;
@@ -147,13 +164,18 @@ public class ShortcutsTableModel extends AbstractTableModel {
         this.editorSet = editorSet;
         for (String key : menuSet.getKeys()) {
             MenuEntry entry = menuLabels.get(key);
-            String label = entry != null ? entry.label : fallbackLabel(key);
+            String label = entry != null ? entry.label : fallbackLabel(menuSet, key);
             String location = entry != null ? entry.path : "";
-            rows.add(new Row(key, Scope.MENU, label, location, menuSet, parse(menuSet, key)));
+            rows.add(new Row(key, Scope.MENU, Scope.MENU.getDisplayName(), label, location, menuSet,
+                    parse(menuSet, key)));
         }
         for (String key : editorSet.getKeys()) {
-            Scope scope = key.startsWith("autocompleter") ? Scope.AUTOCOMPLETER : Scope.EDITOR;
-            rows.add(new Row(key, scope, fallbackLabel(key), "", editorSet, parse(editorSet, key)));
+            String contributedScope = editorSet.contributedScope(key);
+            Scope scope = contributedScope != null ? Scope.WINDOW
+                    : key.startsWith("autocompleter") ? Scope.AUTOCOMPLETER : Scope.EDITOR;
+            String scopeName = contributedScope != null ? contributedScope : scope.getDisplayName();
+            rows.add(new Row(key, scope, scopeName, fallbackLabel(editorSet, key), "", editorSet,
+                    parse(editorSet, key)));
         }
         rows.sort((a, b) -> {
             int c = a.scope.compareTo(b.scope);
@@ -162,11 +184,16 @@ public class ShortcutsTableModel extends AbstractTableModel {
     }
 
     /**
-     * Localized function name of a key without a menu label: dedicated
-     * bundle string when present, otherwise the raw key - a user file or a
-     * newer version may carry keys this version has no name for.
+     * Localized function name of a key without a menu label: the label of
+     * the module that contributed the key, else a dedicated bundle string,
+     * otherwise the raw key - a user file or a newer version may carry keys
+     * this version has no name for.
      */
-    private static String fallbackLabel(String key) {
+    private static String fallbackLabel(PropertiesShortcuts set, String key) {
+        String contributed = set.contributedLabel(key);
+        if (contributed != null) {
+            return contributed;
+        }
         try {
             return OStrings.getString("SHORTCUT_KEY_" + key);
         } catch (MissingResourceException ex) {
@@ -199,7 +226,7 @@ public class ShortcutsTableModel extends AbstractTableModel {
         Row row = rows.get(rowIndex);
         switch (columnIndex) {
         case COLUMN_SCOPE:
-            return row.scope.getDisplayName();
+            return row.scopeName;
         case COLUMN_FUNCTION:
             return row.label;
         case COLUMN_LOCATION:
@@ -267,7 +294,7 @@ public class ShortcutsTableModel extends AbstractTableModel {
             boolean touched = row.isTouched();
             if (!touched) {
                 for (Row other : rows) {
-                    if (other != row && other.scope == row.scope && other.isTouched()
+                    if (other != row && other.scope.collidesWith(row.scope) && other.isTouched()
                             && Objects.equals(other.staged, row.staged)) {
                         touched = true;
                         break;
@@ -329,7 +356,7 @@ public class ShortcutsTableModel extends AbstractTableModel {
                 // editor and autocompleter keys share a file but never the
                 // same context (the bundled defaults reuse ENTER, INSERT and
                 // the arrow keys across those scopes on purpose).
-                if (other.scope == row.scope) {
+                if (other.scope.collidesWith(row.scope)) {
                     return ConflictKind.CONFLICT;
                 }
                 kind = ConflictKind.WARNING;

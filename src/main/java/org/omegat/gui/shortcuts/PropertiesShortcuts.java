@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -95,6 +96,8 @@ public class PropertiesShortcuts {
      */
     private final Map<String, String> userOverrides = new HashMap<>();
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
+    /** Defaults modules added to this set, re-applied on reload. */
+    private final List<Contribution> contributions = new CopyOnWriteArrayList<>();
     /** Base name of the user file in the config dir; null for ad-hoc sets. */
     private @Nullable String userFileName;
     /** Classpath location of the bundled defaults; null for ad-hoc sets. */
@@ -130,14 +133,84 @@ public class PropertiesShortcuts {
     }
 
     public void loadFromClasspath(String propertiesFile) throws IOException {
+        loadFromClasspath(propertiesFile, getClass().getClassLoader(), defaults);
+    }
+
+    /** Platform-aware load through a class loader into a target map; false when neither variant exists. */
+    private boolean loadFromClasspath(String propertiesFile, ClassLoader loader, Map<String, String> target)
+            throws IOException {
         boolean loaded = false;
         if (Platform.isMacOSX()) {
-            String macSpecific = getMacProperties(propertiesFile);
-            loaded = loadFromClasspathImpl(macSpecific);
+            loaded = loadFromClasspathImpl(getMacProperties(propertiesFile), loader, target);
         }
         if (!loaded) {
-            loadFromClasspathImpl(propertiesFile);
+            loaded = loadFromClasspathImpl(propertiesFile, loader, target);
         }
+        return loaded;
+    }
+
+    /**
+     * A module's bundled defaults: their classpath file, the keys it holds,
+     * the scope shown for them on the preferences page, and their labels.
+     */
+    private record Contribution(String classpathPath, ClassLoader loader, Set<String> keys, String scopeName,
+            Function<String, @Nullable String> labels) {
+    }
+
+    /**
+     * Add a module's shortcut defaults to this set: a bundled properties file
+     * read through the module's class loader (plugin jars are not on the
+     * application's; a .mac variant is preferred on macOS, like the set's
+     * own), the scope name the preferences page shows for its keys (they
+     * bind window-wide, so they clash with menu accelerators), and a label
+     * function for the keys. User overrides for these keys are honoured, the
+     * contribution survives {@link #reload()}, and contributing the same
+     * file again replaces the earlier contribution.
+     *
+     * @throws java.io.FileNotFoundException
+     *             when the loader finds no such file
+     */
+    public void contribute(String classpathPath, ClassLoader loader, String scopeName,
+            Function<String, @Nullable String> labels) throws IOException {
+        Map<String, String> loaded = new HashMap<>();
+        if (!loadFromClasspath(classpathPath, loader, loaded)) {
+            throw new java.io.FileNotFoundException(classpathPath);
+        }
+        uncontribute(classpathPath);
+        contributions.add(new Contribution(classpathPath, loader, Set.copyOf(loaded.keySet()), scopeName, labels));
+        defaults.putAll(loaded);
+        pruneDefaultOverrides();
+    }
+
+    /** Withdraw a contribution: its keys leave the defaults, user overrides stay. */
+    public void uncontribute(String classpathPath) {
+        for (Contribution contribution : contributions) {
+            if (contribution.classpathPath().equals(classpathPath)) {
+                contributions.remove(contribution);
+                contribution.keys().forEach(defaults::remove);
+            }
+        }
+    }
+
+    /** Label a contributor gave the key; null for the set's own keys. */
+    public @Nullable String contributedLabel(String key) {
+        Contribution contribution = contributionOf(key);
+        return contribution == null ? null : contribution.labels().apply(key);
+    }
+
+    /** Scope name of the contribution holding the key; null for the set's own keys. */
+    public @Nullable String contributedScope(String key) {
+        Contribution contribution = contributionOf(key);
+        return contribution == null ? null : contribution.scopeName();
+    }
+
+    private @Nullable Contribution contributionOf(String key) {
+        for (Contribution contribution : contributions) {
+            if (contribution.keys().contains(key)) {
+                return contribution;
+            }
+        }
+        return null;
     }
 
     /**
@@ -251,6 +324,9 @@ public class PropertiesShortcuts {
         defaults.clear();
         userOverrides.clear();
         loadFromClasspath(classpath);
+        for (Contribution contribution : contributions) {
+            loadFromClasspath(contribution.classpathPath(), contribution.loader(), defaults);
+        }
         loadFromFile(new File(StaticUtils.getConfigDir(), name));
     }
 
@@ -275,10 +351,13 @@ public class PropertiesShortcuts {
      *         etc.)
      * @throws IOException
      */
-    private boolean loadFromClasspathImpl(String path) throws IOException {
-        try (InputStream in = getClass().getResourceAsStream(path)) {
+    private static boolean loadFromClasspathImpl(String path, ClassLoader loader, Map<String, String> target)
+            throws IOException {
+        // Class loaders take resource names without the leading slash.
+        String name = path.startsWith("/") ? path.substring(1) : path;
+        try (InputStream in = loader.getResourceAsStream(name)) {
             if (in != null) {
-                loadProperties(in, defaults);
+                loadProperties(in, target);
                 return true;
             }
         }
@@ -303,10 +382,16 @@ public class PropertiesShortcuts {
         try (FileInputStream fis = new FileInputStream(file)) {
             loadProperties(fis, userOverrides);
         }
-        // Entries at their default are not overrides; without this, a saved
-        // file from an older default set would freeze those keys forever.
-        // Compared as keystrokes, so a differently spelled equal value does
-        // not count as an override either.
+        pruneDefaultOverrides();
+    }
+
+    /**
+     * Entries at their default are not overrides; without this, a saved file
+     * from an older default set would freeze those keys forever. Compared as
+     * keystrokes, so a differently spelled equal value does not count as an
+     * override either.
+     */
+    private void pruneDefaultOverrides() {
         userOverrides.entrySet().removeIf(e -> defaults.containsKey(e.getKey())
                 && Objects.equals(parse(e.getValue()), parse(defaults.get(e.getKey()))));
     }
@@ -363,13 +448,17 @@ public class PropertiesShortcuts {
         }
     }
 
+    /**
+     * Bind each key's current keystroke in the input map. Earlier keystrokes
+     * of the key are removed first, so a rebind never leaves the old one
+     * active beside the new.
+     */
     public void bindKeyStrokes(InputMap inputMap, String... keys) {
         for (String key : keys) {
             try {
+                removeEntries(inputMap, key);
                 KeyStroke keyStroke = getKeyStroke(key);
-                if (keyStroke == null) {
-                    removeEntry(inputMap, key);
-                } else {
+                if (keyStroke != null) {
                     inputMap.put(keyStroke, key);
                 }
             } catch (Exception ex) {
@@ -378,17 +467,16 @@ public class PropertiesShortcuts {
         }
     }
 
-    private KeyStroke removeEntry(InputMap inputMap, String keyToBeRemoved) {
-        KeyStroke removedEntry = null;
-        for (KeyStroke ks : inputMap.keys()) {
-            String key = (String) inputMap.get(ks);
-            if (key.equals(keyToBeRemoved)) {
+    private static void removeEntries(InputMap inputMap, String keyToBeRemoved) {
+        KeyStroke[] strokes = inputMap.keys();
+        if (strokes == null) {
+            return;
+        }
+        for (KeyStroke ks : strokes) {
+            if (keyToBeRemoved.equals(inputMap.get(ks))) {
                 inputMap.remove(ks);
-                removedEntry = ks;
-                break;
             }
         }
-        return removedEntry;
     }
 
     public boolean isEmpty() {

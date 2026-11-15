@@ -16,6 +16,7 @@
 - 2026004 [EditorColor Registry Consistency](2026004.EditorColorRegistryConsistency.md)
 - 2026009 [Color Binding Primitive and Plugin Color Contributions](2026009.ColorBindingAndPluginColors.md)
 - 2026011 [Team-Negotiated Project Settings](2026011.TeamNegotiatedProjectSettings.md)
+- 2026012 [Components Follow Their Preferences](2026012.PreferenceListeners.md)
 
 ## Core features
 

@@ -109,6 +109,9 @@ public final class ModificationInfoManager {
 
     static {
         reset();
+        // Templates follow their preferences; no caller has to reset.
+        Preferences.addPropertyChangeListener(Preferences.VIEW_OPTION_MOD_INFO_TEMPLATE, e -> reset());
+        Preferences.addPropertyChangeListener(Preferences.VIEW_OPTION_MOD_INFO_TEMPLATE_WO_DATE, e -> reset());
     }
 
     public static void reset() {
