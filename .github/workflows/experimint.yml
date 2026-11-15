@@ -1,0 +1,165 @@
+name: experimInt integration build
+
+# Runs on every push of the integration branch: quality checks like upstream
+# master, plus Mac (Apple Silicon), Linux and Windows (x64) packages uploaded
+# as artifacts. No signing identities: Mac is signed ad hoc, Linux/Windows
+# ship as portable archives without installers.
+on:
+  push:
+    branches:
+      - integration/all-open
+      - experimental-integration
+
+# The build executes gradle scripts of merged third-party PRs, so this
+# workflow only ever gets a read-only token. Publishing happens in
+# experimint-publish.yml on the fork's default branch experimint/publisher
+# (workflow_run), which validates the artifacts of a fully green run and never
+# runs this code. Contract with it, change both sides together: workflow name
+# and path, branch list, artifact prefix experimint-*, package names
+# omegaT-experimental-integration-<YYYYMMDD>-{mac-arm.zip,linux-x64.tar.bz2,
+# windows-x64.zip}, release facts base.txt + ingredients.txt.
+# rebuild-integration.sh rejects ingredients other than this pipeline branch
+# that touch .github/.
+permissions:
+  contents: read
+
+concurrency:
+  group: experimint-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_NAME: "Ωt-experimInt"
+  JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_aarch64_mac_hotspot_25.0.3_9.tar.gz
+  LINUX_JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_x64_linux_hotspot_25.0.3_9.tar.gz
+  WINDOWS_JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_x64_windows_hotspot_25.0.3_9.zip
+
+jobs:
+  check:
+    name: quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+      - name: gradle check
+        run: ./gradlew -PenvIsCi=true -Pheadless=true -PtestMaxHeapSize=2048M check
+      - name: git tree clean after build
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "repository not clean after build:"; git status; exit 1
+          fi
+
+  mac:
+    name: build Mac arm dist
+    runs-on: macos-latest
+    timeout-minutes: 90
+    outputs:
+      stamp: ${{ steps.build.outputs.stamp }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+      - name: download bundled JRE
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asset"
+          curl -fL "$JRE_URL" -o "$RUNNER_TEMP/asset/$(basename "$JRE_URL")"
+          gzip -t "$RUNNER_TEMP/asset/$(basename "$JRE_URL")"
+      - name: build installMacArmDist
+        id: build
+        run: |
+          set -euo pipefail
+          STAMP=$(TZ=UTC git show -s --date=format-local:%Y%m%d --format=%cd HEAD)
+          SHA7=$(git rev-parse --short=7 HEAD)
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          ./gradlew --no-configuration-cache -PenvIsCi=true "-PassetDir=$RUNNER_TEMP/asset" \
+            "-PrepoRevision=exp-${STAMP}-${SHA7}" installMacArmDist
+      - name: package app
+        run: ci/experimint/package-mac.sh . "${{ steps.build.outputs.stamp }}" "$APP_NAME"
+      - name: release facts for the publisher
+        run: ci/experimint/release-body.sh . origin/master dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: experimint-mac-arm
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
+
+  portable:
+    name: build ${{ matrix.platform }} dist
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x64
+            artifact: experimint-linux-x64
+            jre_var: LINUX_JRE_URL
+            # Sync of the plain tree; the tarball task would bypass packaging.
+            gradle_task: installLinux64Dist
+            dist_dir: build/install/OmegaT-Linux_64
+            suffix: linux-x64
+            format: tar.bz2
+          - platform: Windows x64
+            artifact: experimint-windows-x64
+            jre_var: WINDOWS_JRE_URL
+            # Installer staging tree incl. launch4j OmegaT.exe; Inno Setup
+            # itself is skipped (AppId org.omegat would replace an official
+            # installation).
+            gradle_task: winJRE64Prep
+            dist_dir: build/innosetup/winJRE64
+            suffix: windows-x64
+            format: zip
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+      - name: download bundled JRE
+        env:
+          URL: ${{ env[matrix.jre_var] }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asset"
+          FILE="$RUNNER_TEMP/asset/$(basename "$URL")"
+          curl -fL "$URL" -o "$FILE"
+          case "$FILE" in
+            *.zip) unzip -tq "$FILE" ;;
+            *)     gzip -t "$FILE" ;;
+          esac
+      - name: build ${{ matrix.gradle_task }}
+        id: build
+        run: |
+          set -euo pipefail
+          STAMP=$(TZ=UTC git show -s --date=format-local:%Y%m%d --format=%cd HEAD)
+          SHA7=$(git rev-parse --short=7 HEAD)
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          ./gradlew --no-configuration-cache -PenvIsCi=true "-PassetDir=$RUNNER_TEMP/asset" \
+            "-PrepoRevision=exp-${STAMP}-${SHA7}" ${{ matrix.gradle_task }}
+      - name: package
+        run: |
+          ci/experimint/package-portable.sh "${{ matrix.dist_dir }}" \
+            "${{ steps.build.outputs.stamp }}" "${{ matrix.suffix }}" "${{ matrix.format }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
