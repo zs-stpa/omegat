@@ -80,6 +80,7 @@ import org.omegat.core.events.IProjectEventListener;
 import org.omegat.core.matching.NearString;
 import org.omegat.gui.matches.IMatcher;
 import org.omegat.gui.search.SearchWindowManager;
+import org.omegat.util.Log;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
 import org.omegat.util.StaticUtils;
@@ -202,6 +203,8 @@ public class MainWindow implements IMainWindow {
             } catch (NoSuchMethodException | InstantiationException | IllegalAccessException
                     | InvocationTargetException e) {
                 // fall back to default when loading failed.
+                Log.logDebug("Menu class {} has no (MainWindow, MainWindowMenuHandler) constructor, "
+                        + "using the default menu", menuClass);
                 menu1 = new MainWindowMenu(this, mainWindowMenuHandler);
             }
             menu = menu1;
@@ -231,7 +234,9 @@ public class MainWindow implements IMainWindow {
                                 .getDeclaredConstructor(MainWindow.class, MainWindowMenuHandler.class)
                                 .newInstance(this, mainWindowMenuHandler), BorderLayout.NORTH);
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException
-                    | NoSuchMethodException ignored) {
+                    | NoSuchMethodException e) {
+                Log.log(e, "Toolbar class {} has no (MainWindow, MainWindowMenuHandler) constructor",
+                        toolbarClass);
             }
         }
     }

@@ -25,6 +25,8 @@
 
 package org.omegat.gui.accesstool;
 
+import org.jspecify.annotations.Nullable;
+
 import java.awt.BorderLayout;
 import java.awt.Component;
 
@@ -38,7 +40,7 @@ import javax.swing.UIManager;
 public class ProjectFileRenderer implements ListCellRenderer<ProjectFileInformation> {
 
     @Override
-    public Component getListCellRendererComponent(JList<? extends ProjectFileInformation> list, ProjectFileInformation value,
+    public Component getListCellRendererComponent(JList<? extends ProjectFileInformation> list, @Nullable ProjectFileInformation value,
                                                   int index, boolean isSelected, boolean cellHasFocus) {
         JPanel panel = new JPanel();
         if (value != null) {

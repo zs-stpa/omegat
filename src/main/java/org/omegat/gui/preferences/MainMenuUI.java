@@ -25,9 +25,10 @@
 
 package org.omegat.gui.preferences;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.util.OStrings;
 
-public class MainMenuUI implements IMenuPreferece {
+public class MainMenuUI implements IMenuPreference {
 
     public static final String DEFAULT_MENUBAR = "org.omegat.gui.main.MainWindowMenu";
 
@@ -42,7 +43,7 @@ public class MainMenuUI implements IMenuPreferece {
     }
 
     @Override
-    public String getToolbarClassName() {
+    public @Nullable String getToolbarClassName() {
         return null;
     }
 }

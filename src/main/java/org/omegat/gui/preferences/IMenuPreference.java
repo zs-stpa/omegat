@@ -25,10 +25,13 @@
 
 package org.omegat.gui.preferences;
 
-public interface IMenuPreferece {
+import org.jspecify.annotations.Nullable;
+
+public interface IMenuPreference {
     String getMenuUIName();
 
     String getMenuUIClassName();
 
+    @Nullable
     String getToolbarClassName();
 }
