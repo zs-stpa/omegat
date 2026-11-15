@@ -1,0 +1,97 @@
+name: experimInt publish
+
+# Publishes the packages of a green "experimInt integration build" run as a
+# pre-release. Runs from the default branch only (workflow_run), so the write
+# token never meets code from the integration branch: that code only builds,
+# with a read-only token, and hands over artifacts that are validated here.
+# All release text comes from this branch (text/, scripts/compose-body.sh).
+# Contract with .github/workflows/experimint.yml on the integration branch,
+# change both sides together: workflow name and path, branch list, artifact
+# prefix experimint-*, package names (scripts/check-dist.sh), release facts
+# base.txt + ingredients.txt. Queued runs: a newer one replaces a waiting one.
+on:
+  workflow_run:
+    workflows: ["experimInt integration build"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: experimint-publish
+  cancel-in-progress: false
+
+env:
+  APP_NAME: "Ωt-experimInt"
+  TAG_PREFIX: experimental-integration/
+  KEEP_RELEASES: "14"
+
+jobs:
+  publish:
+    name: publish pre-release
+    # Only the trivial conditions skip silently; a run that should publish but
+    # breaks the contract fails loudly in the first step.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: check triggering run
+        env:
+          RUN_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          RUN_PATH: ${{ github.event.workflow_run.path }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          [ "$RUN_REPO" = "$GITHUB_REPOSITORY" ] || { echo "::error::foreign repository: $RUN_REPO"; exit 1; }
+          case "$RUN_PATH" in
+            .github/workflows/experimint.yml|.github/workflows/experimint.yml@*) ;;
+            *) echo "::error::unexpected workflow file: $RUN_PATH"; exit 1 ;;
+          esac
+          case "$RUN_BRANCH" in
+            integration/all-open|experimental-integration) ;;
+            *) echo "::error::unexpected branch: $RUN_BRANCH"; exit 1 ;;
+          esac
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          pattern: experimint-*
+          merge-multiple: true
+          path: dist/
+      - name: validate artifacts
+        id: check
+        run: |
+          set -euo pipefail
+          STAMP=$(scripts/check-dist.sh dist)
+          # Real date, not in the future (commit time of the build).
+          [ "$(date -u -d "$STAMP" +%Y%m%d)" = "$STAMP" ] || { echo "::error::invalid stamp $STAMP"; exit 1; }
+          [ "$STAMP" -le "$(date -u -d tomorrow +%Y%m%d)" ] || { echo "::error::stamp in the future: $STAMP"; exit 1; }
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+      - name: create pre-release
+        env:
+          FORK_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          STAMP: ${{ steps.check.outputs.stamp }}
+        run: |
+          set -euo pipefail
+          DATE_TAG="${STAMP:0:4}-${STAMP:4:2}-${STAMP:6:2}"
+          SHA7=${HEAD_SHA:0:7}
+          TAG="${TAG_PREFIX}${DATE_TAG}-${SHA7}"
+          scripts/compose-body.sh dist "${GITHUB_REPOSITORY}" "$TAG" "$HEAD_SHA" > "$RUNNER_TEMP/body.md"
+          scripts/publish-release.sh \
+            "${GITHUB_REPOSITORY}" \
+            "$TAG" \
+            "${APP_NAME} ${DATE_TAG} (${HEAD_BRANCH}, ${SHA7})" \
+            "$RUNNER_TEMP/body.md" \
+            "${HEAD_SHA}" \
+            "${KEEP_RELEASES}" \
+            "${TAG_PREFIX}" \
+            dist/*-mac-arm.zip dist/*-linux-x64.tar.bz2 dist/*-windows-x64.zip
