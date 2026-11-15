@@ -145,7 +145,10 @@ public final class JTextPaneLinkifier {
             if (attr instanceof IAttributeAction) {
                 jTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             } else {
-                jTextPane.setCursor(Cursor.getDefaultCursor());
+                // Off a link the pane keeps its own cursor: the text cursor
+                // where it can be edited (notes), the arrow elsewhere.
+                jTextPane.setCursor(jTextPane.isEditable() ? Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR)
+                        : Cursor.getDefaultCursor());
             }
         }
     }
