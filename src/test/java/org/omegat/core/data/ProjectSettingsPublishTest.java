@@ -174,6 +174,21 @@ public class ProjectSettingsPublishTest {
         assertAsks(null, "true", RealProject.resolveSetting("true", "false", false, true));
     }
 
+    @Test
+    public void testUnmanagedByTeamTruthTable() {
+        // only an online team project can lack a value
+        assertFalse(RealProject.unmanagedByTeam(false, false, false, true));
+        // the team carries neither value nor file, and the setting would
+        // run on the user configuration
+        assertTrue(RealProject.unmanagedByTeam(true, false, false, true));
+        // a team value settles it
+        assertFalse(RealProject.unmanagedByTeam(true, true, false, true));
+        // a file the team carries but that could not be read is not missing
+        assertFalse(RealProject.unmanagedByTeam(true, false, true, true));
+        // a setting without user fallback has nothing to differ
+        assertFalse(RealProject.unmanagedByTeam(true, false, false, false));
+    }
+
     private static void assertResolved(String effective, String superseded,
             RealProject.SettingResolution state) {
         assertEquals(effective, state.effective);

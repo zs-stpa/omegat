@@ -38,8 +38,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.omegat.core.matching.MatchEquivalence;
 import org.omegat.core.segmentation.SRX;
@@ -489,6 +492,20 @@ public class ProjectProperties {
     }
 
     /**
+     * Keys of the team settings the team decided to leave to each member's
+     * user configuration, so a missing team value is not reported for them
+     * (see {@link TeamSettingFiles#USER_LEVEL}). Empty by default.
+     */
+    public Set<String> getUserLevelTeamSettings() {
+        return userLevelTeamSettings;
+    }
+
+    /** Sets the keys of the team settings left to each member. */
+    public void setUserLevelTeamSettings(Set<String> keys) {
+        this.userLevelTeamSettings = Collections.unmodifiableSet(new TreeSet<>(keys));
+    }
+
+    /**
      * Sets level(s) of TMs to be exported by project. Accepts three booleans as
      * arguments, corresponding to OmegaT, Level 1 and Level 2
      */
@@ -811,6 +828,7 @@ public class ProjectProperties {
     private boolean matchNumbersRomanEnabled;
     private final Set<MatchEquivalence> disabledMatchEquivalences = EnumSet
             .noneOf(MatchEquivalence.class);
+    private Set<String> userLevelTeamSettings = Collections.emptySet();
     private boolean supportDefaultTranslations;
     private boolean removeTags;
     private List<String> exportTmLevels;

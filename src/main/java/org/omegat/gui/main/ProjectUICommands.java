@@ -41,12 +41,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -68,6 +70,7 @@ import org.omegat.core.data.ProjectSettingsStorage;
 import org.omegat.core.data.RuntimePreferenceStore;
 import org.omegat.core.data.TeamSetting;
 import org.omegat.core.data.TeamSettingDiffReport;
+import org.omegat.core.data.TeamSettingFiles;
 import org.omegat.core.data.TeamSettingsRegistry;
 import org.omegat.core.events.IProjectEventListener;
 import org.omegat.core.segmentation.Segmenter;
@@ -342,6 +345,7 @@ public final class ProjectUICommands {
                     SwingUtilities.invokeLater(() -> {
                         Core.getEditor().requestFocus();
                         promptForSupersededSettings();
+                        promptForTeamUnmanagedSettings();
                     });
                 } catch (Exception ex) {
                     Log.logErrorRB(ex, "PP_ERROR_UNABLE_TO_READ_PROJECT_FILE");
@@ -427,6 +431,97 @@ public final class ProjectUICommands {
                 }
             }.execute();
         }
+    }
+
+    /**
+     * The just opened team project carries no value for settings that fall
+     * back to the user configuration, and this member's user settings differ
+     * from the defaults, so other members may be working with different
+     * settings. Says so once per open in a single dialog and offers, per
+     * selectable setting, to distribute the user settings to the team or to
+     * record for the team that the setting is left to each member. "Not
+     * now" changes nothing, and the next open says so again.
+     */
+    private static void promptForTeamUnmanagedSettings() {
+        IProject project = Core.getProject();
+        if (!project.isProjectLoaded()) {
+            return;
+        }
+        ProjectProperties props = project.getProjectProperties();
+        Map<String, @Nullable String> userValues = new HashMap<>();
+        Map<String, JCheckBox> boxes = new LinkedHashMap<>();
+        for (String key : project.getTeamUnmanagedSettings()) {
+            TeamSetting setting = TeamSettingsRegistry.byKey(key);
+            if (setting == null) {
+                continue;
+            }
+            String userValue = setting.readUserFallback(props);
+            if (userValue == null) {
+                // user defaults: nothing of this member's own to distribute
+                continue;
+            }
+            userValues.put(key, userValue);
+            boxes.put(key, new JCheckBox(setting.getDisplayName(), true));
+        }
+        if (boxes.isEmpty()) {
+            return;
+        }
+        List<Object> message = new ArrayList<>();
+        message.add(OStrings.getString("TEAM_SETTING_UNMANAGED_MESSAGE"));
+        message.addAll(boxes.values());
+        message.add(OStrings.getString("TEAM_SETTING_UNMANAGED_QUESTION"));
+        String[] options = { OStrings.getString("TEAM_SETTING_UNMANAGED_SHARE"),
+                OStrings.getString("TEAM_SETTING_UNMANAGED_LEAVE"),
+                OStrings.getString("TEAM_SETTING_NOT_NOW") };
+        int answer = JOptionPane.showOptionDialog(Core.getMainWindow().getApplicationFrame(),
+                message.toArray(), OStrings.getString("TEAM_SETTING_DIVERGED_TITLE"),
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
+        List<String> selected = new ArrayList<>();
+        boxes.forEach((key, box) -> {
+            if (box.isSelected()) {
+                selected.add(key);
+            }
+        });
+        if (selected.isEmpty() || (answer != 0 && answer != 1)) {
+            // nothing selected or "Not now" or dismissed
+            return;
+        }
+        final boolean leaveToMembers = answer == 1;
+        // The repository work must stay off the EDT and must not run beside
+        // the auto-save thread; publishSettingsLoggingErrors reports each
+        // failed commit itself, the catch below is for the lock timeout.
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                Core.executeExclusively(true, () -> {
+                    Map<String, @Nullable String> toPublish = new HashMap<>();
+                    if (leaveToMembers) {
+                        // The decision is itself a team setting, so it
+                        // reaches every member through the shared settings
+                        // file; the union is formed under the lock, after a
+                        // share of the same setting from the divergence
+                        // question may have changed it.
+                        toPublish.put(TeamSettingFiles.USER_LEVEL_KEY,
+                                TeamSettingFiles.withKeysLeftToMembers(
+                                        TeamSettingFiles.USER_LEVEL.read(props), selected));
+                    } else {
+                        selected.forEach(key -> toPublish.put(key, userValues.get(key)));
+                    }
+                    publishSettingsLoggingErrors(toPublish);
+                });
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                } catch (Exception ex) {
+                    Log.logErrorRB(ex, "TEAM_SETTING_SHARE_ERROR");
+                    Core.getMainWindow().displayErrorRB(ex, "TEAM_SETTING_SHARE_ERROR");
+                }
+            }
+        }.execute();
     }
 
     /**

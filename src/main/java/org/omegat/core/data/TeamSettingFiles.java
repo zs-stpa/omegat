@@ -31,12 +31,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
+import gen.core.filters.Filter;
 import gen.core.filters.Filters;
 import org.omegat.core.Core;
 import org.omegat.core.segmentation.SRX;
@@ -58,7 +64,14 @@ import org.omegat.util.TagPatternsStorage;
  * committed them itself; registered as {@link TeamSetting}, the generic
  * negotiation asks instead and offers to distribute a change to the team.
  * The raw value is the canonical serialized content, so differently
- * formatted files with equal rules do not count as diverged.
+ * formatted files with equal rules do not count as diverged. Each of
+ * these settings falls back to the user configuration when the project
+ * carries none, so a team project without the file runs on every member's
+ * own configuration; the user fallback readers expose that configuration
+ * in the project's raw form when it differs from the installed defaults,
+ * and the load reports the setting as unmanaged so the user can
+ * distribute it - unless the team recorded in {@link #USER_LEVEL} that
+ * the setting is left to each member.
  *
  * @author stephan.pakebusch at zollsoft.de
  */
@@ -77,13 +90,13 @@ public final class TeamSettingFiles {
     public static final TeamSetting FILTERS = TeamSetting.ofStoredFile(FILTERS_KEY,
             "TEAM_SETTING_NAME_FILTERS", TeamSettingFiles::readSessionFilters,
             TeamSettingFiles::applySessionFilters, TeamSettingFiles::describeFile,
-            new FiltersStorage());
+            new FiltersStorage()).withUserFallback(TeamSettingFiles::readUserFilters);
 
     /** Segmentation rules as a team setting. */
     public static final TeamSetting SEGMENTATION = TeamSetting.ofStoredFile(SEGMENTATION_KEY,
             "TEAM_SETTING_NAME_SEGMENTATION", TeamSettingFiles::readSessionSegmentation,
             TeamSettingFiles::applySessionSegmentation, TeamSettingFiles::describeFile,
-            new SegmentationStorage());
+            new SegmentationStorage()).withUserFallback(TeamSettingFiles::readUserSegmentation);
 
     /**
      * Project-specific custom tag and removed-text expressions as a team
@@ -92,7 +105,25 @@ public final class TeamSettingFiles {
     public static final TeamSetting TAG_PATTERNS = TeamSetting.ofStoredFile(TAG_PATTERNS_KEY,
             "TEAM_SETTING_NAME_TAG_PATTERNS", TeamSettingFiles::readSessionTagPatterns,
             TeamSettingFiles::applySessionTagPatterns, TeamSettingFiles::describeTagPatterns,
-            new TagPatternsFileStorage());
+            new TagPatternsFileStorage()).withUserFallback(TeamSettingFiles::readUserTagPatterns);
+
+    /** Registry key of the settings the team leaves to each member. */
+    public static final String USER_LEVEL_KEY = "user_level_settings";
+
+    /**
+     * The keys of the settings the team decided to leave to each member's
+     * user configuration, as a sidecar team setting: a comma-separated
+     * sorted key list, committed with the project settings file, so the
+     * hint about a missing team value stays away for every member once the
+     * team made that decision.
+     */
+    public static final TeamSetting USER_LEVEL = TeamSetting.of(USER_LEVEL_KEY,
+            "TEAM_SETTING_NAME_USER_LEVEL", config -> joinKeys(config.getUserLevelTeamSettings()),
+            (config, raw) -> config.setUserLevelTeamSettings(parseKeys(raw)),
+            TeamSettingFiles::describeUserLevel, raw -> {
+                Set<String> keys = parseKeys(raw);
+                return keys.isEmpty() ? null : joinKeys(keys);
+            });
 
     private static final Object REGISTER_LOCK = new Object();
 
@@ -102,7 +133,7 @@ public final class TeamSettingFiles {
     /** Registers the settings when absent; safe under concurrent calls. */
     public static void ensureRegistered() {
         synchronized (REGISTER_LOCK) {
-            for (TeamSetting setting : List.of(FILTERS, SEGMENTATION, TAG_PATTERNS)) {
+            for (TeamSetting setting : List.of(FILTERS, SEGMENTATION, TAG_PATTERNS, USER_LEVEL)) {
                 if (TeamSettingsRegistry.byKey(setting.getKey()) == null) {
                     TeamSettingsRegistry.register(setting);
                 }
@@ -157,6 +188,43 @@ public final class TeamSettingFiles {
         }
     }
 
+    /**
+     * The user-level file filter configuration in the project's raw form -
+     * what a project without its own filters.xml runs on - or null when it
+     * equals the installed defaults in substance: defaults have nothing of
+     * this member's own to distribute, and distributing them would override
+     * the other members' user configurations with a project file. Known
+     * limit: option values the filter options dialog persisted explicitly
+     * count as a deviation even when they equal the filter's defaults.
+     */
+    private static @Nullable String readUserFilters(ProjectProperties config) {
+        try {
+            Filters user = Preferences.getFilters();
+            if (comparableForm(user).equals(comparableForm(FilterMaster.createDefaultFiltersConfig()))) {
+                return null;
+            }
+            return FilterMaster.writeConfigToString(canonical(user));
+        } catch (IOException ex) {
+            Log.logErrorRB(ex, "TEAM_SETTING_APPLY_ERROR");
+            return null;
+        }
+    }
+
+    /**
+     * The canonical form of a sorted copy, for comparing configurations in
+     * substance: the order of filters and options does not count, because
+     * an older user file carries the filters added since at its end, and
+     * the defaults list them in installation order.
+     */
+    static String comparableForm(Filters filters) throws IOException {
+        Filters sorted = FilterMaster.cloneConfig(canonical(filters));
+        sorted.getFilters().sort(Comparator.comparing(Filter::getClassName));
+        for (Filter filter : sorted.getFilters()) {
+            filter.getOption().sort(Comparator.comparing(Filter.Option::getName));
+        }
+        return FilterMaster.writeConfigToString(sorted);
+    }
+
     private static @Nullable String readSessionSegmentation(ProjectProperties config) {
         SRX srx = config.getProjectSRX();
         if (srx == null) {
@@ -187,11 +255,53 @@ public final class TeamSettingFiles {
         }
     }
 
+    /**
+     * The user-level segmentation rules in the project's raw form, or null
+     * when they equal the built-in default rules. A rule set that an older
+     * OmegaT version saved in full and that was migrated since counts as a
+     * deviation: it is one, the rules differ from today's defaults.
+     */
+    private static @Nullable String readUserSegmentation(ProjectProperties config) {
+        try {
+            String user = SRXManager.writeToString(Preferences.getSRX());
+            String defaults = SRXManager.writeToString(SRX.getDefault());
+            return user.equals(defaults) ? null : user;
+        } catch (IOException ex) {
+            Log.logErrorRB(ex, "TEAM_SETTING_APPLY_ERROR");
+            return null;
+        }
+    }
+
     private static @Nullable String readSessionTagPatterns(ProjectProperties config) {
         TagPatternsStorage.TagPatterns patterns = new TagPatternsStorage.TagPatterns();
         patterns.setCustomTagPattern(config.getCustomTagPattern());
         patterns.setRemoveTextPattern(config.getRemoveTextPattern());
         if (patterns.isEmpty()) {
+            return null;
+        }
+        try {
+            return TagPatternsStorage.writeToString(patterns);
+        } catch (IOException ex) {
+            Log.logErrorRB(ex, "TEAM_SETTING_APPLY_ERROR");
+            return null;
+        }
+    }
+
+    /**
+     * The effective user-level tag expressions in the project's raw form,
+     * resolved as the tag validation does (the custom tag expression has a
+     * built-in default when the preference was never set, the removed-text
+     * expression is empty, i.e. disabled, then), or null when both equal
+     * those defaults.
+     */
+    private static @Nullable String readUserTagPatterns(ProjectProperties config) {
+        TagPatternsStorage.TagPatterns patterns = new TagPatternsStorage.TagPatterns();
+        patterns.setCustomTagPattern(Preferences.existsPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                ? Preferences.getPreference(Preferences.CHECK_CUSTOM_PATTERN)
+                : PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT);
+        patterns.setRemoveTextPattern(Preferences.getPreference(Preferences.CHECK_REMOVE_PATTERN));
+        if (PatternConsts.CHECK_CUSTOM_PATTERN_DEFAULT.equals(patterns.getCustomTagPattern())
+                && "".equals(patterns.getRemoveTextPattern())) {
             return null;
         }
         try {
@@ -252,6 +362,46 @@ public final class TeamSettingFiles {
             return OStrings.getString("TEAM_SETTING_VALUE_TAG_PATTERNS_OFF");
         }
         return '"' + pattern + '"';
+    }
+
+    /** The keys in a raw user-level value, sorted and without duplicates. */
+    static Set<String> parseKeys(@Nullable String raw) {
+        Set<String> keys = new TreeSet<>();
+        if (raw != null) {
+            for (String key : raw.split(",")) {
+                if (!key.trim().isEmpty()) {
+                    keys.add(key.trim());
+                }
+            }
+        }
+        return keys;
+    }
+
+    static String joinKeys(Set<String> keys) {
+        return String.join(",", new TreeSet<>(keys));
+    }
+
+    /**
+     * The raw user-level value that also leaves the given settings to the
+     * members, for recording a team decision taken in the dialog.
+     */
+    public static String withKeysLeftToMembers(@Nullable String currentRaw, Collection<String> keys) {
+        Set<String> all = parseKeys(currentRaw);
+        all.addAll(keys);
+        return joinKeys(all);
+    }
+
+    private static String describeUserLevel(@Nullable String raw) {
+        Set<String> keys = parseKeys(raw);
+        if (keys.isEmpty()) {
+            return OStrings.getString("TEAM_SETTING_VALUE_USER_LEVEL_NONE");
+        }
+        List<String> names = new ArrayList<>();
+        for (String key : keys) {
+            TeamSetting setting = TeamSettingsRegistry.byKey(key);
+            names.add(setting == null ? key : setting.getDisplayName());
+        }
+        return OStrings.getString("TEAM_SETTING_VALUE_USER_LEVEL", String.join(", ", names));
     }
 
     /**
