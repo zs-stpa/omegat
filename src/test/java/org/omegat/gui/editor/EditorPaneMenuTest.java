@@ -26,14 +26,22 @@
 package org.omegat.gui.editor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JSeparator;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import org.omegat.util.OStrings;
+import org.omegat.util.Preferences;
+import org.omegat.util.TestPreferencesInitializer;
 
 /**
  * Tests for the editor pane settings menu.
@@ -42,15 +50,42 @@ import org.omegat.util.OStrings;
  */
 public class EditorPaneMenuTest {
 
+    private AtomicInteger refreshes;
+    private JPopupMenu popup;
+
+    @Before
+    public final void setUp() throws Exception {
+        TestPreferencesInitializer.init();
+        refreshes = new AtomicInteger();
+        popup = new JPopupMenu();
+        new EditorPaneMenu(refreshes::incrementAndGet, column -> 60, () -> 120, () -> 14)
+                .populatePaneMenu(popup);
+    }
+
     @Test
     public void testOffersThePreferencesShortcut() {
-        JPopupMenu popup = new JPopupMenu();
-        new EditorPaneMenu().populatePaneMenu(popup);
-
-        assertEquals(1, popup.getComponentCount());
-        JMenuItem prefs = (JMenuItem) popup.getComponent(0);
+        // the gutter toggle, the configuration dialog, a separator, the
+        // preferences shortcut
+        assertEquals(4, popup.getComponentCount());
+        assertTrue(popup.getComponent(2) instanceof JSeparator);
+        JMenuItem prefs = (JMenuItem) popup.getComponent(3);
         assertEquals(OStrings.getString("GUI_EDITORWINDOW_OPEN_PREFS"), prefs.getText());
         assertTrue(prefs.isEnabled());
         assertEquals(1, prefs.getActionListeners().length);
+
+        JMenuItem configure = (JMenuItem) popup.getComponent(1);
+        assertEquals(OStrings.getString("GUI_EDITORWINDOW_GUTTER_CONFIGURE"), configure.getText());
+        assertEquals(1, configure.getActionListeners().length);
+    }
+
+    @Test
+    public void testTheToggleWritesThePreferenceAndRefreshes() {
+        JCheckBoxMenuItem show = (JCheckBoxMenuItem) popup.getComponent(0);
+        assertEquals(OStrings.getString("GUI_EDITORWINDOW_GUTTER_SHOW"), show.getText());
+        assertFalse("The gutter is off by default", show.isSelected());
+
+        show.doClick();
+        assertTrue(Preferences.isPreference(Preferences.EDITOR_METADATA_GUTTER));
+        assertEquals(1, refreshes.get());
     }
 }
