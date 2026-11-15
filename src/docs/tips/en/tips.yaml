@@ -78,3 +78,7 @@ tips:
   name: Let fuzzy matching understand numbers
 - file: numbers_checked_in_every_system.html
   name: Numbers are checked in every numeral system
+- file: sort_bar_reorder.html
+  name: Reorder segments with the sort bar
+- file: sort_bar_numeric.html
+  name: Sort segments by numeric value

@@ -86,3 +86,7 @@ tips:
   name: "Zahlen werden in jedem Zahlsystem geprüft"
 - file: "number_autoconvert.html"
   name: "Zahlensegmente automatisch ausfüllen"
+- file: "sort_bar_reorder.html"
+  name: "Segmente mit der Sortierleiste umsortieren"
+- file: "sort_bar_numeric.html"
+  name: "Segmente nach Zahlenwert sortieren"
