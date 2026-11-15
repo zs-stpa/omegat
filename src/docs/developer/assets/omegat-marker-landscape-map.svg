@@ -1,0 +1,1164 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  OmegaT editor marker landscape map (editable SVG).
+  Cartographic companion to omegat-event-flow-overview.svg and to
+  src/docs/developer/21.OmegaTInternals.md: which IMarker implementations
+  run for the whole document, which only for the active segment, and which
+  only while the source side is displayed. Numbered pins cite the gates.
+
+  🄯 2026 - This file is part of OmegaT, released under the GNU General
+  Public License version 3 or (at your option) any later version.
+-->
+
+<svg
+   viewBox="0 0 1600 1060"
+   font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+   version="1.1"
+   id="svg115"
+   sodipodi:docname="omegat-marker-landscape-map.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview115"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.81871144"
+     inkscape:cx="530.1013"
+     inkscape:cy="409.79029"
+     inkscape:window-width="1512"
+     inkscape:window-height="884"
+     inkscape:window-x="0"
+     inkscape:window-y="34"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg115" />
+  <!-- sea -->
+  <rect
+     x="0"
+     y="0"
+     width="1600"
+     height="1060"
+     fill="#b9d4ca"
+     id="rect1" />
+  <g
+     stroke="#a3c4b8"
+     stroke-width="2"
+     fill="none"
+     stroke-linecap="round"
+     id="g7">
+    <path
+       d="M 120,120 q 14,-8 28,0 q 14,8 28,0"
+       id="path1" />
+    <path
+       d="M 1180,180 q 14,-8 28,0 q 14,8 28,0"
+       id="path2" />
+    <path
+       d="M 940,300 q 14,-8 28,0 q 14,8 28,0"
+       id="path3" />
+    <path
+       d="M 240,900 q 14,-8 28,0 q 14,8 28,0"
+       id="path4" />
+    <path
+       d="M 1330,860 q 14,-8 28,0 q 14,8 28,0"
+       id="path5" />
+    <path
+       d="M 330,960 q 14,-8 28,0 q 14,8 28,0"
+       id="path6" />
+    <path
+       d="M 520,120 q 14,-8 28,0 q 14,8 28,0"
+       id="path7" />
+  </g>
+  <!-- OmegaT logo -->
+  <g
+     transform="translate(24,10) scale(0.14)"
+     id="g9">
+    <path
+       fill="#1e282c"
+       d="m 145.84482,32.68197 c -17.435,0 -33.882,2.683 -48.883002,7.973 -14.783,5.214 -27.816,12.832 -38.737,22.641 -11.013,9.892 -19.58,21.744 -25.462,35.229 -6.042,13.851 -9.105,29.115 -9.105,45.37 0,21.473 7.679,41.858 22.823,60.588 7.582,9.379 16.92,18.207 27.854,26.347 l -14.577,0 c -8.347,0 -12.896,-0.369 -16.173,-2.465 -3.317,-2.122 -6.026,-6.481 -9.66,-15.545 -0.609,-1.518 -2.079,-2.511 -3.713,-2.511 l -10.212,0 c -1.135,0 -2.216,0.481 -2.975,1.325 -0.759,0.845 -1.123,1.972 -1.002,3.1 l 6.201,58.031 c 0.217,2.032 1.932,3.574 3.977,3.574 l 93.382002,0 c 1.417,0 2.728,-0.75 3.447,-1.971 l 2.917,-4.955 c 0.735,-1.248 0.737,-2.797 0.006,-4.048 l -0.507,-0.867 c -6.861,-11.732 -17.231,-29.463 -25.685002,-50.082 -4.62,-11.265 -8.205,-22.288 -10.656,-32.763 -2.861,-12.226 -4.27,-24.086 -4.188,-35.254 0,-0.009 0,-0.019 0,-0.029 0,-14.669 1.357,-27.923 4.033,-39.395 2.639,-11.314 6.581,-20.977 11.715002,-28.719 10.305,-15.542 25.384,-23.422 44.816,-23.422 19.577,0 34.775,7.661 45.174,22.771 5.137,7.465 9.082,16.756 11.725,27.616 2.674,10.988 4.03,23.643 4.03,37.612 0,22.021 -5.354,46.297 -15.911,72.155 -8.788,21.52 -19.212,39.359 -25.44,50.018 l -0.416,0.712 c -0.794,1.36 -0.717,3.06 0.197,4.342 l 3.283,4.603 c 0.751,1.052 1.964,1.677 3.257,1.677 l 91.923,0 c 1.988,0 3.674,-1.46 3.959,-3.428 l 8.392,-58.031 c 0.166,-1.147 -0.175,-2.313 -0.936,-3.189 -0.76,-0.878 -1.862,-1.382 -3.023,-1.382 l -10.216,0 c -1.611,0 -3.064,0.966 -3.688,2.45 -3.762,8.958 -6.614,13.492 -9.842,15.649 -3.081,2.059 -7.149,2.421 -14.558,2.421 l -19.256,0 c 10.409,-8.448 22.111,-18.599 31.947,-31.103 6.544,-8.32 11.629,-16.954 15.112,-25.663 4.054,-10.133 6.108,-20.76 6.108,-31.585 0,-15.938 -3.008,-30.927 -8.938,-44.549 -5.799,-13.318 -14.252,-25.029 -25.125,-34.809 -10.83,-9.742 -23.774,-17.308 -38.474,-22.488 -14.97,-5.275 -31.429,-7.951 -48.92,-7.951 l 0,0 z m -118.187002,111.213 c 0,-64.045 49.244001,-107.213 118.187002,-107.213 69.307,0 117.458,43.168 117.458,105.797 l 0,0 0,0 c 0,45.646 -37.572,73.952 -60.553,92.351 l 4,0 0,0 2.41,0 0,0 24.23,0 c 15.321,0 20.063,-1.414 28.088,-20.521 l 10.216,0 0,0 0,0 -8.392,58.03 -91.922,0 -3.283,-4.603 0,0 0,0 c 12.402,-21.231 42.313,-71.829 42.313,-124.903 0,-57.323 -22.25,-91.999 -64.929,-91.999 -42.315,0 -64.564001,35.385 -64.564001,95.536 -0.002,0.292 -0.003,0.584 -0.003,0.877 -0.035,49.569 27.808001,96.569 41.586001,120.137 l 0,0 0,0 -2.917,4.955 -93.382001,0 -6.201001,-58.029 0,0 0,0 10.212001,0 c 7.660999,19.106 12.404999,20.521 29.545999,20.521 l 20.159,0 0,0 3.202001,0 0,0 4,0 c -20.793001,-13.446 -59.461001,-43.876 -59.461001,-90.936 l 0,0 0,0 z"
+       id="path8" />
+    <path
+       fill="#ef3b39"
+       d="m 216.634,-2 c -2.431,0 -6.061,0.811 -9.55,4.678 0,0 0.001,-10e-4 0.002,-10e-4 -12.968,14.276 -41.592,38.801 -52.015,43.395 l -0.067,0.029 -0.066,0.032 c -4.885,2.37 -9.878,5.65 -9.878,12.002 0,2.827 1.132,5.242 3.185,6.801 1.667,1.265 3.807,1.906 6.361,1.906 l 15.028,0 -0.316,40.34 0,0.015 0,0.016 c 0,6.482 -0.182,16.369 -0.356,25.93 -0.173,9.441 -0.336,18.357 -0.336,24.156 0,8.939 4.283,17.845 11.75,24.43 3.834,3.38 8.338,6.031 13.389,7.878 5.359,1.96 11.189,2.954 17.326,2.954 19.707,0 37.266,-4.894 50.775,-14.149 l 0.046,-0.032 0.046,-0.032 c 3.351,-2.438 4.382,-6.308 2.564,-9.492 l -2.351,-4.887 -0.024,-0.054 -0.027,-0.052 c -1.671,-3.229 -3.932,-3.908 -5.533,-3.908 -1.076,0 -2.141,0.321 -3.168,0.952 -4.635,2.506 -9.133,3.484 -15.994,3.484 -3.84,0 -7.019,-1.641 -9.449,-4.874 -1.67,-2.224 -2.989,-5.201 -3.924,-8.852 -1.118,-4.365 -1.684,-9.711 -1.684,-15.889 l 0,-26.556 c 0,-14.072 0,-28.579 0.517,-41.378 l 36.72,0 c 1.664,0 5.678,-0.555 6.991,-5.7 l 0.009,-0.028 0.007,-0.029 3.387,-14.113 c 0.671,-1.711 0.509,-3.624 -0.467,-5.223 -1.175,-1.926 -3.331,-3.076 -5.768,-3.076 l -39.854,0 1.225,-31.475 0.003,-0.078 0,-0.078 C 225.138,1.718 221.641,-2 216.634,-2 l 0,0 z M 149.06,58.135 c 0,-3.361 2.078,-5.712 7.624,-8.403 11.438,-5.04 40.544,-30.252 53.366,-44.37 2.426,-2.69 4.852,-3.362 6.584,-3.362 3.117,0 4.504,2.354 4.504,5.042 l 0,0 0,0 -1.387,35.631 4,0 0,0 0.003,0 0,0 40.009,0 c 1.64,0 2.633,1.046 2.639,2.148 0.002,0.294 -0.066,0.593 -0.212,0.876 l -3.47,14.455 c -0.344,1.346 -1.038,2.69 -3.116,2.69 l -40.543,0 c -0.683,13.567 -0.693,29.414 -0.693,44.653 0,0.242 0,0.483 0,0.725 l 0,26.556 c 0,27.563 10.742,33.615 19.057,33.615 7.279,0 12.479,-1.008 18.021,-4.033 0.38,-0.246 0.76,-0.403 1.141,-0.403 0.659,0 1.319,0.468 1.98,1.746 l 2.424,5.041 c 0.292,0.474 0.42,0.946 0.422,1.404 0.006,1.17 -0.812,2.241 -1.809,2.966 -5.892,4.037 -21.483,13.449 -48.514,13.449 -23.564,0 -38.465,-15.799 -38.465,-31.262 l 0,0 0,0 c 0,-11.767 0.692,-37.313 0.692,-50.086 l 0.316,-40.371 0,0 0,0 0,0 0.031,-4 -19.06,0 c -3.118,0 -5.544,-1.344 -5.544,-4.707 l 0,0 0,0 z"
+       id="path9" />
+  </g>
+  <defs
+     id="defs10">
+    <marker
+       id="ferry"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="8"
+       markerHeight="8"
+       orient="auto-start-reverse">
+      <path
+         d="M 0 0 L 10 5 L 0 10 z"
+         fill="#54646a"
+         id="path10" />
+    </marker>
+  </defs>
+  <!-- title -->
+  <text
+     x="800"
+     y="48"
+     text-anchor="middle"
+     font-size="27"
+     font-weight="bold"
+     fill="#2c332c"
+     id="text10">OmegaT — Editor Marker Landscape — ΩᵗMkMap</text>
+  <text
+     x="800"
+     y="74"
+     text-anchor="middle"
+     font-size="13.5"
+     fill="#4c554c"
+     id="text11">Where each IMarker runs: whole document, active segment only, or only while the source side is displayed</text>
+  <!-- compass -->
+  <g
+     transform="translate(1508,128)"
+     stroke="#54646a"
+     fill="#54646a"
+     id="g12">
+    <circle
+       r="26"
+       fill="none"
+       stroke-width="1.4"
+       id="circle11" />
+    <path
+       d="M 0,-24 L 5,0 L 0,8 L -5,0 Z"
+       stroke="none"
+       id="path11" />
+    <text
+       x="0"
+       y="-32"
+       text-anchor="middle"
+       font-size="14"
+       stroke="none"
+       fill="#3f4a42"
+       id="text12">N</text>
+  </g>
+  <!-- ═════════ MAINLAND: whole-document markers ═════════ -->
+  <!-- Irregular coast: main blob unioned with headlands/capes. Two passes —
+       stroke-only, then fill-only — so seams inside the union stay hidden. -->
+  <defs
+     id="defs17">
+    <g
+       id="mainlandLand">
+      <path
+         d="M 150,430 C 160,300 270,205 430,193 C 575,182 705,225 772,325 C 833,415 845,565 785,665 C 723,768 565,835 425,815 C 268,793 140,665 150,430 Z"
+         id="path12" />
+      <path
+         d="M 310,208 C 315,168 400,158 415,198 C 420,225 330,235 310,208 Z"
+         id="path13" />
+      <path
+         d="M 152,500 C 112,505 100,545 122,572 C 145,600 185,585 178,548 Z"
+         id="path14" />
+      <path
+         d="M 300,795 C 275,830 320,852 352,840 C 380,828 370,800 340,795 Z"
+         id="path15" />
+      <path
+         d="M 792,570 C 828,572 842,600 824,620 C 806,638 780,624 782,600 Z"
+         id="path16" />
+      <path
+         d="M 726,262 C 754,258 768,282 756,298 C 742,310 720,300 722,280 Z"
+         id="path17" />
+    </g>
+  </defs>
+  <use
+     href="#mainlandLand"
+     fill="none"
+     stroke="#cbb98f"
+     stroke-width="6"
+     id="use17" />
+  <use
+     href="#mainlandLand"
+     fill="#e9dfc4"
+     stroke="none"
+     id="use18" />
+  <path
+     d="M 205,435 C 215,330 300,250 435,240 C 555,232 660,270 715,350 C 765,425 772,555 720,637 C 668,722 545,775 430,758 C 305,740 197,630 205,435 Z"
+     fill="#cfe0b4"
+     stroke="none"
+     id="path20" />
+  <text
+     x="460"
+     y="222"
+     text-anchor="middle"
+     font-size="20"
+     font-weight="bold"
+     fill="#5d5537"
+     letter-spacing="3"
+     id="text20">M A I N L A N D</text>
+  <text
+     x="460"
+     y="246"
+     text-anchor="middle"
+     font-size="14"
+     fill="#5d5537"
+     id="text21">whole-document markers — no isActive gate</text>
+  <!-- villages on the mainland -->
+  <g
+     font-size="16"
+     fill="#3f3f35"
+     id="g37">
+    <g
+       transform="translate(300,330)"
+       id="g23">
+      <circle
+         r="5"
+         fill="#c65a4f"
+         stroke="#8e4038"
+         stroke-width="1.2"
+         id="circle21" />
+      <text
+         x="10"
+         y="4"
+         id="text22">Spellcheck</text>
+      <path
+         d="M 10,14 q 7,-6 14,0 q 7,6 14,0 q 7,-6 14,0"
+         fill="none"
+         stroke="#c65a4f"
+         stroke-width="2"
+         id="path22" />
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/core/spellchecker/SpellCheckerMarker.java#L50"
+         target="_blank"
+         id="a23">
+        <text
+           x="10"
+           y="34"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text23">core/spellchecker/SpellCheckerMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(485,298)"
+       id="g25">
+      <circle
+         r="5"
+         fill="#4a7396"
+         stroke="#33506a"
+         stroke-width="1.2"
+         id="circle23" />
+      <text
+         x="10"
+         y="4"
+         id="text24">LanguageTool</text>
+      <path
+         d="M 10,14 q 7,-6 14,0 q 7,6 14,0 q 7,-6 14,0"
+         fill="none"
+         stroke="#4a7396"
+         stroke-width="2"
+         id="path24" />
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/languagetools/LanguageToolWrapper.java#L112"
+         target="_blank"
+         id="a25">
+        <text
+           x="10"
+           y="34"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text25">languagetools/LanguageToolWrapper.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(255,480)"
+       id="g27">
+      <circle
+         r="5"
+         fill="#7d8a5c"
+         stroke="#5a6540"
+         stroke-width="1.2"
+         id="circle25" />
+      <text
+         x="10"
+         y="4"
+         id="text26">AltTranslations</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/AltTranslationsMarker.java"
+         target="_blank"
+         id="a27">
+        <text
+           x="10"
+           y="22"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text27">editor/mark/AltTranslationsMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(415,430)"
+       id="g29">
+      <circle
+         r="5"
+         fill="#b0893f"
+         stroke="#7d5f27"
+         stroke-width="1.2"
+         id="circle27" />
+      <text
+         x="10"
+         y="4"
+         id="text28">Replace matches</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/ReplaceMarker.java"
+         target="_blank"
+         id="a29">
+        <text
+           x="10"
+           y="22"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text29">editor/mark/ReplaceMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(600,430)"
+       id="g31">
+      <circle
+         r="5"
+         fill="#8a6f96"
+         stroke="#61496c"
+         stroke-width="1.2"
+         id="circle29" />
+      <text
+         x="10"
+         y="4"
+         id="text30">AutoTM</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/ComesFromAutoTMMarker.java"
+         target="_blank"
+         id="a31">
+        <text
+           x="-52"
+           y="40"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text31">editor/mark/ComesFromAutoTMMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(295,615)"
+       id="g34">
+      <circle
+         cx="-14"
+         cy="-12"
+         r="9"
+         fill="#96b489"
+         stroke="#6d8a62"
+         stroke-width="1.2"
+         id="circle31" />
+      <circle
+         cx="-2"
+         cy="-20"
+         r="11"
+         fill="#96b489"
+         stroke="#6d8a62"
+         stroke-width="1.2"
+         id="circle32" />
+      <circle
+         cx="10"
+         cy="-11"
+         r="9"
+         fill="#96b489"
+         stroke="#6d8a62"
+         stroke-width="1.2"
+         id="circle33" />
+      <text
+         x="24"
+         y="-8"
+         id="text33">ProtectedParts</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/ProtectedPartsMarker.java"
+         target="_blank"
+         id="a34">
+        <text
+           x="24"
+           y="10"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text34">editor/mark/ProtectedPartsMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(540,610)"
+       id="g36">
+      <path
+         d="M -16,0 a 16,12 0 0 1 32,0 Z"
+         fill="#c9b280"
+         stroke="#9a875c"
+         stroke-width="1.2"
+         id="path34" />
+      <path
+         d="M 8,0 a 13,10 0 0 1 26,0 Z"
+         fill="#c9b280"
+         stroke="#9a875c"
+         stroke-width="1.2"
+         id="path35" />
+      <text
+         x="42"
+         y="4"
+         id="text35">FontFallback</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/FontFallbackMarker.java"
+         target="_blank"
+         id="a36">
+        <text
+           x="-40"
+           y="40"
+           font-size="12"
+           fill="#6b6b5c"
+           id="text36">editor/mark/FontFallbackMarker.java</text>
+      </a>
+    </g>
+  </g>
+  <!-- ═════════ TIDAL FLATS: source side only while displayed ═════════ -->
+  <path
+     d="M 855,525 C 885,468 958,447 1008,478 C 1050,504 1052,562 1008,594 C 956,630 882,608 855,568 C 848,555 848,540 855,525 Z"
+     fill="#e2d8b6"
+     stroke="#b4a06e"
+     stroke-width="2.5"
+     stroke-dasharray="7 5"
+     id="path37" />
+  <g
+     fill="#8a7c55"
+     id="g42">
+    <circle
+       cx="890"
+       cy="520"
+       r="1.8"
+       id="circle37" />
+    <circle
+       cx="915"
+       cy="549"
+       r="1.8"
+       id="circle38" />
+    <circle
+       cx="950"
+       cy="520"
+       r="1.8"
+       id="circle39" />
+    <circle
+       cx="975"
+       cy="549"
+       r="1.8"
+       id="circle40" />
+    <circle
+       cx="1000"
+       cy="520"
+       r="1.8"
+       id="circle41" />
+    <circle
+       cx="930"
+       cy="585"
+       r="1.8"
+       id="circle42" />
+  </g>
+  <text
+     x="950"
+     y="643"
+     text-anchor="middle"
+     font-size="18"
+     font-weight="bold"
+     fill="#71653e"
+     letter-spacing="2"
+     id="text42">TIDAL FLATS</text>
+  <text
+     x="955"
+     y="663"
+     text-anchor="middle"
+     font-size="13"
+     fill="#71653e"
+     id="text43">source-side marks dry out with the tide</text>
+  <g
+     font-size="14.5"
+     fill="#3f3f35"
+     id="g46">
+    <text
+       x="885"
+       y="510"
+       id="text44">NBSP</text>
+    <text
+       x="895"
+       y="538"
+       id="text45">Whitespace</text>
+    <text
+       x="880"
+       y="572"
+       id="text46">RemoveTag</text>
+  </g>
+  <!-- ═════════ ACTIVE-ONLY ISLAND ═════════ -->
+  <path
+     d="M 1075,380 C 1100,275 1215,225 1320,247 C 1425,269 1486,352 1464,470 C 1440,578 1345,650 1230,648 C 1115,646 1050,555 1075,380 Z"
+     fill="#d2c3a3"
+     stroke="#8a7a5c"
+     stroke-width="3"
+     id="path46" />
+  <path
+     d="M 1140,400 C 1160,330 1250,295 1330,315 C 1400,333 1425,395 1408,465 C 1390,538 1320,585 1240,578 C 1160,571 1122,500 1140,400 Z"
+     fill="#b8a37e"
+     stroke="none"
+     id="path47" />
+  <text
+     x="1265"
+     y="285"
+     text-anchor="middle"
+     font-size="20"
+     font-weight="bold"
+     fill="#5d4f33"
+     letter-spacing="3"
+     id="text47">A . O . I .   青い島</text>
+  <text
+     x="1265"
+     y="309"
+     text-anchor="middle"
+     font-size="14"
+     fill="#5d4f33"
+     id="text48">aoi = Active-Only Island —</text>
+  <text
+     x="1265"
+     y="328"
+     text-anchor="middle"
+     font-size="14"
+     fill="#5d4f33"
+     id="text49">marks exist only in the active segment</text>
+  <g
+     font-size="16"
+     fill="#3f3f35"
+     id="g57">
+    <g
+       transform="translate(1175,420)"
+       id="g51">
+      <path
+         d="M -8,10 L 0,-14 L 8,10 Z"
+         fill="#8f8065"
+         stroke="#6a5d46"
+         stroke-width="1.2"
+         id="path49" />
+      <text
+         x="14"
+         y="0"
+         id="text50">Glossary TransTips</text>
+      <path
+         d="M 14,10 h 44"
+         fill="none"
+         stroke="#3f7d53"
+         stroke-width="3.5"
+         id="path50" />
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/glossary/TransTipsMarker.java#L54"
+         target="_blank"
+         id="a51">
+        <text
+           x="14"
+           y="26"
+           font-size="12"
+           fill="#5a513c"
+           id="text51">gui/glossary/TransTipsMarker.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(1230,366)"
+       id="g53">
+      <path
+         d="M -10,12 L -2,-12 L 4,4 L 10,-8 L 14,12 Z"
+         fill="#8f8065"
+         stroke="#6a5d46"
+         stroke-width="1.2"
+         id="path51" />
+      <text
+         x="20"
+         y="2"
+         id="text52">Bidi controls</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/BidiMarkers.java#L64"
+         target="_blank"
+         id="a53">
+        <text
+           x="20"
+           y="16"
+           font-size="12"
+           fill="#5a513c"
+           id="text53">editor/mark/BidiMarkers.java</text>
+      </a>
+    </g>
+    <g
+       transform="translate(1262,502)"
+       id="g56">
+      <rect
+         x="-6"
+         y="-26"
+         width="12"
+         height="30"
+         fill="#e8e2d2"
+         stroke="#6a5d46"
+         stroke-width="1.2"
+         id="rect53" />
+      <rect
+         x="-8"
+         y="-34"
+         width="16"
+         height="8"
+         fill="#c65a4f"
+         stroke="#6a5d46"
+         stroke-width="1"
+         id="rect54" />
+      <path
+         d="M 8,-30 L 34,-38 M 8,-30 L 34,-22"
+         stroke="#e3c964"
+         stroke-width="2"
+         fill="none"
+         id="path54" />
+      <text
+         x="0"
+         y="26"
+         text-anchor="middle"
+         id="text54">ComesFromMT</text>
+      <text
+         x="0"
+         y="44"
+         text-anchor="middle"
+         font-size="12"
+         fill="#5a513c"
+         id="text55">beam only on the entry just filled from MT —</text>
+      <a
+         href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/ComesFromMTMarker.java#L70"
+         target="_blank"
+         id="a56">
+        <text
+           x="0"
+           y="60"
+           text-anchor="middle"
+           font-size="12"
+           fill="#5a513c"
+           id="text56">editor/mark/ComesFromMTMarker.java</text>
+      </a>
+    </g>
+  </g>
+  <!-- ═════════ HARBOUR + shipping lanes ═════════ -->
+  <g
+     id="g62">
+    <rect
+       x="420"
+       y="868"
+       width="610"
+       height="64"
+       rx="6"
+       fill="#d8cfae"
+       stroke="#9a875c"
+       stroke-width="2"
+       id="rect57" />
+    <rect
+       x="620"
+       y="852"
+       width="46"
+       height="16"
+       fill="#9a875c"
+       id="rect58" />
+    <rect
+       x="700"
+       y="852"
+       width="46"
+       height="16"
+       fill="#9a875c"
+       id="rect59" />
+    <rect
+       x="780"
+       y="852"
+       width="46"
+       height="16"
+       fill="#9a875c"
+       id="rect60" />
+    <text
+       x="725"
+       y="896"
+       text-anchor="middle"
+       font-size="17"
+       font-weight="bold"
+       fill="#4a4433"
+       id="text60">MarkerController — the harbour (EDT)</text>
+    <text
+       x="725"
+       y="910"
+       text-anchor="middle"
+       font-size="12.5"
+       fill="#5a513c"
+       id="text61">cargo computed offshore: CalcMarkersThread —</text>
+    <text
+       x="725"
+       y="926"
+       text-anchor="middle"
+       font-size="12.5"
+       fill="#5a513c"
+       id="text62">one thread per registered marker instance (one instance per marker class)</text>
+  </g>
+  <g
+     fill="none"
+     stroke="#54646a"
+     stroke-width="2.6"
+     id="g64">
+    <path
+       d="M 643,852 C 600,805 565,782 540,760"
+       marker-end="url(#ferry)"
+       id="path62" />
+    <path
+       d="M 803.05367,851.88315 C 942.3066,789.15573 1084.849,706.61965 1161.6025,640.59079"
+       marker-end="url(#ferry)"
+       id="path63"
+       style="stroke-width:2.85604" />
+    <path
+       d="m 742.48701,852.04978 c 6.36306,-72.0267 51.81342,-172.06378 120.89797,-267.099"
+       stroke-dasharray="7.62876, 5.72157"
+       marker-end="url(#ferry)"
+       id="path64"
+       style="stroke-width:2.47935" />
+  </g>
+  <g
+     font-size="13.5"
+     fill="#3f4a42"
+     id="g69">
+    <text
+       x="479"
+       y="828"
+       id="text64">process(all builders)</text>
+    <text
+       x="479"
+       y="845"
+       id="text65">— on document load</text>
+    <text
+       x="1114"
+       y="695"
+       id="text66">reprocessImmediately(builder)</text>
+    <text
+       x="1114"
+       y="713"
+       id="text67">— on entry activation</text>
+    <text
+       x="844"
+       y="960"
+       text-anchor="middle"
+       id="text68">reprocess(all, one marker)</text>
+    <text
+       x="844"
+       y="977"
+       text-anchor="middle"
+       id="text69">— e.g. after glossary/spell changes</text>
+  </g>
+  <!-- ═════════ proposed bridge A.O.I. -> mainland ═════════ -->
+  <g
+     stroke="#4f5c62"
+     fill="none"
+     stroke-width="2.4"
+     stroke-dasharray="10 7"
+     id="g72">
+    <path
+       d="M 812,452 C 900,395 1000,388 1078,418"
+       id="path69" />
+    <path
+       d="M 812,462 C 900,405 1000,398 1078,428"
+       id="path70" />
+    <path
+       d="M 906,402 L 906,472"
+       stroke-width="1.8"
+       stroke-dasharray="5 5"
+       id="path71" />
+    <path
+       d="M 1004,395 L 1004,462"
+       stroke-width="1.8"
+       stroke-dasharray="5 5"
+       id="path72" />
+  </g>
+  <text
+     x="948"
+     y="338"
+     text-anchor="middle"
+     font-size="14.5"
+     font-weight="bold"
+     fill="#3f4a42"
+     id="text72">proposed bridge</text>
+  <text
+     x="948"
+     y="356"
+     text-anchor="middle"
+     font-size="13"
+     fill="#3f4a42"
+     id="text73">the lever would send</text>
+  <text
+     x="948"
+     y="372"
+     text-anchor="middle"
+     font-size="13"
+     fill="#3f4a42"
+     id="text74">A.O.I. cargo document-wide</text>
+  <g
+     transform="translate(785,442)"
+     stroke="#3f4a42"
+     stroke-width="2.2"
+     fill="none"
+     stroke-linecap="round"
+     id="g79">
+    <circle
+       cx="0"
+       cy="-32"
+       r="6"
+       fill="#e9dfc4"
+       id="circle74" />
+    <path
+       d="M 0,-26 L 0,-8"
+       id="path74" />
+    <path
+       d="M 0,-8 L -7,8 M 0,-8 L 7,8"
+       id="path75" />
+    <path
+       d="M 0,-20 L -9,-10"
+       id="path76" />
+    <path
+       d="M 0,-20 L 15,-26"
+       id="path77" />
+    <rect
+       x="12"
+       y="4"
+       width="18"
+       height="4"
+       fill="#3f4a42"
+       stroke="none"
+       id="rect77" />
+    <path
+       d="M 21,6 L 32,-24"
+       id="path78" />
+    <circle
+       cx="33"
+       cy="-27"
+       r="4"
+       fill="#c65a4f"
+       stroke="#3f4a42"
+       stroke-width="1.4"
+       id="circle78" />
+    <path
+       d="M 8,-2 A 26 26 0 0 1 30,-16"
+       stroke-width="1"
+       stroke-dasharray="3 4"
+       id="path79" />
+  </g>
+  <!-- fauna: decorative Unicode Egyptian hieroglyphs -->
+  <g
+     font-size="22"
+     font-family="'Noto Sans Egyptian Hieroglyphs', 'Segoe UI Historic', sans-serif"
+     opacity="0.85"
+     id="g95">
+    <text
+       x="300"
+       y="148"
+       fill="#4f6b60"
+       id="text79">𓆟</text>
+    <text
+       x="345"
+       y="164"
+       fill="#4f6b60"
+       font-size="18"
+       id="text80">𓆛</text>
+    <text
+       x="85"
+       y="472"
+       fill="#4f6b60"
+       id="text83">𓆞</text>
+    <text
+       x="309.95062"
+       y="824.31476"
+       fill="#4f6b60"
+       font-size="26px"
+       id="text84">𓆊</text>
+    <text
+       x="1490"
+       y="702"
+       fill="#4f6b60"
+       font-size="26"
+       id="text85">𓆊</text>
+    <text
+       x="1400"
+       y="726"
+       fill="#4f6b60"
+       font-size="18"
+       id="text86">𓆝</text>
+    <text
+       x="1002"
+       y="772"
+       fill="#54646a"
+       id="text87">𓊛</text>
+    <text
+       x="582.35748"
+       y="378.44955"
+       fill="#7a6a4f"
+       id="text88">𓃒</text>
+    <text
+       x="376.51401"
+       y="287.17789"
+       fill="#7a6a4f"
+       font-size="19px"
+       id="text89">𓃒</text>
+    <text
+       x="264.39221"
+       y="415.64252"
+       fill="#7a6a4f"
+       id="text90">𓃗</text>
+    <text
+       x="242"
+       y="654"
+       fill="#6d8a62"
+       id="text91">𓆭</text>
+    <text
+       x="266"
+       y="662"
+       fill="#6d8a62"
+       font-size="17"
+       id="text92">𓆭</text>
+    <text
+       x="741.95935"
+       y="660.84735"
+       fill="#71653e"
+       id="text93"
+       transform="scale(1.0827734,0.92355429)"
+       style="font-size:13.1382px;stroke-width:0.59719">𓆏</text>
+    <text
+       x="1102"
+       y="418"
+       fill="#8a7a5c"
+       id="text94">𓆙</text>
+    <text
+       x="1320"
+       y="615"
+       fill="#8a7a5c"
+       font-size="18"
+       id="text95">𓆓</text>
+  </g>
+  <!-- ═════════ pins ═════════ -->
+  <g
+     font-size="15"
+     font-weight="bold"
+     id="g98">
+    <circle
+       cx="1152"
+       cy="452"
+       r="13"
+       fill="#c0605c"
+       id="circle95" />
+    <text
+       x="1152"
+       y="456"
+       text-anchor="middle"
+       fill="#ffffff"
+       id="text96">1</text>
+    <circle
+       cx="878"
+       cy="608"
+       r="13"
+       fill="#c0605c"
+       id="circle96" />
+    <text
+       x="878"
+       y="612"
+       text-anchor="middle"
+       fill="#ffffff"
+       id="text97">2</text>
+    <circle
+       cx="264"
+       cy="320"
+       r="13"
+       fill="#c0605c"
+       id="circle97" />
+    <text
+       x="264"
+       y="324"
+       text-anchor="middle"
+       fill="#ffffff"
+       id="text98">3</text>
+  </g>
+  <!-- ═════════ legend ═════════ -->
+  <g
+     transform="translate(1105,760)"
+     id="g109">
+    <rect
+       x="0"
+       y="0"
+       width="470"
+       height="230"
+       rx="8"
+       fill="#f4efdd"
+       stroke="#9a875c"
+       stroke-width="1.6"
+       id="rect98" />
+    <text
+       x="16"
+       y="26"
+       font-size="13.5"
+       font-weight="bold"
+       fill="#4a4433"
+       id="text99">Legend — underline cargo</text>
+    <path
+       d="M 16,44 q 7,-6 14,0 q 7,6 14,0 q 7,-6 14,0"
+       fill="none"
+       stroke="#c65a4f"
+       stroke-width="2"
+       id="path99" />
+    <text
+       x="70"
+       y="48"
+       font-size="11.5"
+       fill="#3f3f35"
+       id="text100">wave — spellchecker (COLOR_SPELLCHECK)</text>
+    <path
+       d="M 16,64 q 7,-6 14,0 q 7,6 14,0 q 7,-6 14,0"
+       fill="none"
+       stroke="#4a7396"
+       stroke-width="2"
+       id="path100" />
+    <text
+       x="70"
+       y="68"
+       font-size="11.5"
+       fill="#3f3f35"
+       id="text101">wave — LanguageTool (COLOR_LANGUAGE_TOOLS)</text>
+    <path
+       d="M 16,82 h 42"
+       fill="none"
+       stroke="#3f7d53"
+       stroke-width="3.5"
+       id="path101" />
+    <text
+       x="70"
+       y="86"
+       font-size="11.5"
+       fill="#3f3f35"
+       id="text102">solid bold — glossary TransTips (COLOR_TRANSTIPS)</text>
+    <text
+       x="16"
+       y="112"
+       font-size="13.5"
+       font-weight="bold"
+       fill="#4a4433"
+       id="text103">Pins — the gates, verbatim</text>
+    <a
+       href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/glossary/TransTipsMarker.java#L54"
+       target="_blank"
+       id="a104">
+      <text
+         x="16"
+         y="132"
+         font-size="11"
+         fill="#3f3f35"
+         id="text104">1  TransTipsMarker.java:54 — if (!isActive || sourceText == null)</text>
+    </a>
+    <text
+       x="16"
+       y="147"
+       font-size="11"
+       fill="#3f3f35"
+       id="text105">    return null; — the one hard active-only feature gate</text>
+    <a
+       href="https://github.com/omegat-org/omegat/blob/648fadc4c1c90d13cadbc0b6d0e9a627a4bb1968/src/main/java/org/omegat/gui/editor/mark/AbstractMarker.java#L81"
+       target="_blank"
+       id="a106">
+      <text
+         x="16"
+         y="167"
+         font-size="11"
+         fill="#3f3f35"
+         id="text106">2  AbstractMarker.java:81 — source side marked only when active</text>
+    </a>
+    <text
+       x="16"
+       y="182"
+       font-size="11"
+       fill="#3f3f35"
+       id="text107">    or “Display Segment Sources” is on (else no source shown)</text>
+    <text
+       x="16"
+       y="202"
+       font-size="11"
+       fill="#3f3f35"
+       id="text108">3  SpellChecker/LanguageTool markers carry no isActive check:</text>
+    <text
+       x="16"
+       y="217"
+       font-size="11"
+       fill="#3f3f35"
+       id="text109">    they mark every displayed translation in the document</text>
+  </g>
+  <!-- scale bar -->
+  <g
+     transform="translate(80,940)"
+     stroke="#3f4a42"
+     fill="#3f4a42"
+     id="g112">
+    <path
+       d="M 0,0 h 120"
+       stroke-width="2"
+       id="path109" />
+    <path
+       d="M 0,-5 v 10 M 60,-5 v 10 M 120,-5 v 10"
+       stroke-width="1.5"
+       id="path110" />
+    <text
+       x="0"
+       y="24"
+       font-size="12"
+       stroke="none"
+       id="text110">0</text>
+    <text
+       x="50"
+       y="24"
+       font-size="12"
+       stroke="none"
+       id="text111">500</text>
+    <text
+       x="98"
+       y="24"
+       font-size="12"
+       stroke="none"
+       id="text112">1000 segments</text>
+  </g>
+  <!-- footer -->
+  <text
+     x="40"
+     y="1008"
+     font-size="11.5"
+     fill="#5f6b5f"
+     id="text113">Snapshot of master 648fadc4c, mid-September 2026, not automatically updated. Companions: omegat-event-flow-overview.svg · omegat-architecture-overview.svg · src/docs/developer/21.OmegaTInternals.md</text>
+  <circle
+     cx="30"
+     cy="1026.2"
+     r="5.6"
+     fill="none"
+     stroke="#5f6b71"
+     stroke-width="1.1"
+     id="circle113" />
+  <path
+     d="M 27.2,1024.5 A 3.3 3.3 0 1 1 27.2,1027.9"
+     fill="none"
+     stroke="#5f6b71"
+     stroke-width="1.2"
+     stroke-linecap="round"
+     id="path113" />
+  <text
+     x="42"
+     y="1030"
+     font-family="Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#5f6b71"
+     id="text114">2026  -  OmegaT - Computer Assisted Translation (CAT) tool  -  This file is part of OmegaT, released under the GNU General Public License v3 or later</text>
+  <text
+     x="42"
+     y="1045"
+     font-family="Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#5f6b71"
+     id="text115">OmegaT is distributed WITHOUT ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE - see the GNU General Public License for more details.</text>
+</svg>
