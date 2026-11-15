@@ -125,6 +125,9 @@ public final class EditorPopups {
             // results when compared to other spell-checking functionality
             // in OmegaT.
             String translation = ec.getCurrentTranslation();
+            if (translation == null) {
+                return;
+            }
             Token tok = null;
             int relOffset = ec.getPositionInEntryTranslation(mousepos);
             for (Token t : Core.getProject().getTargetTokenizer().tokenizeWords(translation,
