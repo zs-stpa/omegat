@@ -36,7 +36,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.omegat.gui.editor.SegmentMetadataConfigDialog.ColumnTableModel;
+import org.omegat.gui.editor.SegmentMetadataConfigDialog.PairAlignmentPanel;
 import org.omegat.gui.editor.SegmentMetadataGutter.Column;
+import org.omegat.gui.editor.SegmentMetadataGutter.ColumnAlignment;
 import org.omegat.util.Preferences;
 import org.omegat.util.TestPreferencesInitializer;
 
@@ -62,10 +64,15 @@ public class SegmentMetadataConfigDialogTest {
         assertEquals(Column.values().length, model.getRowCount());
         assertEquals(Column.NUMBER.getLabel(), model.getValueAt(0, 2));
         assertEquals(Boolean.TRUE, model.getValueAt(0, 0));
-        assertEquals(Boolean.FALSE, model.getValueAt(model.getRowCount() - 1, 0));
         assertTrue(model.isCellEditable(0, 0));
         assertFalse(model.isCellEditable(0, 1));
         assertFalse(model.isCellEditable(0, 2));
+        // The text pseudo rows close the table: always on, not toggleable.
+        int last = model.getRowCount() - 1;
+        assertEquals(Column.TARGET_TEXT, model.columnAt(last));
+        assertEquals(Column.SOURCE_TEXT, model.columnAt(last - 1));
+        assertEquals(Boolean.TRUE, model.getValueAt(last, 0));
+        assertFalse(model.isCellEditable(last, 0));
     }
 
     @Test
@@ -81,7 +88,9 @@ public class SegmentMetadataConfigDialogTest {
         model.moveRow(0, Column.values().length);
         List<Column> order = Column.inDisplayOrder();
         assertEquals(Column.STATUS, order.get(0));
-        assertEquals(Column.NUMBER, order.get(order.size() - 1));
+        // The metadata row stops at the text pair, which closes the table.
+        assertEquals(Column.NUMBER, order.get(order.size() - 3));
+        assertEquals(Column.TARGET_TEXT, order.get(order.size() - 1));
         assertEquals(1, refreshes.get());
         assertEquals(Column.STATUS.getLabel(), model.getValueAt(0, 2));
     }
@@ -93,5 +102,78 @@ public class SegmentMetadataConfigDialogTest {
         assertEquals(Column.values().length, order.size());
         assertEquals(Column.DATE, order.get(0));
         assertEquals(Column.NUMBER, order.get(1));
+    }
+
+    @Test
+    public void testTheTextRowsSwapButStayAdjacent() {
+        int sourceRow = model.getRowCount() - 2;
+        assertEquals(sourceRow + 1, model.move(sourceRow, 1));
+        List<Column> order = Column.inDisplayOrder();
+        assertEquals(Column.TARGET_TEXT, order.get(order.size() - 2));
+        assertEquals(Column.SOURCE_TEXT, order.get(order.size() - 1));
+    }
+
+    @Test
+    public void testAFartherTextMoveCarriesThePairToTheOtherEnd() {
+        assertFalse(Column.metadataAfterText());
+        // The upper text row moves up into the metadata block: the whole
+        // pair jumps to the start, the metadata columns go after the text.
+        int moved = model.move(model.getRowCount() - 2, -1);
+        assertEquals(0, moved);
+        assertTrue(Column.metadataAfterText());
+        List<Column> order = Column.inDisplayOrder();
+        assertEquals(Column.SOURCE_TEXT, order.get(0));
+        assertEquals(Column.TARGET_TEXT, order.get(1));
+        // And metadata rows never move into or beyond the leading pair.
+        assertEquals(-1, model.move(2, -1));
+    }
+
+    @Test
+    public void testTheNormalizationKeepsNothingBetweenTheTextRows() {
+        Preferences.setPreference(Preferences.EDITOR_METADATA_GUTTER_ORDER,
+                "SOURCE_TEXT,NUMBER,TARGET_TEXT");
+        List<Column> order = Column.inDisplayOrder();
+        assertEquals(Column.SOURCE_TEXT, order.get(0));
+        assertEquals(Column.TARGET_TEXT, order.get(1));
+        assertEquals(Column.NUMBER, order.get(2));
+    }
+
+    @Test
+    public void testTheTargetRowIsMostlyInertWhileStacked() {
+        int targetRow = model.getRowCount() - 1;
+        assertTrue(ColumnTableModel.stacked());
+        // The alignment stays configurable even while the texts are stacked.
+        assertTrue(model.isCellEditable(targetRow, 4));
+        assertFalse(model.isCellEditable(targetRow, 5));
+        model.cycleAlignment(targetRow);
+        assertEquals(1, refreshes.get());
+        Preferences.setPreference(Preferences.EDITOR_LAYOUT_STACKED, false);
+        assertTrue(model.isCellEditable(targetRow, 4));
+        assertTrue(model.isCellEditable(targetRow, 5));
+    }
+
+    @Test
+    public void testThePairPatternsShowWhereTheTextsComeOut() {
+        ColumnAlignment lead = ColumnAlignment.LEADING;
+        ColumnAlignment trail = ColumnAlignment.TRAILING;
+        ColumnAlignment center = ColumnAlignment.CENTER;
+        // Two left-to-right texts: the classic pictures.
+        assertEquals("x..|a..", PairAlignmentPanel.pattern(lead, lead, false, false));
+        assertEquals("..x|..a", PairAlignmentPanel.pattern(trail, trail, false, false));
+        assertEquals("..x|a..", PairAlignmentPanel.pattern(trail, lead, false, false));
+        assertEquals("x..|..a", PairAlignmentPanel.pattern(lead, trail, false, false));
+        assertEquals(".x.|.a.", PairAlignmentPanel.pattern(center, center, false, false));
+        // A right-to-left text on the right: its leading edge is the right one.
+        assertEquals("x..|..a", PairAlignmentPanel.pattern(lead, lead, false, true));
+        assertEquals("..x|a..", PairAlignmentPanel.pattern(trail, trail, false, true));
+        assertEquals("..x|..a", PairAlignmentPanel.pattern(trail, lead, false, true));
+        assertEquals("x..|a..", PairAlignmentPanel.pattern(lead, trail, false, true));
+        assertEquals(".x.|.a.", PairAlignmentPanel.pattern(center, center, false, true));
+        // A right-to-left text on the left, as in a Hebrew to English project.
+        assertEquals("..x|a..", PairAlignmentPanel.pattern(lead, lead, true, false));
+        assertEquals("x..|..a", PairAlignmentPanel.pattern(trail, trail, true, false));
+        // Two right-to-left texts: the classic pictures mirrored.
+        assertEquals("..x|..a", PairAlignmentPanel.pattern(lead, lead, true, true));
+        assertEquals("x..|..a", PairAlignmentPanel.pattern(trail, lead, true, true));
     }
 }
