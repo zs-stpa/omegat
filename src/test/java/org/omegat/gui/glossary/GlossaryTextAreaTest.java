@@ -46,6 +46,7 @@ import org.junit.Test;
 import org.omegat.core.Core;
 import org.omegat.core.TestCore;
 import org.omegat.util.Preferences;
+import org.omegat.util.gui.ForcedWrappingEditorKit;
 
 /**
  *
@@ -80,6 +81,16 @@ public class GlossaryTextAreaTest extends TestCore {
         renderer.render(entries.get(1), doc);
         String expected = doc.getText(0, doc.getLength());
         assertEquals(expected, gta.getText());
+    }
+
+    /**
+     * The pane relies on the forced-wrapping kit: a plain kit lets one long
+     * unbreakable token switch word wrapping off for the whole pane.
+     */
+    @Test
+    public void testUsesForcedWrappingEditorKit() {
+        GlossaryTextArea gta = new GlossaryTextArea(Core.getMainWindow());
+        assertTrue(gta.getEditorKit() instanceof ForcedWrappingEditorKit);
     }
 
     @Test

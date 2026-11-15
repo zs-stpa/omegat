@@ -23,7 +23,7 @@
  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **************************************************************************/
 
-package org.omegat.gui.properties;
+package org.omegat.util.gui;
 
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
