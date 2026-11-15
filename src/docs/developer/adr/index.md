@@ -14,6 +14,7 @@
 - 2026002 [Preferences Architecture and Testable Store Injection](2026002.PreferencesArchitecture.md)
 - 2026003 [Filter Class Registry Migration to CoreState](2026003.FilterClassRegistryInCoreState.md)
 - 2026004 [EditorColor Registry Consistency](2026004.EditorColorRegistryConsistency.md)
+- 2026009 [Color Binding Primitive and Plugin Color Contributions](2026009.ColorBindingAndPluginColors.md)
 
 ## Core features
 
