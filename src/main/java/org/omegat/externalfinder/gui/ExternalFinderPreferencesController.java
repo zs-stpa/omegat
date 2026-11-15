@@ -156,7 +156,7 @@ public class ExternalFinderPreferencesController extends BasePreferencesControll
     public ExternalFinderConfiguration getResult() {
         int priority = (Integer) panel.prioritySpinner.getValue();
         List<ExternalFinderItem> items = ((ItemsTableModel) panel.itemTable.getModel()).getItems();
-        return new ExternalFinderConfiguration(priority, items);
+        return originalConfig.withItems(priority, items);
     }
 
     @Override

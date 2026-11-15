@@ -26,20 +26,22 @@
 package org.omegat.externalfinder.item;
 
 import java.io.File;
+import java.io.StringReader;
 import java.util.Locale;
 import java.util.Objects;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 
 /**
  * A writer class for serializing ExternalFinderConfiguration objects to XML format.
@@ -66,7 +68,14 @@ public class ExternalFinderXMLWriter {
 
     private Transformer getSecureTransformer() throws Exception {
         TransformerFactory factory = TransformerFactory.newInstance();
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        try {
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (TransformerConfigurationException e) {
+            // The JDK's own factory does not know this feature and refused it
+            // since the feature was added, which left every save failing. The
+            // source is a DOM built here, with no doctype to disallow.
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        }
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         Transformer transformer = factory.newTransformer();
@@ -76,9 +85,7 @@ public class ExternalFinderXMLWriter {
     }
 
     private Document createDocument(ExternalFinderConfiguration config) throws Exception {
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        docFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        DocumentBuilder docBuilder = ExternalFinderXMLLoader.createDocumentBuilder();
         Document doc = docBuilder.newDocument();
 
         // items
@@ -90,9 +97,17 @@ public class ExternalFinderXMLWriter {
             root.setAttribute("priority", Integer.toString(config.getPriority()));
         }
 
-        for (ExternalFinderItem i : config.getItems()) {
-            // item
-            root.appendChild(createItem(doc, i));
+        for (ExternalFinderConfiguration.Entry entry : config.getEntries()) {
+            ExternalFinderItem item = entry.getItem();
+            if (item != null) {
+                // item
+                root.appendChild(createItem(doc, item));
+            } else {
+                // an item this version could not read, in place and unchanged
+                String fragment = Objects.requireNonNull(entry.getFragment());
+                Document kept = docBuilder.parse(new InputSource(new StringReader(fragment)));
+                root.appendChild(doc.importNode(kept.getDocumentElement(), true));
+            }
         }
 
         return doc;
