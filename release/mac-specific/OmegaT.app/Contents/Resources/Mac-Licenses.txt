@@ -1,6 +1,5 @@
 OmegaT.app includes the following software in binary form.
 
-Java Runtime Environment
-License: Oracle Binary Code License Agreement for the Java SE Platform
-Products and JavaFX
-See http://www.oracle.com/technetwork/java/javase/terms/license/index.html
+Java Runtime Environment (Eclipse Temurin)
+License: GNU General Public License, version 2, with the Classpath Exception
+See https://openjdk.org/legal/gplv2+ce.html
