@@ -38,15 +38,23 @@ public class OStringsTest {
 
     @Test
     public void testDevBuildMarkerFromBranchCheckout() {
-        assertEquals("[6d79ee8db @ master]", OStrings.getDevBuildMarker("6d79ee8db", "master"));
-        assertEquals("[6d79ee8db @ topic/stpa/build/worktree-revision]",
-                OStrings.getDevBuildMarker("6d79ee8db", "topic/stpa/build/worktree-revision"));
+        assertEquals("[6d79ee8db 2026-09-13 15:52 at master]",
+                OStrings.getDevBuildMarker("6d79ee8db", "master", "2026-09-13 15:52"));
+        assertEquals("[6d79ee8db 2026-09-13 15:52 at topic/stpa/build/worktree-revision]",
+                OStrings.getDevBuildMarker("6d79ee8db", "topic/stpa/build/worktree-revision",
+                        "2026-09-13 15:52"));
+    }
+
+    @Test
+    public void testDevBuildMarkerWithoutCommitTimestamp() {
+        assertEquals("[6d79ee8db @ master]", OStrings.getDevBuildMarker("6d79ee8db", "master", ""));
+        assertEquals("[6d79ee8db @ master]", OStrings.getDevBuildMarker("6d79ee8db", "master", "@committime@"));
     }
 
     @Test
     public void testDevBuildMarkerHiddenOutsideBranchCheckouts() {
-        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", ""));
-        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", "HEAD"));
-        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", "@gitbranch@"));
+        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", "", "2026-09-13 15:52"));
+        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", "HEAD", "2026-09-13 15:52"));
+        assertEquals("", OStrings.getDevBuildMarker("6d79ee8db", "@gitbranch@", "2026-09-13 15:52"));
     }
 }

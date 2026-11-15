@@ -582,6 +582,10 @@ def revision = [provided, gitArchival, omtVersion.revision, git, 'unknown'].find
 // The branch name is empty outside a git checkout and "HEAD" when detached
 // (e.g. a tag build); both cases mean "not a development build".
 def gitBranch = insideGitCheckout ? providers.exec {commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")}.standardOutput.asText.get().trim() : ''
+// Committer date of HEAD (i.e. the last amend or rebase) in the build
+// machine's local time, 24h clock. --no-show-signature keeps gpg output of
+// signed commits off stdout.
+def gitCommitTime = insideGitCheckout ? providers.exec {commandLine("git", "log", "-1", "--no-show-signature", "--format=%cd", "--date=format-local:%Y-%m-%d %H:%M")}.standardOutput.asText.get().trim() : ''
 
 processResources {
     /*
@@ -595,10 +599,11 @@ processResources {
      */
     inputs.property 'revision', revision
     inputs.property 'branch', gitBranch
+    inputs.property 'committime', gitCommitTime
     logger.lifecycle("Detected revision " + revision
             + (gitBranch.empty ? "" : " on branch " + gitBranch))
     filesMatching('**/Version.properties') {
-        filter ReplaceTokens, tokens:["dev": revision, "gitbranch": gitBranch]
+        filter ReplaceTokens, tokens:["dev": revision, "gitbranch": gitBranch, "committime": gitCommitTime]
     }
 }
 
