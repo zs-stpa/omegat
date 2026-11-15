@@ -28,9 +28,8 @@ package org.omegat.externalfinder.item;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
+import org.omegat.externalfinder.item.PlaceholderTemplate.Context;
 import org.omegat.util.OStrings;
 
 /**
@@ -100,28 +99,27 @@ public class ExternalFinderItemURL {
         return true;
     }
 
-    public URI generateURL(String findingWords) throws UnsupportedEncodingException, URISyntaxException {
-        return generateURL(url, encoding, findingWords);
+    /** Whether the URL reads the editor selection; see {@link PlaceholderTemplate}. */
+    public boolean usesSelection() {
+        return PlaceholderTemplate.usesSelection(url);
     }
 
-    private static URI generateURL(String url, ExternalFinderItem.ENCODING encoding,
-            String findingWords) throws UnsupportedEncodingException, URISyntaxException {
-        String encodedWords;
-        if (encoding == ExternalFinderItem.ENCODING.NONE) {
-            encodedWords = findingWords;
-        } else {
-            encodedWords = URLEncoder.encode(findingWords, StandardCharsets.UTF_8.name());
-            if (encoding == ExternalFinderItem.ENCODING.ESCAPE) {
-                encodedWords = encodedWords.replace("+", "%20");
-            }
-        }
+    public URI generateURL(String findingWords) throws UnsupportedEncodingException, URISyntaxException {
+        return generateURL(Context.ofSelection(findingWords));
+    }
 
-        String replaced = url.replace(ExternalFinderItem.PLACEHOLDER_TARGET, encodedWords);
-        return new URI(replaced);
+    public URI generateURL(Context context) throws URISyntaxException {
+        return generateURL(url, encoding, context);
+    }
+
+    private static URI generateURL(String url, ExternalFinderItem.ENCODING encoding, Context context)
+            throws URISyntaxException {
+        return new URI(PlaceholderTemplate.parse(url).resolve(context, encoding::apply));
     }
 
     public static final class Builder {
         private String url;
+        private boolean placeholderRequired = true;
         private ExternalFinderItem.TARGET target = ExternalFinderItem.TARGET.BOTH;
         private ExternalFinderItem.ENCODING encoding = ExternalFinderItem.ENCODING.DEFAULT;
 
@@ -133,6 +131,19 @@ public class ExternalFinderItemURL {
         public Builder setURL(String url) {
             this.url = url;
             return this;
+        }
+
+        /**
+         * A search needs a placeholder to be a search; a plain link to open
+         * does not. Default: required.
+         */
+        public Builder setPlaceholderRequired(boolean placeholderRequired) {
+            this.placeholderRequired = placeholderRequired;
+            return this;
+        }
+
+        public boolean isPlaceholderRequired() {
+            return placeholderRequired;
         }
 
         public String getURL() {
@@ -174,9 +185,9 @@ public class ExternalFinderItemURL {
                 throw new ExternalFinderValidationException(
                         OStrings.getString("EXTERNALFINDER_URL_ERROR_NOURL"));
             }
-            if (!url.contains(ExternalFinderItem.PLACEHOLDER_TARGET)) {
-                throw new ExternalFinderValidationException(OStrings.getString(
-                        "EXTERNALFINDER_URL_ERROR_NOTOKEN", ExternalFinderItem.PLACEHOLDER_TARGET));
+            if (!PlaceholderTemplate.parse(url).hasPlaceholders() && placeholderRequired) {
+                throw new ExternalFinderValidationException(
+                        OStrings.getString("EXTERNALFINDER_PLACEHOLDER_ERROR_NONE"));
             }
             if (target == null) {
                 throw new ExternalFinderValidationException("EXTERNALFINDER_URL_ERROR_NOTARGET");
@@ -191,10 +202,9 @@ public class ExternalFinderItemURL {
             }
         }
 
-        public URI generateSampleURL() throws UnsupportedEncodingException, URISyntaxException {
-            String findingWords = target == ExternalFinderItem.TARGET.NON_ASCII_ONLY
-                    ? "f\u00f8\u00f8 b\u00e5r" : "foo bar";
-            return generateURL(url, encoding, findingWords);
+        public URI generateSampleURL() throws URISyntaxException {
+            return generateURL(url, encoding,
+                    Context.sample(target == ExternalFinderItem.TARGET.NON_ASCII_ONLY));
         }
     }
 }

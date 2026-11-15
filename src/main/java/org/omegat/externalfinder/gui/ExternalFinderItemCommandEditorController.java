@@ -77,6 +77,8 @@ public class ExternalFinderItemCommandEditorController {
         StaticUIUtils.setEscapeClosable(dialog);
 
         panel.urlPanel.setVisible(false);
+        // Below the explanatory text, above the field.
+        panel.commandPanel.add(PlaceholderLinks.create(panel.commandTextArea), 1);
 
         panel.commandTextArea.setText(builder.getCommand());
         panel.commandTextArea.getDocument().addDocumentListener(new DocumentListener() {

@@ -36,11 +36,28 @@
     <li><strong>items</strong>: This element has an <em>optional</em> attribute <em>priority</em>.</li>
     <li><strong>item</strong>: This element has an <em>optional</em> attribute <em>nopopup</em>.</li>
     <li><strong>name</strong>: A string to show as a menu item. For a mnemonic, you can use '&amp;' (written in XML as '&amp;amp;').</li>
-    <li><strong>url</strong>: A URL with a <strong>{target}</strong> placeholder with <em>optional</em> attributes: <em>target</em> and <em>encoding</em>.</li>
-    <li><strong>command</strong>: A command string with a <strong>{target}</strong> placeholder with <em>optional</em> attributes: <em>target</em>, <em>encoding</em>, and <em>delimiter</em>.</li>
+    <li><strong>url</strong>: A URL with placeholders (see below) with <em>optional</em> attributes: <em>target</em> and <em>encoding</em>.</li>
+    <li><strong>command</strong>: A command string with placeholders with <em>optional</em> attributes: <em>target</em>, <em>encoding</em>, and <em>delimiter</em>.</li>
     <li><strong>keystroke</strong>: A definition of the keyboard shortcut (same as OmegaT's custom keyboard shortcut). Ref. <a href="http://docs.oracle.com/javase/8/docs/api/javax/swing/KeyStroke.html#getKeyStroke-java.lang.String-">KeyStroke (Java Platform SE 8 )</a></li>
     </ul>
-    
+
+    <h2>Placeholders</h2>
+
+    <ul>
+    <li><strong>{target}</strong>: selected editor text. Items using it appear only while text is selected.</li>
+    <li><strong>{source}</strong>, <strong>{translation}</strong>: texts of the current segment.</li>
+    <li><strong>{comment}</strong>: comment of the current segment, e.g. an XLIFF note; <strong>{note}</strong>: the translator's note.</li>
+    <li><strong>{prop:key}</strong>: property <em>key</em> of the current segment, as listed in the Segment Properties pane.</li>
+    <li><strong>{file}</strong>, <strong>{path}</strong>, <strong>{id}</strong>, <strong>{number}</strong>: where the segment comes from.</li>
+    <li><strong>{status}</strong> (translated, untranslated), <strong>{link}</strong> (ice, 100pc, auto, enforced, empty), <strong>{origin}</strong>,
+    <strong>{author}</strong>, <strong>{date}</strong>, <strong>{creator}</strong>, <strong>{created}</strong> (ISO 8601): the translation record.</li>
+    <li><strong>{duplicate}</strong> (none, first, next), <strong>{duplicates}</strong>, <strong>{alternative}</strong>, <strong>{paragraph}</strong> (true, false).</li>
+    </ul>
+    <p>A regex in braces narrows a value: <code>{comment:{line=(\d+)}}</code>, <code>{prop:note:{path=(\S+)}}</code>.
+    The first match is used, group 1 if the regex has groups, otherwise the whole match; no match gives an empty value.
+    Braces inside the regex must be balanced or escaped with a backslash. The encoding attribute applies to every placeholder value.
+    A URL or command must contain at least one placeholder; parsing is implemented in <code>org.omegat.externalfinder.item.PlaceholderTemplate</code>.</p>
+
     <h2>XML examples:</h2>
     
     <ul>
