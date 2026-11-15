@@ -30,6 +30,7 @@ package org.omegat.gui.editor;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.font.TextAttribute;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
@@ -56,6 +57,12 @@ import org.omegat.util.gui.Styles;
 public class Document3 extends DefaultStyledDocument {
 
     private final EditorController controller;
+
+    /** The parts start with direction markers, see useParagraphDirections. */
+    private final boolean hasRTL;
+
+    /** AbstractDocument.I18NProperty, which is package-private there. */
+    private static final String I18N_PROPERTY = "i18n";
 
     /** Position of active translation in text. */
     @Nullable
@@ -119,7 +126,23 @@ public class Document3 extends DefaultStyledDocument {
     }
 
     public Document3(final EditorController controller) {
+        this(controller, false);
+    }
+
+    /**
+     * @param hasRTL
+     *            the document contains text of both directions, so its parts
+     *            start with direction markers
+     */
+    public Document3(final EditorController controller, final boolean hasRTL) {
         this.controller = controller;
+        this.hasRTL = hasRTL;
+        if (hasRTL) {
+            // Swing runs the bidi algorithm only once the document holds a
+            // character that needs it; the direction markers in front of the
+            // parts are none, the embedding controls of earlier versions were.
+            putProperty(I18N_PROPERTY, Boolean.TRUE);
+        }
 
         applyDefaultColors();
         setFont(controller.font);
@@ -264,5 +287,38 @@ public class Document3 extends DefaultStyledDocument {
 
     protected EditorController getController() {
         return controller;
+    }
+
+    /**
+     * Lets every paragraph read in the direction of its own text. A text
+     * component sets the run direction of its document from its orientation
+     * whenever it gets a document or a new orientation; with that property
+     * every paragraph has the direction of the component, and the bidi
+     * algorithm moves the whitespace at every line end of a text in the
+     * other direction to the far side of the editor (UAX#9, rule L1):
+     * trailing spaces, the space a line wraps at, the line break itself.
+     * Without the property the base direction of a paragraph comes from its
+     * first strong character, which is the direction marker the segment
+     * builder writes in front of each part. A document without markers keeps
+     * the direction of the component for all of its paragraphs.
+     */
+    void useParagraphDirections() {
+        if (!hasRTL || getProperty(TextAttribute.RUN_DIRECTION) == null) {
+            return;
+        }
+        setTrustedChangesInProgress(true);
+        try {
+            writeLock();
+            putProperty(TextAttribute.RUN_DIRECTION, null);
+            // putProperty recomputes the bidi levels but tells no view; the
+            // line layout would keep the measurer built with the old direction.
+            DefaultDocumentEvent changes = new DefaultDocumentEvent(0, getLength(),
+                    DocumentEvent.EventType.CHANGE);
+            changes.end();
+            fireChangedUpdate(changes);
+        } finally {
+            writeUnlock();
+            setTrustedChangesInProgress(false);
+        }
     }
 }

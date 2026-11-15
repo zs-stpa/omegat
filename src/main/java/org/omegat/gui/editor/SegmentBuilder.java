@@ -87,13 +87,11 @@ public class SegmentBuilder {
     // true = do NOT insert (take care of double negation!)
     public static final boolean DONT_INSERT_SOURCE_TEXT_DEFAULT = true;
 
-    private static final String BIDI_LRE = "\u202a";
-    private static final String BIDI_RLE = "\u202b";
-    private static final String BIDI_PDF = "\u202c";
-    public static final String BIDI_LRM = "\u200e";
-    public static final String BIDI_RLM = "\u200f";
-    public static final char BIDI_LRM_CHAR = '\u200e';
-    public static final char BIDI_RLM_CHAR = '\u200f';
+    /** The direction markers of BiDiUtils, under the names callers know. */
+    public static final String BIDI_LRM = BiDiUtils.BIDI_LRM;
+    public static final String BIDI_RLM = BiDiUtils.BIDI_RLM;
+    public static final char BIDI_LRM_CHAR = BiDiUtils.BIDI_LRM_CHAR;
+    public static final char BIDI_RLM_CHAR = BiDiUtils.BIDI_RLM_CHAR;
 
     static AtomicLong globalVersions = new AtomicLong();
 
@@ -157,9 +155,10 @@ public class SegmentBuilder {
     protected MarkInfo @Nullable [] @Nullable [] marks;
 
     /**
-     * True if source OR target languages is RTL. In this case, we will insert
-     * RTL/LTR embedded direction chars. Otherwise - will not insert, since JDK
-     * 1.6 has bug with performance with embedded directions chars.
+     * True if a language of the project, or the locale, is RTL. In this case
+     * every part starts with a direction marker, see insertDirectionMarker.
+     * Otherwise nothing is inserted and the document reads in the direction
+     * of the editor.
      */
     protected final boolean hasRTL;
 
@@ -537,11 +536,9 @@ public class SegmentBuilder {
      *            segment part text
      */
     private String addInactiveSegPart(boolean isSource, String text) throws BadLocationException {
-        int prevOffset = offset;
         boolean rtl = isSource ? controller.sourceLangIsRTL : controller.targetLangIsRTL;
-        insertDirectionEmbedding(rtl);
+        int prevOffset = beginParagraph(rtl);
         String result = insertTextWithTags(text, isSource);
-        insertDirectionEndEmbedding();
         insert("\n", null);
         setAlignment(prevOffset, offset, rtl);
         return result;
@@ -554,17 +551,15 @@ public class SegmentBuilder {
      *            other language translation text
      */
     private void addOtherLanguagePart(String text, Language language) throws BadLocationException {
-        int prevOffset = offset;
         boolean rtl = BiDiUtils.isRtl(language.getLanguageCode());
+        int prevOffset = beginParagraph(rtl);
         insertDirectionEmbedding(false);
         AttributeSet normal = attrs(true, false, false, false);
         insert(language.getLanguage() + ": ", normal);
         insertDirectionEndEmbedding();
 
-        insertDirectionEmbedding(rtl);
         AttributeSet attrs = settings.getOtherLanguageTranslationAttributeSet();
         insert(text, attrs);
-        insertDirectionEndEmbedding();
         insert("\n", null);
         setAlignment(prevOffset, offset, rtl);
     }
@@ -604,12 +599,10 @@ public class SegmentBuilder {
             }
         }
 
-        int prevOffset = offset;
         boolean rtl = BiDiUtils.isLocaleRtl();
-        insertDirectionEmbedding(rtl);
+        int prevOffset = beginParagraph(rtl);
         AttributeSet attrs = settings.getModificationInfoAttributeSet();
         insert(text, attrs);
-        insertDirectionEndEmbedding();
         insert("\n", null);
         setAlignment(prevOffset, offset, rtl);
     }
@@ -622,33 +615,21 @@ public class SegmentBuilder {
      * @throws BadLocationException
      */
     private String addActiveSegPart(String text) throws BadLocationException {
-        int prevOffset = offset;
-
         // write translation part
         boolean rtl = controller.targetLangIsRTL;
-
-        insertDirectionEmbedding(rtl);
+        int prevOffset = beginParagraph(rtl);
 
         activeTranslationBeginOffset = offset;
         String result = insertTextWithTags(text, false);
         activeTranslationEndOffset = offset;
 
-        insertDirectionEndEmbedding();
-
-        // write segment marker
-        // we want the marker AFTER the translated text, so use same direction
-        // as target text.
-        insertDirectionMarker(rtl);
-
-        // the marker itself is in user language
+        // the segment marker follows the translated text in the direction
+        // of the paragraph, which the leading marker set to the target
+        // direction; the marker itself is in user language
         insertDirectionEmbedding(BiDiUtils.isLocaleRtl());
         AttributeSet attrSegmentMark = settings.getSegmentMarkerAttributeSet();
         insert(createSegmentMarkText(), attrSegmentMark);
         insertDirectionEndEmbedding();
-
-        // we want the marker AFTER the translated text, so embed in same
-        // direction as target text.
-        insertDirectionMarker(rtl);
 
         insert("\n", null);
 
@@ -663,6 +644,17 @@ public class SegmentBuilder {
     private void insert(String text, AttributeSet attrs) throws BadLocationException {
         doc.insertString(offset, text, attrs);
         offset += text.length();
+    }
+
+    /**
+     * Begins a paragraph that reads in the given direction.
+     *
+     * @return the start offset of the paragraph, for its alignment
+     */
+    private int beginParagraph(boolean rtl) throws BadLocationException {
+        int prevOffset = offset;
+        insertDirectionMarker(rtl);
+        return prevOffset;
     }
 
     /**
@@ -769,8 +761,9 @@ public class SegmentBuilder {
     }
 
     /**
-     * Writes (if necessary) an RTL or LTR marker. Use it before writing text in
-     * some language.
+     * Writes (if necessary) an RTL or LTR embedding. Use it before writing a
+     * run of text in some language inside a paragraph of another direction;
+     * close it with insertDirectionEndEmbedding.
      *
      * @param isRTL
      *            is the language that has to be written a right-to-left
@@ -779,7 +772,7 @@ public class SegmentBuilder {
      */
     private void insertDirectionEmbedding(boolean isRTL) throws BadLocationException {
         if (this.hasRTL) {
-            insert(isRTL ? BIDI_RLE : BIDI_LRE, null); // RTL- or LTR- embedding
+            insert(isRTL ? BiDiUtils.BIDI_RLE : BiDiUtils.BIDI_LRE, null); // RTL- or LTR- embedding
         }
     }
 
@@ -791,13 +784,18 @@ public class SegmentBuilder {
      */
     private void insertDirectionEndEmbedding() throws BadLocationException {
         if (this.hasRTL) {
-            insert(BIDI_PDF, null); // end of embedding
+            insert(BiDiUtils.BIDI_PDF, null); // end of embedding
         }
     }
 
     /**
-     * Writes (if necessary) an RTL or LTR marker. Use it before writing text in
-     * some language.
+     * Writes (if necessary) an RTL or LTR marker. Use it at the start of a
+     * paragraph, before writing text in some language: the document has no
+     * run direction of its own (see Document3.useParagraphDirections), so
+     * each paragraph reads in the direction of its first strong character,
+     * and the marker is that character. The text then reads in its own
+     * direction whatever its first word, and the whitespace at its line
+     * ends stays at the end instead of moving to the far side of the editor.
      *
      * @param isRTL
      *            is the language that has to be written a right-to-left
@@ -806,7 +804,7 @@ public class SegmentBuilder {
      */
     private void insertDirectionMarker(boolean isRTL) throws BadLocationException {
         if (this.hasRTL) {
-            insert(isRTL ? BIDI_RLM : BIDI_LRM, null); // RTL- or LTR- marker
+            insert(isRTL ? BiDiUtils.BIDI_RLM : BiDiUtils.BIDI_LRM, null); // RTL- or LTR- marker
         }
     }
 }

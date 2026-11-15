@@ -30,6 +30,7 @@
 
 package org.omegat.gui.editor;
 
+import java.awt.ComponentOrientation;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -224,6 +225,29 @@ public class EditorTextArea3 extends JEditorPane {
         // span colors are bound to the palette and resolve when painting
         // (see Styles#createBoundAttributeSet) — a repaint shows them
         repaint();
+    }
+
+    @Override
+    public void setDocument(Document doc) {
+        super.setDocument(doc);
+        keepParagraphDirections();
+    }
+
+    @Override
+    public void setComponentOrientation(ComponentOrientation o) {
+        super.setComponentOrientation(o);
+        keepParagraphDirections();
+    }
+
+    /**
+     * Both calls above set the run direction of the document from the
+     * orientation; the parts of our document read in their own direction.
+     */
+    private void keepParagraphDirections() {
+        Document doc = getDocument();
+        if (doc instanceof Document3) {
+            ((Document3) doc).useParagraphDirections();
+        }
     }
 
     @Override
@@ -746,7 +770,7 @@ public class EditorTextArea3 extends JEditorPane {
     private int expandSelectionStart(String text, int start) {
         // expand selection if surrounded by bidi marks (up to 2 chars)
         for (int i = 0; i < 2; i++) {
-            if (start > 0 && isDirectionChar(text.charAt(start - 1))) {
+            if (start > 0 && EditorUtils.isDirectionChar(text.charAt(start - 1))) {
                 start--;
             }
         }
@@ -756,15 +780,11 @@ public class EditorTextArea3 extends JEditorPane {
     private int expandSelectionEnd(String text, int end) {
         // expand selection if surrounded by bidi marks (up to 2 chars)
         for (int i = 0; i < 2; i++) {
-            if (end < text.length() && isDirectionChar(text.charAt(end))) {
+            if (end < text.length() && EditorUtils.isDirectionChar(text.charAt(end))) {
                 end++;
             }
         }
         return end;
-    }
-
-    private boolean isDirectionChar(char ch) {
-        return ch == '\u200E' || ch == '\u200F' || ch == '\u202A' || ch == '\u202B' || ch == '\u202C';
     }
 
     /**
