@@ -143,6 +143,27 @@ dependencies {
         implementation(libs.languagetool.core) {
             exclude module: 'jaxb-core'
             exclude module: 'jcl-over-slf4j'
+            // LT 6.8 pulls in a gRPC client stack (Synthesizer API, remote
+            // BERT/ML rules) that OmegaT never talks to. The transports and
+            // the protobuf bindings go; grpc-api and grpc-stub stay, because
+            // JLanguageTool.check links GRPCPostProcessing and its handlers
+            // of io.grpc.StatusRuntimeException whenever a rule matches:
+            // without them the class verifier fails the check. The unit
+            // tests still see the whole stack through the test fixtures;
+            // distributionSmokeTest checks the installed lib/ instead.
+            // protobuf-java stays as well: dsl4j (Lingvo DSL) needs it.
+            exclude module: 'grpc-netty-shaded'
+            exclude module: 'grpc-core'
+            exclude module: 'grpc-util'
+            exclude module: 'grpc-protobuf'
+            exclude module: 'grpc-protobuf-lite'
+            exclude module: 'proto-google-common-protos'
+        }
+        // jsr305 comes in transitively on several paths (openregex declares
+        // 2.0.1, grpc-api 3.0.2). Pin the latest release so the version no
+        // longer depends on which path is present.
+        constraints {
+            implementation(libs.findbugs.jsr305)
         }
         implementation(libs.icu4j)
 
