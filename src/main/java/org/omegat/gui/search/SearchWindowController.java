@@ -37,9 +37,11 @@ package org.omegat.gui.search;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -52,20 +54,34 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.swing.AbstractAction;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
+import javax.swing.JCheckBox;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
@@ -79,6 +95,7 @@ import org.openide.awt.Mnemonics;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.data.SourceTextEntry;
+import org.omegat.core.matching.MatchEquivalence;
 import org.omegat.core.search.SearchExpression;
 import org.omegat.core.search.SearchMode;
 import org.omegat.core.search.Searcher;
@@ -89,6 +106,7 @@ import org.omegat.gui.editor.IEditor.CaretPosition;
 import org.omegat.gui.editor.IEditorFilter;
 import org.omegat.gui.editor.filter.ReplaceFilter;
 import org.omegat.gui.editor.filter.SearchFilter;
+import org.omegat.gui.shortcuts.PropertiesShortcuts;
 import org.omegat.util.Log;
 import org.omegat.util.OConsts;
 import org.omegat.util.OStrings;
@@ -97,6 +115,7 @@ import org.omegat.util.Preferences;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.OSXIntegration;
 import org.omegat.util.gui.OmegaTFileChooser;
+import org.omegat.util.gui.ResourcesUtil;
 import org.omegat.util.gui.StaticUIUtils;
 import org.omegat.util.gui.UIThreadsUtil;
 
@@ -120,6 +139,14 @@ import org.omegat.util.gui.UIThreadsUtil;
 public class SearchWindowController {
 
     private final SearchWindowForm form;
+    private final Map<MatchEquivalence, JCheckBox> searchEquivalenceCBs = new EnumMap<>(
+            MatchEquivalence.class);
+    private final Map<MatchEquivalence, JCheckBox> replaceEquivalenceCBs = new EnumMap<>(
+            MatchEquivalence.class);
+    private final JCheckBox searchNumbersCB = new JCheckBox();
+    private final JCheckBox searchNumbersRomanCB = new JCheckBox();
+    private final JCheckBox replaceNumbersCB = new JCheckBox();
+    private final JCheckBox replaceNumbersRomanCB = new JCheckBox();
     private final SearchMode mode;
     private final int initialEntry;
     private final CaretPosition initialCaret;
@@ -131,6 +158,8 @@ public class SearchWindowController {
     public SearchWindowController(SearchMode mode) {
         form = new SearchWindowForm();
         form.setJMenuBar(new SearchWindowMenu(this));
+        initOptionsButton();
+        insertEquivalenceRows();
         Font f = Objects.requireNonNull(Core.getMainWindow()).getApplicationFont();
         setFont(f);
 
@@ -201,6 +230,8 @@ public class SearchWindowController {
             form.m_allResultsCB.setVisible(false);
             form.m_fileNamesCB.setVisible(false);
             form.m_filterButton.setVisible(false);
+            form.m_findPreviousButton.setVisible(false);
+            form.m_findNextButton.setVisible(false);
             form.m_numberLabel.setVisible(false);
             form.m_numberOfResults.setVisible(false);
             form.m_panelSearch.setVisible(false);
@@ -220,6 +251,48 @@ public class SearchWindowController {
         CoreEvents.registerFontChangedEventListener(this::setFont);
     }
 
+    /**
+     * Update the results' label after walking through the results with the Find
+     * Previous and Find Next buttons: while the navigation has just wrapped
+     * around the end of the results, a short note is appended to the number of
+     * results, and it disappears with the next step.
+     *
+     * @param wrapped
+     *            whether the last navigation step wrapped around
+     */
+    private void showResultNavigationStatus(boolean wrapped) {
+        String text = StringUtil.format(OStrings.getString("SW_NR_OF_RESULTS"),
+                ((EntryListPane) form.m_viewer).getNrEntries());
+        if (wrapped) {
+            text = text + " " + OStrings.getString("SW_RESULT_NAV_WRAPPED");
+        }
+        form.m_resultsLabel.setText(text);
+    }
+
+    /**
+     * Let F3 and Shift+F3 walk through the search results from anywhere in the
+     * Search window, mirroring the Find Next and Find Previous buttons (feature
+     * requests #1125 and #1380). The keys go through the buttons so that they
+     * stay inactive while there are no results.
+     */
+    private void bindResultNavigationKeys() {
+        InputMap inputMap = form.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0), "findNext");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK), "findPrevious");
+        form.getRootPane().getActionMap().put("findNext", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                form.m_findNextButton.doClick();
+            }
+        });
+        form.getRootPane().getActionMap().put("findPrevious", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                form.m_findPreviousButton.doClick();
+            }
+        });
+    }
+
     private void setComponentNames() {
         form.m_searchLabel.setName("SearchWindowForm.m_searchLabel");
         form.m_searchField.setName("SearchWindowForm.m_searchField");
@@ -234,6 +307,8 @@ public class SearchWindowController {
         form.m_searchTranslatedUntranslated.setName("SearchWindowForm.m_searchTranslatedUntranslated");
         form.m_searchTranslated.setName("SearchWindowForm.m_searchTranslated");
         form.m_searchButton.setName("SearchWindowForm.m_searchButton");
+        form.m_findPreviousButton.setName("SearchWindowForm.m_findPreviousButton");
+        form.m_findNextButton.setName("SearchWindowForm.m_findNextButton");
         form.m_viewer.setName("SearchWindowForm.m_viewer");
         form.m_rbDir.setName("SearchWindowForm.m_rbDir");
         form.m_rbProject.setName("SearchWindowForm.m_rbProject");
@@ -264,6 +339,14 @@ public class SearchWindowController {
         form.m_replaceAllButton.addActionListener(e -> doReplaceAll());
 
         form.m_searchButton.addActionListener(e -> doSearch());
+
+        if (mode == SearchMode.SEARCH) {
+            form.m_findPreviousButton.addActionListener(
+                    e -> showResultNavigationStatus(((EntryListPane) form.m_viewer).selectPreviousEntry()));
+            form.m_findNextButton.addActionListener(
+                    e -> showResultNavigationStatus(((EntryListPane) form.m_viewer).selectNextEntry()));
+            bindResultNavigationKeys();
+        }
 
         form.m_advancedButton
                 .addActionListener(e -> setAdvancedOptionsVisible(!form.m_advancedVisiblePane.isVisible()));
@@ -304,6 +387,8 @@ public class SearchWindowController {
         ActionListener searchFieldRequestFocus = e -> form.m_searchField.requestFocus();
 
         ActionListener wholeWordsStatusUpdate = e -> updateWholeWordsStatus();
+
+        wireReplaceEquivalenceStatus();
 
         form.m_searchExactSearchRB.addActionListener(searchFieldRequestFocus);
         form.m_searchExactSearchRB.addActionListener(wholeWordsStatusUpdate);
@@ -524,10 +609,6 @@ public class SearchWindowController {
         form.m_searchCase
                 .setSelected(Preferences.isPreferenceDefault(Preferences.SEARCHWINDOW_CASE_SENSITIVE, false));
 
-        // nbsp as space
-        form.m_searchSpaceMatchNbsp.setSelected(
-                Preferences.isPreferenceDefault(Preferences.SEARCHWINDOW_SPACE_MATCH_NBSP, false));
-
         // whole words only
         form.m_searchWholeWords.setSelected(
                 Preferences.isPreferenceDefault(Preferences.SEARCHWINDOW_WHOLE_WORDS, false));
@@ -558,10 +639,6 @@ public class SearchWindowController {
         // case sensitivity
         form.m_replaceCase.setSelected(
                 Preferences.isPreferenceDefault(Preferences.SEARCHWINDOW_CASE_SENSITIVE_REPLACE, false));
-
-        // nbsp as space
-        form.m_replaceSpaceMatchNbsp.setSelected(
-                Preferences.isPreferenceDefault(Preferences.SEARCHWINDOW_SPACE_MATCH_NBSP_REPLACE, false));
 
         // replace type
         SearchExpression.SearchExpressionType replaceType = Preferences.getPreferenceEnumDefault(
@@ -633,8 +710,6 @@ public class SearchWindowController {
 
         // search options
         Preferences.setPreference(Preferences.SEARCHWINDOW_CASE_SENSITIVE, form.m_searchCase.isSelected());
-        Preferences.setPreference(Preferences.SEARCHWINDOW_SPACE_MATCH_NBSP,
-                form.m_searchSpaceMatchNbsp.isSelected());
         Preferences.setPreference(Preferences.SEARCHWINDOW_WHOLE_WORDS,
                 form.m_searchWholeWords.isSelected());
 
@@ -656,8 +731,6 @@ public class SearchWindowController {
         // replace options
         Preferences.setPreference(Preferences.SEARCHWINDOW_CASE_SENSITIVE_REPLACE,
                 form.m_replaceCase.isSelected());
-        Preferences.setPreference(Preferences.SEARCHWINDOW_SPACE_MATCH_NBSP_REPLACE,
-                form.m_replaceSpaceMatchNbsp.isSelected());
         if (form.m_replaceExactSearchRB.isSelected()) {
             Preferences.setPreference(Preferences.SEARCHWINDOW_REPLACE_TYPE,
                     SearchExpression.SearchExpressionType.EXACT);
@@ -739,6 +812,7 @@ public class SearchWindowController {
 
         form.m_replaceSpaceMatchNbsp.setSelected(false);
         form.m_replaceExactSearchRB.setSelected(true);
+        resetEquivalenceOptions();
 
         form.m_replaceUntranslated.setSelected(true);
 
@@ -781,6 +855,144 @@ public class SearchWindowController {
      */
     private void updateWholeWordsStatus() {
         form.m_searchWholeWords.setEnabled(!form.m_searchRegexpSearchRB.isSelected());
+        // Folding a regular expression would corrupt its syntax, so character
+        // equivalence only applies to exact and keyword searches.
+        boolean plainSearch = !form.m_searchRegexpSearchRB.isSelected();
+        searchEquivalenceCBs.values().forEach(cb -> cb.setEnabled(plainSearch));
+        searchNumbersCB.setEnabled(plainSearch);
+        searchNumbersRomanCB.setEnabled(plainSearch && searchNumbersCB.isSelected());
+    }
+
+    private void wireReplaceEquivalenceStatus() {
+        form.m_replaceExactSearchRB.addActionListener(e -> updateReplaceEquivalenceStatus());
+        form.m_replaceRegexpSearchRB.addActionListener(e -> updateReplaceEquivalenceStatus());
+        updateReplaceEquivalenceStatus();
+    }
+
+    private void updateReplaceEquivalenceStatus() {
+        boolean plainSearch = !form.m_replaceRegexpSearchRB.isSelected();
+        replaceEquivalenceCBs.values().forEach(cb -> cb.setEnabled(plainSearch));
+        replaceNumbersCB.setEnabled(plainSearch);
+        replaceNumbersRomanCB.setEnabled(plainSearch && replaceNumbersCB.isSelected());
+    }
+
+    /**
+     * One row of character equivalence checkboxes per panel (#1681), inserted
+     * below the option row that held the retired "space matches nbsp" box.
+     * Prefilled from the classes active in the current project; toggling here
+     * only affects this window, never the project setting.
+     */
+    private void insertEquivalenceRows() {
+        form.m_searchSpaceMatchNbsp.setVisible(false);
+        form.m_replaceSpaceMatchNbsp.setVisible(false);
+        Set<MatchEquivalence> active = Core.getProject().isProjectLoaded()
+                ? Core.getProject().getProjectProperties().getActiveMatchEquivalences()
+                : MatchEquivalence.all();
+        insertRowAfter(form.m_searchSpaceMatchNbsp, buildNumbersRow(searchNumbersCB,
+                searchNumbersRomanCB, "SearchWindowForm.search_numbers"));
+        insertRowAfter(form.m_searchSpaceMatchNbsp, buildEquivalenceRow(searchEquivalenceCBs, active,
+                "SearchWindowForm.search_equivalence_"));
+        insertRowAfter(form.m_replaceSpaceMatchNbsp, buildNumbersRow(replaceNumbersCB,
+                replaceNumbersRomanCB, "SearchWindowForm.replace_numbers"));
+        insertRowAfter(form.m_replaceSpaceMatchNbsp, buildEquivalenceRow(replaceEquivalenceCBs, active,
+                "SearchWindowForm.replace_equivalence_"));
+    }
+
+    /**
+     * One row with the two number options (value equality across writing
+     * systems and the Latin-letter Roman sub-option), prefilled from the
+     * project like the equivalence classes. The sub-option follows the main
+     * checkbox like in the equivalence dialog.
+     */
+    private JPanel buildNumbersRow(JCheckBox numbersCB, JCheckBox romanCB, String namePrefix) {
+        boolean numbers = !Core.getProject().isProjectLoaded()
+                || Core.getProject().getProjectProperties().isMatchNumbersEnabled();
+        boolean roman = Core.getProject().isProjectLoaded()
+                && Core.getProject().getProjectProperties().isMatchNumbersRomanEnabled();
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.LINE_AXIS));
+        row.add(new JLabel(OStrings.getString("SW_NUMBERS_LABEL")));
+        row.add(Box.createHorizontalStrut(10));
+        numbersCB.setText(OStrings.getString("SW_NUMBERS_BY_VALUE"));
+        numbersCB.setName(namePrefix + "_by_value");
+        numbersCB.setSelected(numbers);
+        numbersCB.setToolTipText(OStrings.getString("SW_NUMBERS_TOOLTIP"));
+        row.add(numbersCB);
+        row.add(Box.createHorizontalStrut(10));
+        romanCB.setText(OStrings.getString("SW_NUMBERS_ROMAN"));
+        romanCB.setName(namePrefix + "_roman");
+        romanCB.setSelected(roman);
+        romanCB.setEnabled(numbers);
+        row.add(romanCB);
+        numbersCB.addActionListener(e -> romanCB.setEnabled(numbersCB.isSelected() && numbersCB.isEnabled()));
+        row.add(Box.createHorizontalGlue());
+        return row;
+    }
+
+    private JPanel buildEquivalenceRow(Map<MatchEquivalence, JCheckBox> checkboxes,
+            Set<MatchEquivalence> active, String namePrefix) {
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.LINE_AXIS));
+        row.add(new JLabel(OStrings.getString("SW_EQUIVALENCE_LABEL")));
+        for (MatchEquivalence eq : MatchEquivalence.values()) {
+            row.add(Box.createHorizontalStrut(10));
+            JCheckBox checkbox = new JCheckBox(OStrings.getString("SW_EQUIVALENCE_" + eq.name()),
+                    active.contains(eq));
+            checkbox.setName(namePrefix + eq.getId());
+            checkboxes.put(eq, checkbox);
+            row.add(checkbox);
+        }
+        row.add(Box.createHorizontalGlue());
+        return row;
+    }
+
+    private static void insertRowAfter(JComponent anchor, JPanel row) {
+        Container anchorRow = anchor.getParent();
+        Container parent = anchorRow.getParent();
+        if (parent.getLayout() instanceof GridLayout) {
+            // The option panels use a fixed-row GridLayout; without one more
+            // row, an added component opens a second column instead.
+            GridLayout grid = (GridLayout) parent.getLayout();
+            grid.setRows(grid.getRows() + 1);
+        }
+        for (int i = 0; i < parent.getComponentCount(); i++) {
+            if (parent.getComponent(i) == anchorRow) {
+                row.setAlignmentX(((JComponent) anchorRow).getAlignmentX());
+                parent.add(row, i + 1);
+                return;
+            }
+        }
+    }
+
+    /** Resets both equivalence rows to the classes active in the project. */
+    private void resetEquivalenceOptions() {
+        Set<MatchEquivalence> active = Core.getProject().isProjectLoaded()
+                ? Core.getProject().getProjectProperties().getActiveMatchEquivalences()
+                : MatchEquivalence.all();
+        searchEquivalenceCBs.forEach((eq, checkbox) -> checkbox.setSelected(active.contains(eq)));
+        replaceEquivalenceCBs.forEach((eq, checkbox) -> checkbox.setSelected(active.contains(eq)));
+        boolean numbers = !Core.getProject().isProjectLoaded()
+                || Core.getProject().getProjectProperties().isMatchNumbersEnabled();
+        boolean roman = Core.getProject().isProjectLoaded()
+                && Core.getProject().getProjectProperties().isMatchNumbersRomanEnabled();
+        searchNumbersCB.setSelected(numbers);
+        searchNumbersRomanCB.setSelected(roman);
+        replaceNumbersCB.setSelected(numbers);
+        replaceNumbersRomanCB.setSelected(roman);
+        // setSelected fires no listeners, so the dependent enabled states
+        // need an explicit refresh on both panels.
+        updateWholeWordsStatus();
+        updateReplaceEquivalenceStatus();
+    }
+
+    private static Set<MatchEquivalence> selectedEquivalences(Map<MatchEquivalence, JCheckBox> checkboxes) {
+        Set<MatchEquivalence> selected = EnumSet.noneOf(MatchEquivalence.class);
+        checkboxes.forEach((eq, checkbox) -> {
+            if (checkbox.isSelected()) {
+                selected.add(eq);
+            }
+        });
+        return selected;
     }
 
     // //////////////////////////////////////////////////////////////
@@ -799,6 +1011,8 @@ public class SearchWindowController {
             form.m_filterButton.setEnabled(haveResults);
             form.m_replaceButton.setEnabled(haveResults);
             form.m_replaceAllButton.setEnabled(haveResults);
+            form.m_findPreviousButton.setEnabled(haveResults);
+            form.m_findNextButton.setEnabled(haveResults);
             if (!haveResults) {
                 // RFE#1143
                 // https://sourceforge.net/p/omegat/feature-requests/1143/
@@ -1002,10 +1216,82 @@ public class SearchWindowController {
         form.m_searchField.requestFocus();
     }
 
+    /**
+     * Make the Search window visible, put the given text into the search
+     * field and run the search right away. Used for the source concordance
+     * search of the current segment (feature request #1162).
+     *
+     * Exact search, searching in source texts and the project-wide scope are
+     * switched on before running: a source concordance search with the scope
+     * options off would silently return nothing useful, and a remembered
+     * regular expression mode would misread the segment text as a pattern.
+     *
+     * @param query
+     *            source text to search for
+     */
+    public void searchImmediately(String query) {
+        UIThreadsUtil.mustBeSwingThread();
+        form.m_searchExactSearchRB.setSelected(true);
+        form.m_searchSource.setSelected(true);
+        form.m_rbProject.setSelected(true);
+        makeVisible(query);
+        doSearch();
+    }
+
+    /**
+     * Style the gear button next to the search field and let it open the
+     * options menu.
+     */
+    private void initOptionsButton() {
+        form.m_optionsButton.setIcon(
+                new ImageIcon(ResourcesUtil.getBundledImage("appbar.settings.inactive.png")));
+        form.m_optionsButton.setRolloverIcon(
+                new ImageIcon(ResourcesUtil.getBundledImage("appbar.settings.active.png")));
+        form.m_optionsButton.setPressedIcon(
+                new ImageIcon(ResourcesUtil.getBundledImage("appbar.settings.pressed.png")));
+        form.m_optionsButton.setBorder(new EmptyBorder(2, 2, 2, 2));
+        form.m_optionsButton.setContentAreaFilled(false);
+        form.m_optionsButton.setFocusable(false);
+        form.m_optionsButton.setToolTipText(OStrings.getString("SW_OPTIONS_MENU"));
+        form.m_optionsButton.getAccessibleContext()
+                .setAccessibleName(OStrings.getString("SW_OPTIONS_MENU"));
+        form.m_optionsButton.addActionListener(e -> showOptionsMenu());
+    }
+
+    /**
+     * Show the gear menu: the search behaviour option of the Search for
+     * Source Segment command first, followed by the items of the Edit menu.
+     */
+    private void showOptionsMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        JCheckBoxMenuItem immediate = new JCheckBoxMenuItem();
+        Mnemonics.setLocalizedText(immediate, SearchWindowManager.searchSourceSegmentOptionLabel());
+        immediate.setSelected(Preferences.isPreference(Preferences.SEARCH_SOURCE_SEGMENT_IMMEDIATELY));
+        immediate.addActionListener(e -> Preferences
+                .setPreference(Preferences.SEARCH_SOURCE_SEGMENT_IMMEDIATELY, immediate.isSelected()));
+        menu.add(immediate);
+        menu.addSeparator();
+        SearchWindowMenu.addEditItems(menu, this);
+        // Display the same shortcut hints as in the menu bar. The real
+        // bindings live in the menu bar; accelerators of a free popup are
+        // display only.
+        for (Component c : menu.getComponents()) {
+            if (c instanceof JMenuItem) {
+                PropertiesShortcuts.getMainMenuShortcuts().bindKeyStrokes((JMenuItem) c);
+            }
+        }
+        menu.show(form.m_optionsButton, 0, form.m_optionsButton.getHeight());
+    }
+
     private void applySearchModeOptions(SearchExpression expression) {
         expression.searchExpressionType = getSearchExpressionTypeForSearchMode();
         expression.caseSensitive = form.m_searchCase.isSelected();
-        expression.spaceMatchNbsp = form.m_searchSpaceMatchNbsp.isSelected();
+        expression.equivalences = getSearchExpressionTypeForSearchMode() == SearchExpression.SearchExpressionType.REGEXP
+                ? EnumSet.noneOf(MatchEquivalence.class)
+                : selectedEquivalences(searchEquivalenceCBs);
+        boolean searchRegexp = getSearchExpressionTypeForSearchMode() == SearchExpression.SearchExpressionType.REGEXP;
+        expression.matchNumbers = !searchRegexp && searchNumbersCB.isSelected();
+        expression.matchNumbersRoman = expression.matchNumbers && searchNumbersRomanCB.isSelected();
         expression.wholeWordsOnly = form.m_searchWholeWords.isSelected();
         expression.glossary = form.m_cbSearchInGlossaries.isSelected();
         expression.memory = form.m_cbSearchInMemory.isSelected();
@@ -1023,7 +1309,11 @@ public class SearchWindowController {
     private void applyReplaceModeOptions(SearchExpression expression) {
         expression.searchExpressionType = getSearchExpressionTypeForReplaceMode();
         expression.caseSensitive = form.m_replaceCase.isSelected();
-        expression.spaceMatchNbsp = form.m_replaceSpaceMatchNbsp.isSelected();
+        boolean replaceRegexp = getSearchExpressionTypeForReplaceMode() == SearchExpression.SearchExpressionType.REGEXP;
+        expression.equivalences = replaceRegexp ? EnumSet.noneOf(MatchEquivalence.class)
+                : selectedEquivalences(replaceEquivalenceCBs);
+        expression.matchNumbers = !replaceRegexp && replaceNumbersCB.isSelected();
+        expression.matchNumbersRoman = expression.matchNumbers && replaceNumbersRomanCB.isSelected();
         expression.glossary = false;
         expression.memory = true;
         expression.tm = false;
