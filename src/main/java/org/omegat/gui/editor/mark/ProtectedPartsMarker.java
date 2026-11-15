@@ -38,6 +38,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.omegat.core.Core;
 import org.omegat.core.data.ProtectedPart;
 import org.omegat.core.data.SourceTextEntry;
+import org.omegat.util.BiDiUtils;
 import org.omegat.util.PatternConsts;
 import org.omegat.util.Preferences;
 import org.omegat.util.gui.Styles;
@@ -62,18 +63,24 @@ public class ProtectedPartsMarker implements IMarker {
 
         // The attributes bind the foreground to the palette entry so the mark
         // is not shadowed by the bound state color of the segment text (see
-        // Mark#attributes). The painter still snapshots the color and is
-        // created per call so that preference changes take effect.
-        HighlightPainter painter;
-        AttributeSet attrs;
-        if (Core.getEditor().isOrientationAllLtr()) {
-            attrs = Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_PLACEHOLDER, null, null, null);
-            painter = null;
-        } else {
-            attrs = null;
-            painter = new TransparentHighlightPainter(
-                    Styles.EditorColor.COLOR_PLACEHOLDER.getColor(), 0.2F);
+        // Mark#attributes) and colour preference changes take effect without
+        // restarting the application; the faint 0.2 alpha painter a
+        // right-to-left target used to get left the tags barely legible (SF
+        // bug #1122). The attribute is safe for a part whose direction
+        // matches the editor orientation. A part of the other direction (the
+        // source when the project languages differ in direction) keeps the
+        // painter: a style run inside such an embedding splits the text into
+        // separately laid out fragments and the spaces next to the tag
+        // change sides.
+        boolean sourceSafe = true;
+        if (Core.getProject().isProjectLoaded()) {
+            sourceSafe = attributesSafe(true, BiDiUtils.isSourceLangRtl(), BiDiUtils.isTargetLangRtl());
         }
+        boolean targetSafe = true;
+        AttributeSet attrs = Styles.createBoundAttributeSet(Styles.EditorColor.COLOR_PLACEHOLDER, null,
+                null, null);
+        HighlightPainter painter = new TransparentHighlightPainter(
+                Styles.EditorColor.COLOR_PLACEHOLDER.getColor(), 0.2F);
 
         List<Mark> r = new ArrayList<Mark>();
 
@@ -84,8 +91,8 @@ public class ProtectedPartsMarker implements IMarker {
                 while ((pos = sourceText.indexOf(pp.getTextInSourceSegment(), pos + 1)) >= 0) {
                     Mark m = new Mark(Mark.ENTRY_PART.SOURCE, pos,
                             pos + pp.getTextInSourceSegment().length());
-                    m.painter = painter;
-                    m.attributes = attrs;
+                    m.painter = sourceSafe ? null : painter;
+                    m.attributes = sourceSafe ? attrs : null;
                     m.toolTipText = escapeHtml(pp.getDetailsFromSourceFile());
                     r.add(m);
                 }
@@ -94,8 +101,8 @@ public class ProtectedPartsMarker implements IMarker {
                 int pos = -1;
                 while ((pos = translationText.indexOf(pp.getTextInSourceSegment(), pos + 1)) >= 0) {
                     Mark m = new Mark(Mark.ENTRY_PART.TRANSLATION, pos, pos + pp.getTextInSourceSegment().length());
-                    m.painter = painter;
-                    m.attributes = attrs;
+                    m.painter = targetSafe ? null : painter;
+                    m.attributes = targetSafe ? attrs : null;
                     m.toolTipText = escapeHtml(pp.getDetailsFromSourceFile());
                     r.add(m);
                 }
@@ -103,6 +110,17 @@ public class ProtectedPartsMarker implements IMarker {
         }
 
         return r;
+    }
+
+    /**
+     * Whether a character attribute may be set on a tag of the given part
+     * without disturbing the bidi layout. Each part is embedded in the
+     * direction of its own language while the editor follows the target
+     * language, so only a source of the other direction is embedded against
+     * the editor orientation.
+     */
+    static boolean attributesSafe(boolean isSource, boolean sourceRtl, boolean targetRtl) {
+        return !isSource || sourceRtl == targetRtl;
     }
 
     private String escapeHtml(String s) {
