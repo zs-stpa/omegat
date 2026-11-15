@@ -535,6 +535,10 @@ public class RealProject implements IProject {
             SRX srx = config.getProjectSRX();
             Core.setSegmenter(new Segmenter(srx == null ? Preferences.getSRX() : srx));
 
+            // Project-specific custom tag / removed-text expressions take
+            // effect before the initial source parse.
+            PatternConsts.applyProjectPatterns(config.getCustomTagPattern(), config.getRemoveTextPattern());
+
             loadTranslations();
             setProjectModified(true);
             saveProject(false);
@@ -558,6 +562,12 @@ public class RealProject implements IProject {
             // trouble in Tinseltown...
             Log.logErrorRB(e, "CT_ERROR_CREATING_PROJECT");
             Core.getMainWindow().displayErrorRB(e, "CT_ERROR_CREATING_PROJECT");
+        } finally {
+            if (!loaded) {
+                // An aborted creation must not leak the project expressions
+                // into the globally visible patterns.
+                PatternConsts.clearProjectPatterns();
+            }
         }
         Log.logInfoRB("LOG_DATAENGINE_CREATE_END");
     }
@@ -602,8 +612,14 @@ public class RealProject implements IProject {
                 // reload them again
                 config.loadProjectFilters();
                 config.loadProjectSRX();
+                config.loadProjectTagPatterns();
             }
             loadProjectSettings(preSyncSettings);
+
+            // Project-specific custom tag / removed-text expressions take
+            // effect before any source file is parsed, and only after the
+            // team sync above delivered the current tag_patterns.xml.
+            PatternConsts.applyProjectPatterns(config.getCustomTagPattern(), config.getRemoveTextPattern());
 
             loadFilterSettings();
             loadSegmentationSettings();
@@ -684,6 +700,12 @@ public class RealProject implements IProject {
             if (!loaded) {
                 unlockProject();
             }
+        } finally {
+            if (!loaded) {
+                // An aborted load must not leak the project expressions into
+                // the globally visible patterns.
+                PatternConsts.clearProjectPatterns();
+            }
         }
 
         Log.logInfoRB("LOG_DATAENGINE_LOAD_END");
@@ -755,6 +777,7 @@ public class RealProject implements IProject {
     @Override
     public void closeProject() {
         loaded = false;
+        PatternConsts.clearProjectPatterns();
         flushProcessCache();
         tmMonitor.fin();
         tmOtherLanguagesMonitor.fin();
