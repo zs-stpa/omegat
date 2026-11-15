@@ -635,6 +635,7 @@ public class CustomColorSelectionController extends BasePreferencesController {
             // re-attribution, unlike paint-time bound colors
             PreferencesWindowController.refreshEditorView();
         }
+        CoreEvents.fireColorsChanged();
         fireTransientMessage(OStrings.getString("GUI_COLORS_RESTORED"));
     }
 
@@ -672,7 +673,6 @@ public class CustomColorSelectionController extends BasePreferencesController {
                 .anyMatch(e -> !e.getValue().equals(e.getKey().getTextStyle()));
         temporaryPreferences.entrySet().forEach(e -> e.getKey().setColor(e.getValue()));
         temporaryStyles.forEach(EditorColor::setTextStyle);
-        CoreEvents.fireColorsChanged();
         if (stylesChanged) {
             // Style flags are document attributes: built segments need
             // re-attribution. Conditional here instead of
@@ -681,6 +681,7 @@ public class CustomColorSelectionController extends BasePreferencesController {
             // refresh must not.
             SwingUtilities.invokeLater(PreferencesWindowController::refreshEditorView);
         }
+        CoreEvents.fireColorsChanged();
     }
 
     enum ColorColumns {

@@ -41,7 +41,6 @@ import java.util.EnumSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.Set;
 import java.util.TreeSet;
 
 import org.omegat.core.matching.MatchEquivalence;

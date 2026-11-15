@@ -81,7 +81,8 @@ public class EditorPaneMenuCollectEntriesTest {
 
         editor = mock(EditorController.class);
         editor.displayedFileIndex = 0;
-        menu = new EditorPaneMenu(editor);
+        menu = new EditorPaneMenu(editor, () -> { },
+                column -> 60, () -> 120, () -> 14);
     }
 
     private static SourceTextEntry entry(int num, String source) {
