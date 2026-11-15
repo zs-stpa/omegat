@@ -27,6 +27,7 @@
 
 package org.omegat.gui.comments;
 
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -37,18 +38,25 @@ import java.util.List;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JViewport;
+import javax.swing.SwingUtilities;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.data.SourceTextEntry;
 import org.omegat.core.events.IEntryEventListener;
 import org.omegat.gui.common.EntryInfoPane;
+import org.omegat.gui.editor.EditorUtils;
 import org.omegat.gui.main.DockableScrollPane;
 import org.omegat.gui.main.IMainWindow;
+import org.omegat.util.BiDiUtils;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
 import org.omegat.util.StringUtil;
+import org.omegat.util.gui.CharacterWrapEditorKit;
 import org.omegat.util.gui.IPaneMenu;
 import org.omegat.util.gui.JTextPaneLinkifier;
+import org.omegat.util.gui.NoWrapEditorKit;
 import org.omegat.util.gui.StaticUIUtils;
 import org.omegat.util.gui.UIThreadsUtil;
 
@@ -68,6 +76,11 @@ public class CommentsTextArea extends EntryInfoPane<SourceTextEntry> implements 
 
     private final DockableScrollPane scrollPane;
 
+    private boolean lineWrap;
+
+    /** What the pane last showed, as rendered; a kit switch shows it again. */
+    private String shownText = "";
+
     /** Creates new Comments Text Area Pane */
     public CommentsTextArea(IMainWindow mw) {
         super(true);
@@ -78,7 +91,8 @@ public class CommentsTextArea extends EntryInfoPane<SourceTextEntry> implements 
 
         setEditable(false);
         StaticUIUtils.makeCaretAlwaysVisible(this);
-        setText(EXPLANATION);
+        setLineWrap(isLineWrapEnabled());
+        show(EXPLANATION);
         setMinimumSize(new Dimension(100, 50));
 
         addCommentProvider(ENTRY_COMMENT_PROVIDER, 0);
@@ -105,8 +119,7 @@ public class CommentsTextArea extends EntryInfoPane<SourceTextEntry> implements 
             }
         }
 
-        setText(text.toString());
-        setCaretPosition(0);
+        show(text.toString());
         if (text.length() > 0 && Preferences.isPreference(Preferences.NOTIFY_COMMENTS)) {
             scrollPane.notify(true);
         }
@@ -149,12 +162,13 @@ public class CommentsTextArea extends EntryInfoPane<SourceTextEntry> implements 
     @Override
     protected void onProjectOpen() {
         clear();
+        shownText = "";
     }
 
     @Override
     protected void onProjectClose() {
         clear();
-        setText(EXPLANATION);
+        show(EXPLANATION);
     }
 
     @Override
@@ -199,5 +213,67 @@ public class CommentsTextArea extends EntryInfoPane<SourceTextEntry> implements 
             }
         });
         menu.add(notify);
+        final JMenuItem wrap = new JCheckBoxMenuItem(OStrings.getString("GUI_COMMENTSWINDOW_SETTINGS_WRAP_LONG_LINES"));
+        wrap.setSelected(isLineWrapEnabled());
+        wrap.addActionListener(e -> {
+            Preferences.setPreference(Preferences.COMMENTS_WRAP_LONG_LINES, wrap.isSelected());
+            setLineWrap(wrap.isSelected());
+        });
+        menu.add(wrap);
+    }
+
+    static boolean isLineWrapEnabled() {
+        return Preferences.isPreferenceDefault(Preferences.COMMENTS_WRAP_LONG_LINES, true);
+    }
+
+    /**
+     * Wrap long lines, breaking a token without spaces (a path, a URL) at any
+     * character, or lay every line out at full length behind a horizontal
+     * scroll bar. The default Swing kit does neither well: one long token
+     * widens the pane's minimum size, the viewport stops tracking the width,
+     * and every line then wraps at that larger width.
+     */
+    void setLineWrap(boolean wrap) {
+        lineWrap = wrap;
+        setEditorKit(wrap ? new CharacterWrapEditorKit() : new NoWrapEditorKit());
+        // Show the rendered text again rather than the pane's current text:
+        // the linkifier has already decoded the URLs in the latter.
+        show(shownText);
+    }
+
+    private void show(String text) {
+        shownText = text;
+        setText(text);
+        // Comments are written in whatever language their authors use, so
+        // each paragraph reads in the direction of its own text, not of the
+        // project languages.
+        BiDiUtils.alignParagraphsToText(getStyledDocument());
+        setCaretPosition(0);
+    }
+
+    /**
+     * Copying and dragging take the selected text, so the direction controls
+     * that only serve the display stay out of the clipboard.
+     */
+    @Override
+    public @Nullable String getSelectedText() {
+        String selected = super.getSelectedText();
+        return selected == null ? null : EditorUtils.removeDirectionChars(selected);
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        if (lineWrap) {
+            return super.getScrollableTracksViewportWidth();
+        }
+        // Off, every line keeps its full length behind a horizontal scroll
+        // bar, as a JTextArea does: the inherited rule would still track the
+        // viewport whenever the longest word fits, and clip the rest of the
+        // line. Short text still fills the viewport, so clicks beside it hit
+        // the pane.
+        // The UI's size, not getPreferredSize(): JEditorPane widens that one
+        // to the viewport by asking this very method.
+        Container parent = SwingUtilities.getUnwrappedParent(this);
+        return parent instanceof JViewport && parent.getWidth() > getUI().getPreferredSize(this).width;
     }
 }

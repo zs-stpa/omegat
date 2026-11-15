@@ -51,6 +51,7 @@ public class EditorUtilsTest {
         assertEquals("", EditorUtils.removeDirectionChars("\u202C"));
         assertEquals("zz", EditorUtils.removeDirectionChars("\u202Az\u202Bz\u202C"));
         assertEquals("zz", EditorUtils.removeDirectionChars("zz"));
+        assertEquals("ab", EditorUtils.removeDirectionChars("\u2066a\u2069\u2067b\u2069"));
     }
 
     @Test

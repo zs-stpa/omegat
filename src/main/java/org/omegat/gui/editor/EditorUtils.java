@@ -209,7 +209,7 @@ public final class EditorUtils {
      * @return string without direction chars
      */
     public static String removeDirectionChars(String text) {
-        return text.replaceAll("[\u202A\u202B\u202C\u200E\u200F]", "");
+        return text.replaceAll("[\u202A\u202B\u202C\u200E\u200F\u2066\u2067\u2068\u2069]", "");
     }
 
     /**
