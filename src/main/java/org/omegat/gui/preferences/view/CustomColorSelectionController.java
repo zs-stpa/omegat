@@ -39,17 +39,20 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Comparator;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.Properties;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
@@ -66,6 +69,7 @@ import javax.swing.RowFilter;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.colorchooser.AbstractColorChooserPanel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -73,21 +77,23 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
-
-import org.jspecify.annotations.Nullable;
 
 import org.openide.awt.Mnemonics;
 
 import org.omegat.core.CoreEvents;
 import org.omegat.gui.preferences.BasePreferencesController;
+import org.omegat.gui.preferences.PreferencesWindowController;
 import org.omegat.util.Log;
 import org.omegat.util.OStrings;
 import org.omegat.util.Preferences;
 import org.omegat.util.StringUtil;
 import org.omegat.util.gui.ColorEntry;
 import org.omegat.util.gui.ColorRegistry;
+import org.omegat.util.gui.Styles.EditorColor;
+import org.omegat.util.gui.Styles.TextStyle;
 import org.omegat.util.gui.TableColumnSizer;
 
 /**
@@ -109,8 +115,10 @@ public class CustomColorSelectionController extends BasePreferencesController {
     };
 
     private final Map<ColorEntry, Color> temporaryPreferences = new LinkedHashMap<>();
+    /** Staged text style flags per entry. */
+    private final Map<EditorColor, EnumSet<TextStyle>> temporaryStyles = new EnumMap<>(EditorColor.class);
     private CustomColorSelectionPanel panel;
-    private @Nullable TableRowSorter<ColorTableModel> sorter;
+    private TableRowSorter<ColorTableModel> sorter;
     private boolean listenerEnabled = true;
 
     @Override
@@ -168,6 +176,26 @@ public class CustomColorSelectionController extends BasePreferencesController {
         numberRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
         panel.colorStylesTable.getColumnModel().getColumn(ColorColumns.NUMBER.index)
                 .setCellRenderer(numberRenderer);
+        // The style flags only apply to entries that mark text; all other
+        // rows show an empty cell instead of a phantom checkbox. Route only
+        // real Boolean values to the checkbox renderer: TableColumnSizer
+        // measures columns by passing the header STRING through this
+        // renderer, which must not reach the Boolean renderer.
+        TableCellRenderer booleanRenderer = panel.colorStylesTable.getDefaultRenderer(Boolean.class);
+        TableCellRenderer styleRenderer = (table, value, isSelected, hasFocus, row, column) -> {
+            if (value instanceof Boolean) {
+                return booleanRenderer.getTableCellRendererComponent(table, value, isSelected,
+                        hasFocus, row, column);
+            }
+            return textRenderer.getTableCellRendererComponent(table, value == null ? "" : value,
+                    isSelected, hasFocus, row, column);
+        };
+        for (ColorColumns styleColumn : ColorColumns.values()) {
+            if (styleColumn.styleFlag != null) {
+                panel.colorStylesTable.getColumnModel().getColumn(styleColumn.index)
+                        .setCellRenderer(styleRenderer);
+            }
+        }
         // Filter as the user types and let header clicks sort each column. The
         // colour column is special: repeated clicks rotate through several
         // colour orderings (see ColorRowSorter), so give its header a tooltip
@@ -178,8 +206,15 @@ public class CustomColorSelectionController extends BasePreferencesController {
                 int viewColumn = columnAtPoint(event.getPoint());
                 int modelColumn = viewColumn < 0 ? -1
                         : panel.colorStylesTable.convertColumnIndexToModel(viewColumn);
-                if (modelColumn == ColorColumns.COLOR.index) {
+                if (modelColumn < 0) {
+                    return null;
+                }
+                ColorColumns column = ColorColumns.get(modelColumn);
+                if (column == ColorColumns.COLOR) {
                     return OStrings.getString("GUI_COLORS_COLUMN_COLOR_SORT_TOOLTIP");
+                }
+                if (column.styleFlag != null) {
+                    return OStrings.getString(column.titleKey + "_TOOLTIP");
                 }
                 return null;
             }
@@ -545,7 +580,23 @@ public class CustomColorSelectionController extends BasePreferencesController {
             // resetting is an explicit action and takes effect immediately;
             // bound spans repaint with the new palette, no rebuild needed
             style.setColor(null);
+            // row's style flags reset alongside color
+            boolean stylesChanged = false;
+            if (style instanceof EditorColor && ((EditorColor) style).isTextStyleable()) {
+                EditorColor core = (EditorColor) style;
+                stylesChanged = !core.getTextStyle().equals(core.getDefaultTextStyle());
+                if (stylesChanged) {
+                    temporaryStyles.put(core, copyOf(core.getDefaultTextStyle()));
+                    core.setTextStyle(core.getDefaultTextStyle());
+                    panel.colorStylesTable.repaint();
+                }
+            }
             CoreEvents.fireColorsChanged();
+            if (stylesChanged) {
+                // style flags are document attributes: built segments need
+                // re-attribution, unlike paint-time bound colors
+                PreferencesWindowController.refreshEditorView();
+            }
             updateSelectionIcon();
         });
     }
@@ -562,26 +613,29 @@ public class CustomColorSelectionController extends BasePreferencesController {
                 JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
             return;
         }
+        boolean stylesChanged = false;
         for (ColorEntry style : ColorRegistry.all()) {
             temporaryPreferences.put(style, style.getDefault());
             // restoring the defaults is an explicit action and takes effect
             // immediately
             style.setColor(null);
+            if (style instanceof EditorColor && ((EditorColor) style).isTextStyleable()) {
+                EditorColor core = (EditorColor) style;
+                stylesChanged |= !core.getTextStyle().equals(core.getDefaultTextStyle());
+                temporaryStyles.put(core, copyOf(core.getDefaultTextStyle()));
+                core.setTextStyle(core.getDefaultTextStyle());
+            }
         }
         panel.colorStylesTable.repaint();
         panel.colorStylesTable.clearSelection();
         onSelectionChanged();
         CoreEvents.fireColorsChanged();
+        if (stylesChanged) {
+            // style flags are document attributes: built segments need
+            // re-attribution, unlike paint-time bound colors
+            PreferencesWindowController.refreshEditorView();
+        }
         fireTransientMessage(OStrings.getString("GUI_COLORS_RESTORED"));
-    }
-
-    /**
-     * Color changes broadcast a colors-changed event and repaint; the editor
-     * document does not need to be rebuilt for them.
-     */
-    @Override
-    public boolean requiresEditorRefresh() {
-        return false;
     }
 
     private boolean differsFromDefaults() {
@@ -594,9 +648,19 @@ public class CustomColorSelectionController extends BasePreferencesController {
         return false;
     }
 
+    /**
+     * Color changes broadcast a colors-changed event and repaint; the editor
+     * document does not need to be rebuilt for them.
+     */
+    @Override
+    public boolean requiresEditorRefresh() {
+        return false;
+    }
+
     @Override
     protected void initFromPrefs() {
         temporaryPreferences.clear();
+        temporaryStyles.clear();
         panel.colorStylesTable.repaint();
         panel.colorStylesTable.clearSelection();
         onSelectionChanged();
@@ -604,23 +668,42 @@ public class CustomColorSelectionController extends BasePreferencesController {
 
     @Override
     public void persist() {
+        boolean stylesChanged = temporaryStyles.entrySet().stream()
+                .anyMatch(e -> !e.getValue().equals(e.getKey().getTextStyle()));
         temporaryPreferences.entrySet().forEach(e -> e.getKey().setColor(e.getValue()));
+        temporaryStyles.forEach(EditorColor::setTextStyle);
         CoreEvents.fireColorsChanged();
+        if (stylesChanged) {
+            // Style flags are document attributes: built segments need
+            // re-attribution. Conditional here instead of
+            // requiresEditorRefresh() so pure color changes stay
+            // refresh-free. persist() runs off EDT (SwingWorker), view
+            // refresh must not.
+            SwingUtilities.invokeLater(PreferencesWindowController::refreshEditorView);
+        }
     }
 
     enum ColorColumns {
-        NUMBER(0, Integer.class, "GUI_COLORS_COLUMN_NUMBER"),
-        NAME(1, String.class, "GUI_COLORS_COLUMN_NAME"), COLOR(2, Color.class, "GUI_COLORS_COLUMN_COLOR"),
-        INTERNAL(3, String.class, "GUI_COLORS_COLUMN_INTERNAL");
+        NUMBER(0, Integer.class, "GUI_COLORS_COLUMN_NUMBER", null),
+        NAME(1, String.class, "GUI_COLORS_COLUMN_NAME", null),
+        COLOR(2, Color.class, "GUI_COLORS_COLUMN_COLOR", null),
+        BOLD(3, Boolean.class, "GUI_COLORS_COLUMN_BOLD", TextStyle.BOLD),
+        ITALIC(4, Boolean.class, "GUI_COLORS_COLUMN_ITALIC", TextStyle.ITALIC),
+        STRIKETHROUGH(5, Boolean.class, "GUI_COLORS_COLUMN_STRIKETHROUGH", TextStyle.STRIKETHROUGH),
+        UNDERLINE(6, Boolean.class, "GUI_COLORS_COLUMN_UNDERLINE", TextStyle.UNDERLINE),
+        INTERNAL(7, String.class, "GUI_COLORS_COLUMN_INTERNAL", null);
 
         private final int index;
         private final Class<?> clss;
         private final String titleKey;
+        /** Style flag edited via column, null for non-flag columns. */
+        private final TextStyle styleFlag;
 
-        ColorColumns(int index, Class<?> clss, String titleKey) {
+        ColorColumns(int index, Class<?> clss, String titleKey, TextStyle styleFlag) {
             this.index = index;
             this.clss = clss;
             this.titleKey = titleKey;
+            this.styleFlag = styleFlag;
         }
 
         String getTitle() {
@@ -637,14 +720,14 @@ public class CustomColorSelectionController extends BasePreferencesController {
      */
     @SuppressWarnings("serial")
     static class ColorCellRenderer extends DefaultTableCellRenderer {
-        private final @Nullable ColorIcon swatch;
+        private final ColorIcon swatch;
 
         ColorCellRenderer(int swatchSize) {
             this.swatch = swatchSize > 0 ? new ColorIcon(swatchSize) : null;
         }
 
         @Override
-        protected void setValue(@Nullable Object value) {
+        protected void setValue(Object value) {
             // Swatch mode only applies to real colour values. Anything else
             // (e.g. the header text handed in while measuring column widths)
             // falls back to plain text rendering to avoid a class cast.
@@ -661,13 +744,13 @@ public class CustomColorSelectionController extends BasePreferencesController {
 
     static class ColorIcon implements Icon {
         private final int size;
-        private @Nullable Color color;
+        private Color color;
 
         ColorIcon(int size) {
             this.size = size;
         }
 
-        public ColorIcon setColor(@Nullable Color color) {
+        public ColorIcon setColor(Color color) {
             this.color = color;
             return this;
         }
@@ -755,7 +838,12 @@ public class CustomColorSelectionController extends BasePreferencesController {
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             ColorEntry style = getEntryAtRow(rowIndex);
-            switch (ColorColumns.get(columnIndex)) {
+            ColorColumns column = ColorColumns.get(columnIndex);
+            if (column.styleFlag != null) {
+                EditorColor core = styleableAtRow(rowIndex);
+                return core == null ? null : stagedStyle(core).contains(column.styleFlag);
+            }
+            switch (column) {
             case NUMBER:
                 return rowIndex + 1;
             case NAME:
@@ -764,8 +852,32 @@ public class CustomColorSelectionController extends BasePreferencesController {
                 return temporaryPreferences.getOrDefault(style, style.getColor());
             case INTERNAL:
                 return style.getId();
+            default:
+                throw new IllegalArgumentException();
             }
-            throw new IllegalArgumentException();
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return ColorColumns.get(columnIndex).styleFlag != null
+                    && styleableAtRow(rowIndex) != null;
+        }
+
+        @Override
+        public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+            EditorColor style = styleableAtRow(rowIndex);
+            TextStyle flag = ColorColumns.get(columnIndex).styleFlag;
+            if (style == null || flag == null || !(aValue instanceof Boolean)) {
+                return;
+            }
+            EnumSet<TextStyle> staged = temporaryStyles.computeIfAbsent(style,
+                    s -> copyOf(s.getTextStyle()));
+            if ((Boolean) aValue) {
+                staged.add(flag);
+            } else {
+                staged.remove(flag);
+            }
+            fireTableCellUpdated(rowIndex, columnIndex);
         }
 
         @Override
@@ -781,5 +893,29 @@ public class CustomColorSelectionController extends BasePreferencesController {
         public ColorEntry getEntryAtRow(int row) {
             return entries.get(row);
         }
+
+        /**
+         * The row's colour as a text-styleable core colour; null for plugin
+         * colours and core colours without text styling, whose style cells
+         * stay empty and read-only.
+         */
+        private EditorColor styleableAtRow(int row) {
+            ColorEntry entry = getEntryAtRow(row);
+            return entry instanceof EditorColor && ((EditorColor) entry).isTextStyleable()
+                    ? (EditorColor) entry : null;
+        }
+
+    }
+
+    /** Current staged style flags for an entry, seeded from the preferences. */
+    private Set<TextStyle> stagedStyle(EditorColor style) {
+        Set<TextStyle> staged = temporaryStyles.get(style);
+        return staged != null ? staged : style.getTextStyle();
+    }
+
+    private static EnumSet<TextStyle> copyOf(Set<TextStyle> flags) {
+        EnumSet<TextStyle> copy = EnumSet.noneOf(TextStyle.class);
+        copy.addAll(flags);
+        return copy;
     }
 }
