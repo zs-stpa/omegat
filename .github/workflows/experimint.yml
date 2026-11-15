@@ -1,16 +1,25 @@
 name: experimInt integration build
 
 # Runs on every push of the integration branch: quality checks like upstream
-# master, plus a macOS (Apple Silicon) build published as a pre-release.
+# master, plus Mac (Apple Silicon), Linux and Windows (x64) packages uploaded
+# as artifacts. No signing identities: Mac is signed ad hoc, Linux/Windows
+# ship as portable archives without installers.
 on:
   push:
     branches:
       - integration/all-open
       - experimental-integration
 
-# The build executes gradle scripts of merged third-party PRs: build jobs get
-# a read-only token, only the publish job (no build, artifact download only)
-# may write releases.
+# The build executes gradle scripts of merged third-party PRs, so this
+# workflow only ever gets a read-only token. Publishing happens in
+# experimint-publish.yml on the fork's default branch experimint/publisher
+# (workflow_run), which validates the artifacts of a fully green run and never
+# runs this code. Contract with it, change both sides together: workflow name
+# and path, branch list, artifact prefix experimint-*, package names
+# omegaT-experimental-integration-<YYYYMMDD>-{mac-arm.zip,linux-x64.tar.bz2,
+# windows-x64.zip}, release facts base.txt + ingredients.txt.
+# rebuild-integration.sh rejects ingredients other than this pipeline branch
+# that touch .github/.
 permissions:
   contents: read
 
@@ -20,9 +29,9 @@ concurrency:
 
 env:
   APP_NAME: "Ωt-experimInt"
-  TAG_PREFIX: experimental-integration/
-  KEEP_RELEASES: "14"
   JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_aarch64_mac_hotspot_25.0.3_9.tar.gz
+  LINUX_JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_x64_linux_hotspot_25.0.3_9.tar.gz
+  WINDOWS_JRE_URL: https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jre_x64_windows_hotspot_25.0.3_9.zip
 
 jobs:
   check:
@@ -31,6 +40,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v6
         with:
           java-version: 21
@@ -54,6 +65,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-java@v6
         with:
           java-version: 21
@@ -69,18 +81,15 @@ jobs:
         id: build
         run: |
           set -euo pipefail
-          STAMP=$(date -u +%Y%m%d)
+          STAMP=$(TZ=UTC git show -s --date=format-local:%Y%m%d --format=%cd HEAD)
           SHA7=$(git rev-parse --short=7 HEAD)
           echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
           ./gradlew --no-configuration-cache -PenvIsCi=true "-PassetDir=$RUNNER_TEMP/asset" \
             "-PrepoRevision=exp-${STAMP}-${SHA7}" installMacArmDist
       - name: package app
         run: ci/experimint/package-mac.sh . "${{ steps.build.outputs.stamp }}" "$APP_NAME"
-      - name: compose release body
-        run: |
-          cat ci/experimint/DISCLAIMER-release.md > dist/body.md
-          echo >> dist/body.md
-          ci/experimint/release-body.sh . origin/master "${GITHUB_REF_NAME}" >> dist/body.md
+      - name: release facts for the publisher
+        run: ci/experimint/release-body.sh . origin/master dist
       - uses: actions/upload-artifact@v7
         with:
           name: experimint-mac-arm
@@ -88,34 +97,69 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  publish:
-    name: publish pre-release
-    needs: mac
+  portable:
+    name: build ${{ matrix.platform }} dist
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x64
+            artifact: experimint-linux-x64
+            jre_var: LINUX_JRE_URL
+            # Sync of the plain tree; the tarball task would bypass packaging.
+            gradle_task: installLinux64Dist
+            dist_dir: build/install/OmegaT-Linux_64
+            suffix: linux-x64
+            format: tar.bz2
+          - platform: Windows x64
+            artifact: experimint-windows-x64
+            jre_var: WINDOWS_JRE_URL
+            # Installer staging tree incl. launch4j OmegaT.exe; Inno Setup
+            # itself is skipped (AppId org.omegat would replace an official
+            # installation).
+            gradle_task: winJRE64Prep
+            dist_dir: build/innosetup/winJRE64
+            suffix: windows-x64
+            format: zip
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: ci/experimint
-      - uses: actions/download-artifact@v8
+          persist-credentials: false
+      - uses: actions/setup-java@v6
         with:
-          name: experimint-mac-arm
-          path: dist/
-      - name: create pre-release
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+      - name: download bundled JRE
         env:
-          FORK_TOKEN: ${{ github.token }}
+          URL: ${{ env[matrix.jre_var] }}
         run: |
           set -euo pipefail
-          DATE_TAG=$(date -u +%Y-%m-%d)
-          SHA7=$(echo "${GITHUB_SHA}" | cut -c1-7)
-          ci/experimint/publish-release.sh \
-            "${GITHUB_REPOSITORY}" \
-            "${TAG_PREFIX}${DATE_TAG}-${SHA7}" \
-            "${APP_NAME} ${DATE_TAG} (${GITHUB_REF_NAME}, ${SHA7})" \
-            dist/body.md \
-            dist/*.zip \
-            "${GITHUB_SHA}" \
-            "${KEEP_RELEASES}" \
-            "${TAG_PREFIX}"
+          mkdir -p "$RUNNER_TEMP/asset"
+          FILE="$RUNNER_TEMP/asset/$(basename "$URL")"
+          curl -fL "$URL" -o "$FILE"
+          case "$FILE" in
+            *.zip) unzip -tq "$FILE" ;;
+            *)     gzip -t "$FILE" ;;
+          esac
+      - name: build ${{ matrix.gradle_task }}
+        id: build
+        run: |
+          set -euo pipefail
+          STAMP=$(TZ=UTC git show -s --date=format-local:%Y%m%d --format=%cd HEAD)
+          SHA7=$(git rev-parse --short=7 HEAD)
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          ./gradlew --no-configuration-cache -PenvIsCi=true "-PassetDir=$RUNNER_TEMP/asset" \
+            "-PrepoRevision=exp-${STAMP}-${SHA7}" ${{ matrix.gradle_task }}
+      - name: package
+        run: |
+          ci/experimint/package-portable.sh "${{ matrix.dist_dir }}" \
+            "${{ steps.build.outputs.stamp }}" "${{ matrix.suffix }}" "${{ matrix.format }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3

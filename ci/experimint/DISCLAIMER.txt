@@ -9,7 +9,7 @@ OmegaT release and is in no way endorsed by or affiliated with the
 OmegaT project.
 
 - NO WARRANTY, NO LIABILITY: nothing beyond what the GPL already states
-  (GPLv2 sections 11-12: the program is provided "as is", the entire
+  (GPLv3 sections 15-16: the program is provided "as is", the entire
   risk as to quality and performance is with you). The publisher accepts
   no responsibility for any damage whatsoever.
 
@@ -25,5 +25,13 @@ OmegaT project.
 - macOS will warn about an unidentified developer: the app is ad-hoc
   signed, not notarized. Right-click the app -> Open on first launch.
 
-Source code: https://github.com/zs-stpa/omegat/tree/experimental-integration
-License: GNU General Public License v2 (see the app's licenses folder).
+- Windows and Linux builds are unsigned portable archives, no
+  installers: unpack and start OmegaT.exe or ./OmegaT. Windows
+  SmartScreen will warn on first launch.
+
+Source code: the tag of the release this package came from, see
+https://github.com/zs-stpa/omegat/releases
+License: GNU General Public License v3 or later (OmegaT-license.txt next
+to OmegaT.jar, on macOS inside the app under Contents/Java; third-party
+licenses in the lib folder). The bundled Java runtime (Eclipse Temurin) is
+GPLv2 with the Classpath Exception, see its legal folder.
