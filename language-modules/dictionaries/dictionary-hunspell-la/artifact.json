@@ -1,0 +1,37 @@
+{
+  "language": "la",
+  "languageName": "Latin",
+  "license": "GPL-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "la",
+      "codes": [],
+      "words": 136255,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/la/index.aff",
+      "affSha256": "6d78952f21ddd6158227544d573958a3d05b759c6219a2e1ac924daf24210e71",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/la/index.dic",
+      "dicSha256": "8e0910e623800110cf9cc70b6adaea813857d02916b7c9a7dd9d9e9dd72a98ef",
+      "upstream": "https://extensions.openoffice.org/project/dict-la",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/la/license",
+          "sha256": "2a1c6cdc97e95d92c8c9efee32d4e08224bc87549abb52f1eeec66684ecd4f72"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/la/readme.md",
+          "sha256": "ac2eff8ce0dfd06a622eb17fcfed592f10368bcc27c31f626ee21c6792ee8546"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "la",
+    "good": "consponsoris",
+    "bad": "sirosnopsnoc"
+  }
+}

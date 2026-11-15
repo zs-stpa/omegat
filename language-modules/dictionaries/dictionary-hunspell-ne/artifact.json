@@ -1,0 +1,37 @@
+{
+  "language": "ne",
+  "languageName": "Nepali",
+  "license": "LGPL-2.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "ne",
+      "codes": [],
+      "words": 36827,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ne/index.aff",
+      "affSha256": "0e07d48fbebb6cb7f40d686a9eb9540a949922360d71c6d423a0384ee65f3fc2",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ne/index.dic",
+      "dicSha256": "dfc130b2ccbaeee54a859bdc512c27107eb6efa6ae5167615a65df83377ba427",
+      "upstream": "http://ltk.org.np",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ne/license",
+          "sha256": "c79e6ed649e5a3d465f3d76c71046bdd01c44b0c7ca3ff1c7c1a0e57fe24ee0e"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ne/readme.md",
+          "sha256": "1bb5e5f1f29275f4223a45341e4108099d117d9299cbf83de2d1fdae0e6fe7a7"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ne",
+    "good": "कबाहीजब्दी",
+    "bad": "ीद्बजीहाबक"
+  }
+}

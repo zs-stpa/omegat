@@ -1,0 +1,35 @@
+{
+  "language": "bo",
+  "languageName": "Tibetan",
+  "license": "CC0-1.0",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "bo_CN",
+      "codes": [
+        "bo",
+        "bo_IN"
+      ],
+      "words": 378,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/bo/bo.aff",
+      "affSha256": "b1b4501d05bd269c1edb01d62e9d04536697ee22afadd2b2bc0d068a7bfaa5b4",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/bo/bo.dic",
+      "dicSha256": "92e2ed6d89627852befd08572a5d8241674614083ffa53b66418fd68b49c85b5",
+      "upstream": "https://github.com/eroux/hunspell-bo",
+      "documents": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/bo/README.md",
+          "sha256": "c5ab0d0907b7cf7afc4419eaea744ae00c09a837e5a8a484cf577604907a251f"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "bo_CN",
+    "good": "ཀྲུའུ",
+    "bad": "ུའུྲཀ"
+  }
+}

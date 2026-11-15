@@ -68,6 +68,32 @@ public final class DesktopWrapper {
         }
     }
 
+    /**
+     * Opens a file in the system's default text editor regardless of its
+     * extension; falls back to {@link #open(File)}.
+     */
+    public static void edit(File file) throws IOException {
+        if (Platform.isMacOSX()) {
+            // Launch Services knows no editor for .dic/.aff; -t forces the
+            // default text editor.
+            try {
+                if (new ProcessBuilder("open", "-t", file.getPath()).start().waitFor() == 0) {
+                    return;
+                }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        } else if (!USE_XDG_OPEN && Desktop.getDesktop().isSupported(Desktop.Action.EDIT)) {
+            try {
+                Desktop.getDesktop().edit(file);
+                return;
+            } catch (IOException ex) {
+                // No editor registered for the extension (usual on Windows).
+            }
+        }
+        open(file);
+    }
+
     private static boolean xdgOpen(String s, boolean doWait) throws IOException {
         File devNull = new File("/dev/null");
         ProcessBuilder pb = new ProcessBuilder("xdg-open", s);

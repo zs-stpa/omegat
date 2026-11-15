@@ -26,14 +26,17 @@
 package org.omegat.core.spellchecker;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import org.jspecify.annotations.Nullable;
 
 import org.omegat.filters2.master.PluginUtils;
 import org.omegat.util.Log;
@@ -76,8 +79,9 @@ public class SpellCheckerManager {
         return spellChecker;
     }
 
-    private static final Map<String, String> MORFOLOGIK_DICTIONARY_PROVIDERS = new HashMap<>();
-    private static final Map<String, String> HUNSPELL_DICTIONARY_PROVIDERS = new HashMap<>();
+    // Plugins register at start-up; the preferences worker reads from another thread.
+    private static final Map<String, String> MORFOLOGIK_DICTIONARY_PROVIDERS = new ConcurrentHashMap<>();
+    private static final Map<String, String> HUNSPELL_DICTIONARY_PROVIDERS = new ConcurrentHashMap<>();
 
     public static Set<String> getMorfologikDictionaryLanguages() {
         return MORFOLOGIK_DICTIONARY_PROVIDERS.keySet();
@@ -156,9 +160,59 @@ public class SpellCheckerManager {
         return dictionaryProvider.getMorfologikDictionary(language);
     }
 
+    /**
+     * Facts about the bundled dictionary registered for the language and
+     * engine; {@link DictionaryInfo#UNKNOWN} when none is registered.
+     */
+    public static DictionaryInfo getDictionaryInfo(String language, SpellCheckDictionaryType type) {
+        String className = getProviders(type).get(language);
+        if (className == null) {
+            return DictionaryInfo.UNKNOWN;
+        }
+        try (ISpellCheckerDictionary provider = getSpellCheckerDictionary(className)) {
+            DictionaryInfo info = provider.getDictionaryInfo(language);
+            return DictionaryResources.completeOrigin(info, DictionaryResources.jarOf(provider.getClass()),
+                    provider.getDictionaryStem(language), type);
+        } catch (IOException | RuntimeException ex) {
+            Log.log(ex);
+            return DictionaryInfo.UNKNOWN;
+        }
+    }
+
+    /**
+     * Copies the bundled dictionary registered for the language and engine
+     * into the directory.
+     *
+     * @return the main dictionary file, or null when none is registered
+     */
+    public static @Nullable Path extractDictionary(String language, SpellCheckDictionaryType type,
+            Path targetDir) {
+        String className = getProviders(type).get(language);
+        if (className == null) {
+            return null;
+        }
+        try (ISpellCheckerDictionary provider = getSpellCheckerDictionary(className)) {
+            return provider.extractDictionary(targetDir, language);
+        } catch (IOException | RuntimeException ex) {
+            Log.log(ex);
+            return null;
+        }
+    }
+
+    private static Map<String, String> getProviders(SpellCheckDictionaryType type) {
+        return type == SpellCheckDictionaryType.HUNSPELL ? HUNSPELL_DICTIONARY_PROVIDERS
+                : MORFOLOGIK_DICTIONARY_PROVIDERS;
+    }
+
     private static ISpellCheckerDictionary getSpellCheckerDictionary(String className) {
         try {
-            Class<?> aClass = PluginUtils.getClassLoader(PluginUtils.PluginType.LANGUAGE).loadClass(className);
+            ClassLoader modules = PluginUtils.getClassLoader(PluginUtils.PluginType.LANGUAGE);
+            if (modules == null) {
+                // No language module loaded (unit tests, IDE): the provider
+                // is on the plain class path.
+                modules = SpellCheckerManager.class.getClassLoader();
+            }
+            Class<?> aClass = modules.loadClass(className);
             Constructor<?> constructor = aClass.getConstructor();
             return (ISpellCheckerDictionary) constructor.newInstance();
         } catch (ClassNotFoundException e) {

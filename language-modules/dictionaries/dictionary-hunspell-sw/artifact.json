@@ -1,0 +1,32 @@
+{
+  "language": "sw",
+  "languageName": "Swahili",
+  "license": "LGPL",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "sw_TZ",
+      "codes": [],
+      "words": 67900,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/sw_TZ/sw_TZ.aff",
+      "affSha256": "1626aaf2b428ebcc6112abe742e95d4ebcc6576af65fad3ba2d32ddb403f3049",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/sw_TZ/sw_TZ.dic",
+      "dicSha256": "e17d7c89fc5479198692d73aef8c23edd20d441347311a79befd67f79be62c28",
+      "upstream": "http://www.it46.se",
+      "documents": [
+        {
+          "name": "README_sw_TZ.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/sw_TZ/README_sw_TZ.txt",
+          "sha256": "dd221d7bf8ad2ea58b701b1c1f6bb2216fe6235a3d452914cc03294e31473e28"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "sw_TZ",
+    "good": "chengelele",
+    "bad": "elelegnehc"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "language": "cs",
+  "languageName": "Czech",
+  "license": "GPL-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "cs",
+      "codes": [],
+      "words": 260460,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cs/index.aff",
+      "affSha256": "175e02acb4786042a9c87e3cb6d3746e3a5b3079752118c2d4f0bb2c756ce72b",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cs/index.dic",
+      "dicSha256": "bbc0a495671c29337279182799e171c173a21ae8968c89dd0fb7c713b40c7832",
+      "upstream": "http://www.translatoblog.cz/hunspell/",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cs/license",
+          "sha256": "1bd9054040365c2c749565d791dc8fb1659a2566996c57b1f85031f6489c4b84"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/cs/readme.md",
+          "sha256": "a5fed892d5be45ef8b089e09520ab0b0df9399a5313166601074940cb16d220f"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "cs",
+    "good": "předpremiéra",
+    "bad": "aréimerpdeřp"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "language": "nb",
+  "languageName": "Norwegian Bokmål",
+  "license": "LGPL-2.0 / GPL-2.0 / CC-BY-4.0",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "nb_NO",
+      "codes": [],
+      "words": 708615,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/no/nb_NO.aff",
+      "affSha256": "b9e828538222b3580d8adb4660d5bae9bc1fbe42e7c21fd3e01970efed96b4f8",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/no/nb_NO.dic",
+      "dicSha256": "aadaf9ea6b437b4edada54a2084e1c8dc00029addc6dfb4e15637f8e798dacc1",
+      "upstream": "https://www.nb.no/sprakbanken/ressurskatalog/oai-repo-clarino-uib-no-11509-152/",
+      "documents": [
+        {
+          "name": "COPYING",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/no/COPYING",
+          "sha256": "e7431ac20e815b6797369e802f9e4bb1b0082485060d8b096235f035d741bd89"
+        },
+        {
+          "name": "README",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/no/README",
+          "sha256": "0fb3b682bbe5fd3fe23a22d26cc7c417115016bb5f40ec4cf5a62aabe6e5c9c9"
+        },
+        {
+          "name": "README_NO.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/no/README_NO.txt",
+          "sha256": "0fb3b682bbe5fd3fe23a22d26cc7c417115016bb5f40ec4cf5a62aabe6e5c9c9"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "nb_NO",
+    "good": "klavertrioen",
+    "bad": "neoirtrevalk"
+  }
+}

@@ -28,11 +28,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
+
+import org.jspecify.annotations.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.hunspell.Dictionary;
@@ -56,12 +59,24 @@ public abstract class AbstractHunspellDictionary implements ISpellCheckerDiction
 
     protected abstract InputStream getResourceAsStream(String resource);
 
+    /**
+     * Location of a resource when the module can name one, so sizes come
+     * from the file or jar entry instead of draining the stream.
+     */
+    protected @Nullable URL getResource(String resource) {
+        return null;
+    }
+
     @Override
     public Dictionary getHunspellDictionary(String language) {
         String target = getDictionary(language);
         if (target != null) {
             affixInputStream = getResourceAsStream(target + AFFIX_EXT);
             dicInputStream = getResourceAsStream(target + DICT_EXT);
+            if (affixInputStream == null || dicInputStream == null) {
+                close();
+                return null;
+            }
             try {
                 String prefix = "hunspell-dictionary";
                 Directory tmpDir = new NIOFSDirectory(Files.createTempDirectory(prefix));
@@ -97,16 +112,53 @@ public abstract class AbstractHunspellDictionary implements ISpellCheckerDiction
     }
 
     @Override
+    public DictionaryInfo getDictionaryInfo(String language) {
+        String target = getDictionary(language);
+        if (target == null) {
+            return DictionaryInfo.UNKNOWN;
+        }
+        try {
+            Long entries = DictionaryResources.hunspellEntryCount(getResourceAsStream(target + DICT_EXT));
+            Long size = DictionaryResources.sum(
+                    DictionaryResources.size(getResource(target + AFFIX_EXT),
+                            () -> getResourceAsStream(target + AFFIX_EXT)),
+                    DictionaryResources.size(getResource(target + DICT_EXT),
+                            () -> getResourceAsStream(target + DICT_EXT)));
+            return new DictionaryInfo(null, null, entries, size);
+        } catch (IOException ex) {
+            Log.log(ex);
+            return DictionaryInfo.UNKNOWN;
+        }
+    }
+
+    @Override
+    public @Nullable Path extractDictionary(Path targetDir, String language) {
+        return installHunspellDictionary(targetDir, language);
+    }
+
+    @Override
+    public @Nullable String getDictionaryStem(String language) {
+        return getDictionary(language);
+    }
+
+    @Override
     public SpellCheckDictionaryType getDictionaryType() {
         return SpellCheckDictionaryType.HUNSPELL;
     }
 
     @Override
     public void close() {
-        try {
-            affixInputStream.close();
-            dicInputStream.close();
-        } catch (IOException ignored) {
+        // Nothing was opened when no dictionary matched or only install ran.
+        closeQuietly(affixInputStream);
+        closeQuietly(dicInputStream);
+    }
+
+    private static void closeQuietly(final @Nullable InputStream stream) {
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (IOException ignored) {
+            }
         }
     }
 }

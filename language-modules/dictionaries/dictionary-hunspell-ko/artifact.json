@@ -1,0 +1,32 @@
+{
+  "language": "ko",
+  "languageName": "Korean",
+  "license": "GPL-3.0",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "ko_KR",
+      "codes": [],
+      "words": 101598,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ko_KR/ko_KR.aff",
+      "affSha256": "43a984d8f1e2309490b69cfde31832d217a0b31164c67661e293efc096083688",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ko_KR/ko_KR.dic",
+      "dicSha256": "14117a72811ed6a083ed374ceb728b0846a689da6f4dbfe0a84d3b3bce124e80",
+      "upstream": "https://github.com/spellcheck-ko/hunspell-dict-ko",
+      "documents": [
+        {
+          "name": "README_ko_KR.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/ko_KR/README_ko_KR.txt",
+          "sha256": "e0b13b74b287a71bc668a756fe0d1bcfe5adafb860acab0d81e71593333e1724"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ko_KR",
+    "good": "까르륵댈",
+    "bad": "ᆯᅢᄃᆨᅳ르라ᄁ"
+  }
+}

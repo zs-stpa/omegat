@@ -43,9 +43,11 @@ import org.junit.Test;
 /**
  * Audits the build scripts of the language modules.
  * <p>
- * Every language module bundles its LanguageTool language jar into the module
- * jar. When OmegaT is built from the source distribution, that jar has to be
- * taken from the provided module libraries via the providedModuleLib helper,
+ * Every language module bundles its content jar into the module jar: the
+ * LanguageTool language jar, or for the dictionary-only modules the
+ * hunspell dictionary jar. When OmegaT is built from the source
+ * distribution, that jar has to be taken from the provided module libraries
+ * via the providedModuleLib helper,
  * which fails on an empty match; a plain fileTree over the provided core
  * libraries matches nothing there and silently produces a module without its
  * content (no grammar rules, no bundled spelling dictionaries). The same
@@ -58,12 +60,12 @@ import org.junit.Test;
  */
 public class LanguageModuleContentTest {
 
-    private static final Pattern LANGUAGE_ARTIFACT = Pattern.compile("'language-([a-z]+)'");
+    private static final Pattern LANGUAGE_ARTIFACT = Pattern.compile("'(?:language|dictionary-hunspell)-([a-z]+)'");
     private static final Pattern PROVIDED_MODULE_LIB = Pattern.compile(
             "providedModuleLib\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern PROVIDED_LIBS_FILE_TREE = Pattern.compile(
             "fileTree\\s*\\(\\s*dir\\s*:\\s*provided(?:Core|Module)LibsDir");
-    private static final Pattern CATALOG_ALIAS = Pattern.compile("libs\\.languagetool\\.([a-z]+)");
+    private static final Pattern CATALOG_ALIAS = Pattern.compile("libs\\.(?:languagetool|dictionary\\.hunspell)\\.([a-z]+)");
     private static final List<String> NON_LANGUAGE_ALIASES = Arrays.asList("core", "server");
 
     @Test
@@ -76,7 +78,9 @@ public class LanguageModuleContentTest {
         int checked = 0;
         for (File moduleDir : moduleDirs) {
             File buildFile = new File(moduleDir, "build.gradle");
-            if (!buildFile.isFile()) {
+            if (!buildFile.isFile() || !new File(moduleDir, "gradle.properties").isFile()) {
+                // Not a module: the dictionaries folder holds the artifact
+                // build and the inventory, not a plugin.
                 continue;
             }
             checked++;
@@ -99,10 +103,44 @@ public class LanguageModuleContentTest {
     }
 
     /**
-     * Every LanguageTool language jar requested from the provided module libraries has
+     * Every language or hunspell jar requested from the provided module libraries has
      * to be the module's own, and the module has to request it. Additional artifacts in
      * the same call, such as the part-of-speech dictionaries, are left alone.
      */
+    /**
+     * providedModuleLib resolves an artifact name as the glob
+     * {@code **&#47;<name>-*.jar} over all provided module jars, so an artifact
+     * whose name starts with another requested name plus a dash would be
+     * swept into that module (hunspell-tr into the Hunspell spell checker).
+     */
+    @Test
+    public void testProvidedArtifactNamesDoNotPrefixEachOther() throws IOException {
+        List<String> requested = new ArrayList<>();
+        try (java.util.stream.Stream<java.nio.file.Path> scripts = Files.walk(new File(".").toPath())) {
+            for (java.nio.file.Path script : scripts.filter(p -> p.endsWith("build.gradle")
+                    && !p.toString().contains("/build/")).toList()) {
+                Matcher calls = PROVIDED_MODULE_LIB.matcher(Files.readString(script, StandardCharsets.UTF_8));
+                while (calls.find()) {
+                    Matcher names = Pattern.compile("'([^']+)'").matcher(calls.group(1));
+                    while (names.find()) {
+                        requested.add(names.group(1));
+                    }
+                }
+            }
+        }
+        assertTrue("no providedModuleLib calls found; the test must run in the project root",
+                requested.size() > 10);
+        List<String> violations = new ArrayList<>();
+        for (String name : requested) {
+            for (String other : requested) {
+                if (!other.equals(name) && other.startsWith(name + "-")) {
+                    violations.add("'" + name + "' would also match the jar of '" + other + "'");
+                }
+            }
+        }
+        assertTrue(String.join("\n", violations), violations.isEmpty());
+    }
+
     private static void checkLanguageArtifacts(List<String> violations, String language, String script) {
         boolean bundlesOwnLanguage = false;
         Matcher calls = PROVIDED_MODULE_LIB.matcher(script);
@@ -118,9 +156,10 @@ public class LanguageModuleContentTest {
             }
         }
         if (!bundlesOwnLanguage) {
-            violations.add(language + ": language jar is not resolved through "
-                    + "omegatModule.providedModuleLib('language-" + language + "'); "
-                    + "an incomplete source distribution would not be detected");
+            violations.add(language + ": content jar is not resolved through "
+                    + "omegatModule.providedModuleLib('language-" + language + "') or "
+                    + "('dictionary-hunspell-" + language + "'); an incomplete source distribution "
+                    + "would not be detected");
         }
     }
 

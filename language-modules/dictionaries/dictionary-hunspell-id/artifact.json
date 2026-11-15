@@ -1,0 +1,37 @@
+{
+  "language": "id",
+  "languageName": "Indonesian",
+  "license": "LGPL-3.0 / GPL-3.0 / BSD-3-Clause",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "id_ID",
+      "codes": [],
+      "words": 46905,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/id/id_ID.aff",
+      "affSha256": "c625d5b237a489c452cf1f9c666600103e8093667dff89e7030a24217995dc79",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/id/id_ID.dic",
+      "dicSha256": "775ff17a52801f3d2ee80120952fb44cc9bac6c3cf61740de775e439851a5803",
+      "upstream": "http://fsf.org/",
+      "documents": [
+        {
+          "name": "LICENSE-dict",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/id/LICENSE-dict",
+          "sha256": "97628afebc60f026f5c2b25d7491c46a5c4ee61f693e7cfa07fbd2c03605979b"
+        },
+        {
+          "name": "README-dict.adoc",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/id/README-dict.adoc",
+          "sha256": "7c18fabf4169a4b7f0f7effac5309c26294d8cb354d9ed5cbc8ea2868abcf942"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "id_ID",
+    "good": "sitotoksin",
+    "bad": "niskototis"
+  }
+}

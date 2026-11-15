@@ -1,0 +1,37 @@
+{
+  "language": "mk",
+  "languageName": "Macedonian",
+  "license": "GPL-3.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "mk",
+      "codes": [],
+      "words": 65597,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/mk/index.aff",
+      "affSha256": "4774871b7cafa2d59bd2f539be7a2293f4aa2b2e2a331f1d11f8bcb849b4105e",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/mk/index.dic",
+      "dicSha256": "5008053d3b4e4be163c32b23a9d0551ae7aefceaa7d0760c07f2ebc10af7afb5",
+      "upstream": "https://github.com/dimztimz/hunspell-mk",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/mk/license",
+          "sha256": "1b8e0dea2caf07ba90b923725e06f9a50f2de9ead6667421f67c16a296abf967"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/mk/readme.md",
+          "sha256": "926f60b54c5062a915e3254af9c42b0368d938c0a6dd186f7700641402bc65fe"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "mk",
+    "good": "мексиканки",
+    "bad": "икнакискем"
+  }
+}

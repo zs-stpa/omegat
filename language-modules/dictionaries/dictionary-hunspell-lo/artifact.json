@@ -1,0 +1,32 @@
+{
+  "language": "lo",
+  "languageName": "Lao",
+  "license": "LGPL",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "lo_LA",
+      "codes": [],
+      "words": 30549,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lo_LA/lo_LA.aff",
+      "affSha256": "7f6d7c55043d4b09d0a4380720847457b7954048bf1dac70512593006bae8c37",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lo_LA/lo_LA.dic",
+      "dicSha256": "766af9e9e114e70702bb9c1491b9057f7ae9f9eaa9745288d4a93aa702e7e018",
+      "upstream": "https://raw.githubusercontent.com/LibreOffice/dictionaries",
+      "documents": [
+        {
+          "name": "README_lo_LA.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lo_LA/README_lo_LA.txt",
+          "sha256": "9fc12b898a72a683a6c986c1f8cc3f4a36ca1ebf9e353fad6645d1020054c1fc"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "lo_LA",
+    "good": "ຄວາມຜິດພາດ",
+    "bad": "ດາພດິຜມາວຄ"
+  }
+}

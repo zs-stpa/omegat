@@ -1,0 +1,37 @@
+{
+  "language": "gd",
+  "languageName": "Scottish Gaelic",
+  "license": "GPL-3.0 / AGPL-3.0 / LGPL",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "gd_GB",
+      "codes": [],
+      "words": 331834,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/gd_GB/gd_GB.aff",
+      "affSha256": "591010736488b114404561fa54b91fe050dfe112dc9889500f64d7d7f0c2021d",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/gd_GB/gd_GB.dic",
+      "dicSha256": "536b17f893b49eff073c99fc0d6fb645129a68d3baf70f447f7f3c33478f0fb0",
+      "upstream": "http://borel.slu.edu/",
+      "documents": [
+        {
+          "name": "LICENSES-en.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/gd_GB/LICENSES-en.txt",
+          "sha256": "b47e7e4580183ccfa2b0f527c89594439b289b7a08037ae0a431db515c4e7c7c"
+        },
+        {
+          "name": "README_gd_GB.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/gd_GB/README_gd_GB.txt",
+          "sha256": "e8c0d789439f6ff53fa9f48b3873c4e5fd6980a98f0e0ac4e2427a6f3fe3ab2b"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "gd_GB",
+    "good": "làmhainneach",
+    "bad": "hcaenniahmàl"
+  }
+}

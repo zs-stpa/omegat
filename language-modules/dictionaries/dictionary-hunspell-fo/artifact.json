@@ -1,0 +1,37 @@
+{
+  "language": "fo",
+  "languageName": "Faroese",
+  "license": "GPL-2.0 / LGPL-2.1 / MPL-1.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "fo",
+      "codes": [],
+      "words": 121832,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fo/index.aff",
+      "affSha256": "6e459e5a3346ee0b7ad3ddc98dd0a412226060c6e7be6e096cfdf039f877b491",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fo/index.dic",
+      "dicSha256": "3b62983af6b5c093e2ec020ff35869cc3068167e7cc7f8cc9585456a6b1368db",
+      "upstream": "https://stava.glasir.fo",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fo/license",
+          "sha256": "8caace3ffac21939846af661b8955dea3419749ff45b9f7c9a80690cf6d6c49f"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fo/readme.md",
+          "sha256": "fef00fcd933d1545d98079456714d3152ea3359692fec69c99bf9ce493437913"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "fo",
+    "good": "roykivinnan",
+    "bad": "nannivikyor"
+  }
+}

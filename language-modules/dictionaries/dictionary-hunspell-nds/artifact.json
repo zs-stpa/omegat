@@ -1,0 +1,37 @@
+{
+  "language": "nds",
+  "languageName": "Low German",
+  "license": "GPL-3.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "nds",
+      "codes": [],
+      "words": 9543,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/nds/index.aff",
+      "affSha256": "3bede75cd7db3b8262778e6a5cc673bfee37cb703702e412682d806429ae1073",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/nds/index.dic",
+      "dicSha256": "d8c380bed2182b1ac36bcef33a9391d9d77232045aaf43b59fe1cb492f378a95",
+      "upstream": "https://github.com/tdf/dict_nds",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/nds/license",
+          "sha256": "72fb471f7d12cb48e8c4e2a2418fa5c86fa82ee97e55ad393427157f80574cda"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/nds/readme.md",
+          "sha256": "89dcd8d0432f2cc3d81b09fbe6057961277b608d4d4cbd4fe42d3b56063567ec"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "nds",
+    "good": "euklidsch",
+    "bad": "hcsdilkue"
+  }
+}

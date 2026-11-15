@@ -39,7 +39,7 @@ public final class SlovenianPlugin {
 
     public static void loadPlugins() {
         LanguageManager.registerLTLanguage("sl-SI", SLOVENIAN);
-        SpellCheckerManager.registerSpellCheckerDictionaryProvider("sl_SL",
+        SpellCheckerManager.registerSpellCheckerDictionaryProvider("sl_SI",
                 SpellCheckDictionaryType.MORFOLOGIK, MORFOLOGIK_DICTIONARY);
         SpellCheckerManager.registerSpellCheckerDictionaryProvider("sl",
                 SpellCheckDictionaryType.MORFOLOGIK, MORFOLOGIK_DICTIONARY);

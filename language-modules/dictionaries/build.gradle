@@ -1,0 +1,273 @@
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+
+plugins {
+    id 'java'
+}
+
+// Root project: the normaliser and the Lucene load check used by the
+// artifact subprojects.
+group = 'org.omegat.dictionaries'
+version = '1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation(libs.lucene.core)
+    implementation(libs.lucene.analyzers.common)
+    testImplementation(libs.junit4)
+    testImplementation(libs.assertj.core)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnit()
+}
+
+def toolClasspath = sourceSets.main.runtimeClasspath
+
+// Plain class instead of script methods: subproject task actions may not look
+// up methods in the parent project script (configuration cache).
+class UpstreamFiles {
+    static String sha256(File file) {
+        MessageDigest digest = MessageDigest.getInstance('SHA-256')
+        file.withInputStream { stream ->
+            byte[] buffer = new byte[1 << 16]
+            int read
+            while ((read = stream.read(buffer)) > 0) {
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().collect { String.format('%02x', it) }.join()
+    }
+
+    // HEAD request: raw.githubusercontent.com answers with a content hash as ETag,
+    // so two HEADs tell whether a pinned file differs from the branch without
+    // transferring the file.
+    static Map head(String url) {
+        HttpURLConnection connection = (HttpURLConnection) new URI(url).toURL().openConnection()
+        connection.requestMethod = 'HEAD'
+        connection.connectTimeout = 15000
+        connection.readTimeout = 15000
+        try {
+            int status = connection.responseCode
+            String etag = connection.getHeaderField('ETag')
+            return [status: status, etag: etag?.replace('"', ''), length: connection.getHeaderField('Content-Length')]
+        } finally {
+            connection.disconnect()
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    // Plain strings and lists: task actions capture these values, and the
+    // configuration cache serialises plain types, not the parser's lazy maps.
+    def artifact = new JsonSlurper().parse(file('artifact.json'))
+    group = 'org.omegat.dictionaries'
+    version = artifact.version
+    description = "Hunspell spelling dictionary for ${artifact.languageName} (${artifact.license})"
+
+    def downloadDir = layout.buildDirectory.dir('download')
+    def normalizedDir = layout.buildDirectory.dir('normalized')
+    def resourceBase = 'org/omegat/dictionaries/hunspell'
+
+    // Every file of the artifact: the pairs plus licence and README files.
+    def files = []
+    artifact.pairs.each { pair ->
+        String stem = pair.stem.toString()
+        files << [url: pair.affUrl.toString(), sha256: pair.affSha256.toString(), name: stem + '.aff', stem: stem]
+        files << [url: pair.dicUrl.toString(), sha256: pair.dicSha256.toString(), name: stem + '.dic', stem: stem]
+        pair.documents.each { doc ->
+            files << [url: doc.url.toString(), sha256: doc.sha256.toString(), name: doc.name.toString(), stem: stem]
+        }
+    }
+    String artifactCommit = (artifact.commit ?: '').toString()
+    String artifactBranch = (artifact.branch ?: '').toString()
+    String artifactLicense = artifact.license.toString()
+    String artifactVersion = artifact.version.toString()
+    List<Map<String, String>> pairMeta = artifact.pairs.collect {
+        [stem: it.stem.toString(), upstream: it.upstream.toString()]
+    }
+
+    tasks.register('download') {
+        description = 'Fetches the upstream files pinned in artifact.json and verifies their checksums.'
+        outputs.dir(downloadDir)
+        inputs.property('files', files.collect { it.url + '@' + it.sha256 })
+        // Read at configuration time: the configuration cache forbids touching
+        // the Gradle object from a task action.
+        boolean offline = gradle.startParameter.offline
+        doLast {
+            File dir = downloadDir.get().asFile
+            dir.mkdirs()
+            files.each { entry ->
+                File target = new File(dir, "${entry.stem}/${entry.name}")
+                if (target.file && UpstreamFiles.sha256(target) == entry.sha256) {
+                    return
+                }
+                target.parentFile.mkdirs()
+                if (offline) {
+                    throw new GradleException("Gradle runs offline and ${target} is missing. Build once with "
+                            + "network access, or use -Pomegat.dictionaries=repository once the artifacts "
+                            + "are published.")
+                }
+                logger.lifecycle("Downloading ${entry.url}")
+                // raw.githubusercontent.com refuses bursts now and then; try again.
+                int attempt = 0
+                while (true) {
+                    try {
+                        new URI(entry.url).toURL().withInputStream { stream -> target.bytes = stream.bytes }
+                        break
+                    } catch (IOException ex) {
+                        if (++attempt >= 4) {
+                            throw new GradleException("Download failed for ${entry.url}: ${ex.message}", ex)
+                        }
+                        logger.warn("Retrying ${entry.url} after: ${ex.message}")
+                        Thread.sleep(2000L * attempt)
+                    }
+                }
+                String actual = UpstreamFiles.sha256(target)
+                if (actual != entry.sha256) {
+                    target.delete()
+                    throw new GradleException("Checksum mismatch for ${entry.url}: expected ${entry.sha256}, got ${actual}")
+                }
+            }
+        }
+    }
+
+    tasks.register('checkUpstream') {
+        description = 'Compares the pinned files with the upstream branch by ETag only; downloads nothing.'
+        def projectName = project.name
+        doLast {
+            int changed = 0
+            files.each { entry ->
+                String branchUrl = entry.url.replace("/${artifactCommit}/", "/${artifactBranch}/")
+                Map pinned = UpstreamFiles.head(entry.url)
+                Map current = UpstreamFiles.head(branchUrl)
+                if (pinned.etag == null || current.etag == null) {
+                    logger.warn("${projectName}: no ETag for ${entry.name} (${pinned.status}/${current.status})")
+                } else if (pinned.etag != current.etag) {
+                    changed++
+                    logger.lifecycle("${projectName}: ${entry.name} changed upstream (${current.length} bytes on ${artifactBranch})")
+                }
+            }
+            logger.lifecycle("${projectName}: ${changed == 0 ? 'up to date with ' + artifactBranch : changed + ' file(s) newer upstream'}")
+        }
+    }
+
+    tasks.register('normalize', JavaExec) {
+        description = 'Converts the downloaded pairs to UTF-8 and repairs known affix defects.'
+        dependsOn tasks.named('download'), rootProject.tasks.named('classes')
+        inputs.dir(downloadDir)
+        outputs.dir(normalizedDir)
+        classpath = toolClasspath
+        mainClass = 'org.omegat.dictionaries.NormalizeArtifact'
+        args(downloadDir.get().asFile.path, normalizedDir.get().asFile.path, artifact.pairs.collect { it.stem }.join(','))
+    }
+
+    // The marker file makes the check up to date; without an output every
+    // build that needs a module jar would start 39 JVMs anew.
+    def verifiedMarker = layout.buildDirectory.file('verified/ok')
+    tasks.register('verifyDictionaries', JavaExec) {
+        description = 'Loads every normalised pair with the Lucene Hunspell parser OmegaT uses.'
+        dependsOn tasks.named('normalize')
+        inputs.dir(normalizedDir)
+        outputs.file(verifiedMarker)
+        classpath = toolClasspath
+        mainClass = 'org.omegat.dictionaries.LuceneHunspellCheck'
+        args(artifact.pairs.collect { new File(normalizedDir.get().asFile, it.stem).path })
+        doLast {
+            File marker = verifiedMarker.get().asFile
+            marker.parentFile.mkdirs()
+            marker.text = 'ok\n'
+        }
+    }
+
+    tasks.named('check') {
+        dependsOn tasks.named('verifyDictionaries')
+    }
+
+    // Licence and upstream travel next to the pair: the jar manifest is lost
+    // when the artifact is merged into the module jar.
+    def metaDir = layout.buildDirectory.dir('meta')
+    tasks.register('describePairs') {
+        inputs.property('license', artifactLicense)
+        inputs.property('version', artifactVersion)
+        inputs.property('commit', artifactCommit)
+        inputs.property('pairs', pairMeta.collect { "${it.stem}=${it.upstream}".toString() })
+        outputs.dir(metaDir)
+        doLast {
+            def dir = metaDir.get().asFile
+            // A removed stem must not linger in the jar until the next clean.
+            dir.deleteDir()
+            dir.mkdirs()
+            pairMeta.each { pair ->
+                new File(dir, "${pair.stem}.properties").text =
+                        "license=${artifactLicense}\nupstream=${pair.upstream}\n" +
+                        "version=${artifactVersion}\ncommit=${artifactCommit}\n"
+            }
+        }
+    }
+
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
+    tasks.named('jar', Jar) {
+        // A pair the Lucene parser rejects must not reach a module jar.
+        dependsOn tasks.named('verifyDictionaries'), tasks.named('describePairs')
+        archiveBaseName = project.name
+        from(normalizedDir) {
+            include '*.aff', '*.dic'
+            into resourceBase
+        }
+        from(metaDir) {
+            include '*.properties'
+            into resourceBase
+        }
+        from(downloadDir) {
+            include '*/*'
+            exclude '*/*.aff', '*/*.dic'
+            // Licence and README files next to the pair, one folder per stem:
+            // the pairs of one language may ship different licence texts
+            // (sr, sr_Latn).
+            into resourceBase
+            includeEmptyDirs = false
+        }
+        manifest {
+            attributes(
+                    'Implementation-Title': project.name,
+                    'Implementation-Version': project.version,
+                    'License': artifact.license,
+                    'Upstream': artifact.pairs.collect { it.upstream }.unique().join(' '),
+            )
+        }
+    }
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+                pom {
+                    name = project.name
+                    description = project.description
+                    licenses {
+                        license {
+                            name = artifact.license
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

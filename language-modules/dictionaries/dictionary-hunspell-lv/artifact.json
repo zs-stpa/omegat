@@ -1,0 +1,37 @@
+{
+  "language": "lv",
+  "languageName": "Latvian",
+  "license": "LGPL / GPL-2.0",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "lv_LV",
+      "codes": [],
+      "words": 66606,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lv_LV/lv_LV.aff",
+      "affSha256": "a11f646c6905d6c96f3218ada4a6cf84129c9e6169720ac1a17f1707940a2890",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lv_LV/lv_LV.dic",
+      "dicSha256": "bf7d054e28bc5e44df19410f3ed9d5fd8d6a4d8c051676650388c4e8d65c3148",
+      "upstream": "http://dict.dv.lv",
+      "documents": [
+        {
+          "name": "license.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lv_LV/license.txt",
+          "sha256": "bb117c0fbd7f57f64170b690285d7df07c2371b578e3b3cd3aa2e1155ef461a0"
+        },
+        {
+          "name": "README_lv_LV.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lv_LV/README_lv_LV.txt",
+          "sha256": "47c1e55d0651aec81734a187b5174638227e0e38b0edf8f96a8a4a3d9b46eed4"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "lv_LV",
+    "good": "kvadratūra",
+    "bad": "arūtardavk"
+  }
+}

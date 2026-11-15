@@ -1,0 +1,37 @@
+{
+  "language": "hr",
+  "languageName": "Croatian",
+  "license": "LGPL-2.1 / SISSL",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "hr",
+      "codes": [],
+      "words": 53711,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hr/index.aff",
+      "affSha256": "230a7f0ca65159ecf8f3eea4afd79f7436415e83129b1d6b2424892074d8194d",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hr/index.dic",
+      "dicSha256": "fb436f3a758cd4faf9ef4cd5c2e6e2a1e3abe535ee183095a2f59fd18dad0731",
+      "upstream": "https://github.com/krunose/hunspell-hr",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hr/license",
+          "sha256": "4edabc6989973eea67423ff9dedd133b33d032a09d821c70acaa43f49184e96c"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/hr/readme.md",
+          "sha256": "0edf53512a590fa23ba41e281cc947855bd1fae5a7ba369793d85b06375e7143"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "hr",
+    "good": "razaznatljiv",
+    "bad": "vijltanzazar"
+  }
+}

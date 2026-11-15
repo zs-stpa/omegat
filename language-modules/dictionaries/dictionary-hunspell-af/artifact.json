@@ -1,0 +1,34 @@
+{
+  "language": "af",
+  "languageName": "Afrikaans",
+  "license": "GPL-2.0 / LGPL / BSD-3-Clause / Public-Domain",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "af_ZA",
+      "codes": [
+        "af_NA"
+      ],
+      "words": 100693,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/af_ZA/af_ZA.aff",
+      "affSha256": "fdfcdd04d700fc4ac94be63930167fa942ee5ffb471b52a6f4e0c68362dd63d2",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/af_ZA/af_ZA.dic",
+      "dicSha256": "8d806f90146059ea18b49c2352d188bd27dcc571a06815794facaa176aa5a5de",
+      "upstream": "http://ftp.services.openoffice.org/pub/OpenOffice.org/contrib/dictionaries/dicooo/DicOOo.sxw",
+      "documents": [
+        {
+          "name": "README_af_ZA.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/af_ZA/README_af_ZA.txt",
+          "sha256": "e00c86cb0a1c0499380770750f545b5d0308d6cb35d25014cef6891c2fe5f255"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "af_ZA",
+    "good": "onthutstheid",
+    "bad": "diehtstuhtno"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "language": "lt",
+  "languageName": "Lithuanian",
+  "license": "BSD-3-Clause",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "lt_LT",
+      "codes": [],
+      "words": 85792,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lt_LT/lt.aff",
+      "affSha256": "79c6f8304490d1c8b27ec93e509b2f635d9bb21d45a2d41c15162b18c8ff897c",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lt_LT/lt.dic",
+      "dicSha256": "a751750b040623cf408cf1a3b6f6336141b55ac9519e54068dbeaa52eb395ccd",
+      "upstream": "https://github.com/ispell-lt/ispell-lt",
+      "documents": [
+        {
+          "name": "COPYING",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lt_LT/COPYING",
+          "sha256": "c5c73b4e3743ed2b959c70e886c4acee20d8654002ccdabac0a51af977ee2a17"
+        },
+        {
+          "name": "README",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/lt_LT/README",
+          "sha256": "80b2b37785bab50153753eac04bf2ee368a7baa25bf2bfee6bbd5b556f72e78f"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "lt_LT",
+    "good": "logaritminis",
+    "bad": "sinimtiragol"
+  }
+}

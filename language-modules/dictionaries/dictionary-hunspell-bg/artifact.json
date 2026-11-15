@@ -1,0 +1,37 @@
+{
+  "language": "bg",
+  "languageName": "Bulgarian",
+  "license": "GPL-2.0 / LGPL-2.1 / MPL-1.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "bg",
+      "codes": [],
+      "words": 78233,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/bg/index.aff",
+      "affSha256": "cb6bfc56d6b1e70c812061086d7ec5ad6aaf6d35acd927a035f1cee0188ea477",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/bg/index.dic",
+      "dicSha256": "44408b1ee50301e8f9a133b0ec92565bb8be49818c444d91821876d447f58906",
+      "upstream": "http://bgoffice.sourceforge.net",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/bg/license",
+          "sha256": "04f8571e50b57ddcd93e74416e1949325c899b902af36e83fa669b6205f56b2e"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/bg/readme.md",
+          "sha256": "1d82fe72344ec79a3acdd42ea2550d7f37da6ba92287fd803cb3938b3ee3a5a7"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "bg",
+    "good": "изстържещ",
+    "bad": "щежрътсзи"
+  }
+}

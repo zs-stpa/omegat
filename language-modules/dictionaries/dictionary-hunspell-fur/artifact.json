@@ -1,0 +1,37 @@
+{
+  "language": "fur",
+  "languageName": "Friulian",
+  "license": "GPL-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "fur",
+      "codes": [],
+      "words": 36320,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fur/index.aff",
+      "affSha256": "9b59cc525dec3a8580259e94493fd450a409835a0c35a19ac64b86fe9b750ec9",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fur/index.dic",
+      "dicSha256": "f1ac6d1029915bc749c8b4f4d454a28c977992328c541bd362266b6fc630988f",
+      "upstream": "http://digilander.libero.it/paganf/coretors/dizionaris.html",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fur/license",
+          "sha256": "95b65c7414e646b1a41f2ed230a358299cb4b1c06ae3952ffa380d4b54b289df"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/fur/readme.md",
+          "sha256": "e6720a00fdb23e5db544fef6b6240e1bca41b71b7c95df8b064eef5df084fed0"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "fur",
+    "good": "rifasessistu",
+    "bad": "utsissesafir"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "language": "ltg",
+  "languageName": "Latgalian",
+  "license": "LGPL-2.1",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "ltg",
+      "codes": [],
+      "words": 8459,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ltg/index.aff",
+      "affSha256": "ffe84b7e9fca7157d4f423f246ac3f4da42a78e41d21c64886f9632df00b35ff",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ltg/index.dic",
+      "dicSha256": "0f99a93abe86adfe8304967e9e3e8af45dc0d39ba734b42dd49243acf6f8e7fd",
+      "upstream": "http://dict.dv.lv/home.php?prj=la",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ltg/license",
+          "sha256": "7537d31ea8c4c4ba2878dc3df3bd59c8a98ef1cf9e817b83fcd9ce884d87d633"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ltg/readme.md",
+          "sha256": "78dc5d57d082b41565b33c6e3323439bad3188bddba073895a62b774a641b274"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ltg",
+    "good": "etologeja",
+    "bad": "ajegolote"
+  }
+}

@@ -26,11 +26,14 @@
 package org.omegat.core.spellchecker;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.Before;
@@ -38,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import org.omegat.core.spellchecker.DictionaryManager.SpellingDictionaryEntry;
 import org.omegat.util.OStrings;
 
 /**
@@ -98,6 +102,71 @@ public class DictionaryManagerTest {
                 OStrings.getString("GUI_SPELLCHECKER_SOURCE_INSTALLED", "Morfologik"));
         assertTrue("origin of a lone local file must be named", display.contains(fileOnly));
         assertEquals("no line may repeat", display.size(), display.stream().distinct().count());
+    }
+
+    @Test
+    public void testAliasRegistrationsListOneDictionary() {
+        // One bundled pair is registered under several spellings of its
+        // code; the table shows it once, in the canonical spelling.
+        SpellCheckerManager.registerSpellCheckerDictionaryProvider("zz_Latn", SpellCheckDictionaryType.HUNSPELL,
+                "test.Provider");
+        SpellCheckerManager.registerSpellCheckerDictionaryProvider("zz_LATN", SpellCheckDictionaryType.HUNSPELL,
+                "test.Provider");
+        SpellCheckerManager.registerSpellCheckerDictionaryProvider("zz-LATN", SpellCheckDictionaryType.HUNSPELL,
+                "test.Provider");
+        List<String> latin = manager.getLocalDictionaryEntries().stream().map(SpellingDictionaryEntry::getLanguageCode)
+                .filter(code -> code.replace('-', '_').equalsIgnoreCase("zz_Latn")).toList();
+        assertEquals(List.of("zz_Latn"), latin);
+        assertEquals("zz_Latn", DictionaryManager.preferredSpelling("zz_LATN", "zz_Latn"));
+        assertEquals("zz_LATN", DictionaryManager.preferredSpelling("zz-LATN", "zz_LATN"));
+    }
+
+    @Test
+    public void testDisplayNameAcceptsHyphenAndScriptCodes() {
+        assertEquals(DictionaryManager.getLanguageDisplayName("de_AT"),
+                DictionaryManager.getLanguageDisplayName("de-AT"));
+        assertEquals(DictionaryManager.getLanguageDisplayName("sr-Latn"),
+                DictionaryManager.getLanguageDisplayName("sr_Latn"));
+        // The script subtag is understood, not echoed.
+        assertNotEquals("sr_Latn", DictionaryManager.getLanguageDisplayName("sr_Latn"));
+    }
+
+    @Test
+    public void testSummaryCountsDictionariesAndLanguages() {
+        String summary = DictionaryManager.summarize(List.of(
+                new SpellingDictionaryEntry("zz_ZZ", SpellCheckDictionaryType.HUNSPELL, true),
+                new SpellingDictionaryEntry("zz_ZZ", SpellCheckDictionaryType.HUNSPELL, false),
+                new SpellingDictionaryEntry("zz_Latn", SpellCheckDictionaryType.HUNSPELL, false),
+                new SpellingDictionaryEntry("zy-YY", SpellCheckDictionaryType.MORFOLOGIK, true)));
+        // Four dictionaries, two languages: regions and scripts fold into the language.
+        String expected = OStrings.getString("GUI_SPELLCHECKER_SUMMARY_DICTIONARIES", 4) + "\n"
+                + OStrings.getString("GUI_SPELLCHECKER_SUMMARY_LANGUAGES", 2, "zy, zz");
+        assertEquals(expected, summary);
+        assertEquals("", DictionaryManager.summarize(List.of()));
+        assertEquals("sr", DictionaryManager.baseLanguage("sr_Latn"));
+        assertEquals("bo", DictionaryManager.baseLanguage("bo-CN"));
+        assertEquals("tlh", DictionaryManager.baseLanguage("tlh"));
+    }
+
+    @Test
+    public void testDescribeAndLocateInstalledHunspellFile() throws Exception {
+        SpellingDictionaryEntry installed = new SpellingDictionaryEntry(BOTH_SOURCES,
+                SpellCheckDictionaryType.HUNSPELL, true);
+        DictionaryInfo info = manager.describe(installed);
+        assertEquals(Long.valueOf(1), info.entries());
+        File dir = new File(manager.getDirectory());
+        long expectedSize = new File(dir, BOTH_SOURCES + ".aff").length()
+                + new File(dir, BOTH_SOURCES + ".dic").length();
+        assertEquals(Long.valueOf(expectedSize), info.sizeBytes());
+        assertEquals(OStrings.getString("GUI_SPELLCHECKER_LICENSE_LOCAL"), info.license());
+        assertEquals("the link of an installed file opens its folder", dir.toURI().toString(), info.upstream());
+        Path located = manager.locate(installed);
+        assertEquals(new File(dir, BOTH_SOURCES + ".dic").toPath(), located);
+        // A Morfologik file without its .info has a size but no count.
+        DictionaryInfo lone = manager.describe(new SpellingDictionaryEntry(FILE_ONLY,
+                SpellCheckDictionaryType.MORFOLOGIK, true));
+        assertNull(lone.entries());
+        assertEquals(Long.valueOf(0), lone.sizeBytes());
     }
 
     private static String expectedLine(String code, String sources) {

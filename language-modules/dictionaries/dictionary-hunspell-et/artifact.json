@@ -1,0 +1,32 @@
+{
+  "language": "et",
+  "languageName": "Estonian",
+  "license": "GPL-2.0 / LGPL",
+  "version": "2026.10.12",
+  "commit": "67032ee957631908098a72edf48dc81cac27e369",
+  "branch": "master",
+  "pairs": [
+    {
+      "stem": "et_EE",
+      "codes": [],
+      "words": 282173,
+      "affUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/et_EE/et_EE.aff",
+      "affSha256": "2fa53b7853762ec8c63ffa14b2d96d23433e3f2c2d3d218ad7c2461673099f95",
+      "dicUrl": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/et_EE/et_EE.dic",
+      "dicSha256": "cd1378434aefeaa8a31f49369dbf71caf4e6340badb5c2cf7a55820933ed4f13",
+      "upstream": "http://www.meso.ee/~jjpp/speller/",
+      "documents": [
+        {
+          "name": "README_et_EE.txt",
+          "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/et_EE/README_et_EE.txt",
+          "sha256": "4cff6a48ea9168d545316ab96bac24eff4745bf198cbdd9f57eb10a9d8f93f0d"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "et_EE",
+    "good": "höörlevusiga",
+    "bad": "agisuvelrööh"
+  }
+}

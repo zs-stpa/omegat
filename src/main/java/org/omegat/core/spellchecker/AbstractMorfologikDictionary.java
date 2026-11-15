@@ -25,10 +25,19 @@
 package org.omegat.core.spellchecker;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 
+import org.jspecify.annotations.Nullable;
+
 import morfologik.stemming.Dictionary;
+
+import org.omegat.util.Log;
 
 public abstract class AbstractMorfologikDictionary implements ISpellCheckerDictionary {
     private static final String DICT_EXT = ".dict";
@@ -44,12 +53,24 @@ public abstract class AbstractMorfologikDictionary implements ISpellCheckerDicti
     }
     protected abstract InputStream getResourceAsStream(String resource);
 
+    /**
+     * Location of a resource when the module can name one, so sizes come
+     * from the file or jar entry instead of draining the stream.
+     */
+    protected @Nullable URL getResource(String resource) {
+        return null;
+    }
+
     @Override
     public morfologik.stemming.Dictionary getMorfologikDictionary(String language) {
         String target = getDictionary(language);
         if (target != null) {
             infoInputStream = getResourceAsStream(target + META_EXT);
             dictInputStream = getResourceAsStream(target + DICT_EXT);
+            if (infoInputStream == null || dictInputStream == null) {
+                close();
+                return null;
+            }
             try {
                 return Dictionary.read(dictInputStream, infoInputStream);
             } catch (IOException ignored) {
@@ -59,16 +80,74 @@ public abstract class AbstractMorfologikDictionary implements ISpellCheckerDicti
     }
 
     @Override
+    public DictionaryInfo getDictionaryInfo(String language) {
+        String target = getDictionary(language);
+        if (target == null) {
+            return DictionaryInfo.UNKNOWN;
+        }
+        try {
+            Long size = DictionaryResources.sum(
+                    DictionaryResources.size(getResource(target + DICT_EXT),
+                            () -> getResourceAsStream(target + DICT_EXT)),
+                    DictionaryResources.size(getResource(target + META_EXT),
+                            () -> getResourceAsStream(target + META_EXT)));
+            Long entries = DictionaryResources.morfologikEntryCount(getResourceAsStream(target + DICT_EXT),
+                    getResourceAsStream(target + META_EXT));
+            return new DictionaryInfo(null, null, entries, size);
+        } catch (IOException ex) {
+            Log.log(ex);
+            return DictionaryInfo.UNKNOWN;
+        }
+    }
+
+    @Override
+    public @Nullable Path extractDictionary(Path targetDir, String language) {
+        String target = getDictionary(language);
+        if (target == null) {
+            return null;
+        }
+        try {
+            Path dict = targetDir.resolve(target + DICT_EXT);
+            copyResource(target + DICT_EXT, dict);
+            copyResource(target + META_EXT, targetDir.resolve(target + META_EXT));
+            return dict;
+        } catch (IOException ex) {
+            return null;
+        }
+    }
+
+    @Override
+    public @Nullable String getDictionaryStem(String language) {
+        return getDictionary(language);
+    }
+
+    private void copyResource(String resource, Path to) throws IOException {
+        try (InputStream in = getResourceAsStream(resource)) {
+            if (in == null) {
+                throw new FileNotFoundException(resource);
+            }
+            Files.copy(in, to, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    @Override
     public SpellCheckDictionaryType getDictionaryType() {
         return SpellCheckDictionaryType.MORFOLOGIK;
     }
 
     @Override
     public void close() {
-        try {
-            infoInputStream.close();
-            dictInputStream.close();
-        } catch (IOException ignored) {
+        // Nothing was opened when no dictionary matched.
+        closeQuietly(infoInputStream);
+        closeQuietly(dictInputStream);
+    }
+
+    private static void closeQuietly(final @Nullable InputStream stream) {
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (IOException ignored) {
+            }
         }
     }
 }

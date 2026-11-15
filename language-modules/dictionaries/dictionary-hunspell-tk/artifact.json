@@ -1,0 +1,37 @@
+{
+  "language": "tk",
+  "languageName": "Turkmen",
+  "license": "Apache-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "tk",
+      "codes": [],
+      "words": 61974,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tk/index.aff",
+      "affSha256": "c55a9e98cab463d6095920bc2f8f682837beb971c21a8ea37d8ef60d80133755",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tk/index.dic",
+      "dicSha256": "4c75d6e1c9f4e4780bd1a00828b37b8826232db4b204a96b30b841f94d2a0b81",
+      "upstream": "https://github.com/nazartm/turkmen-spell-check-dictionary",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tk/license",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/tk/readme.md",
+          "sha256": "60a10b7455470c0c0bdbdf39bd6b46c47da1f8f29661c559eed8eb7f1b41e54a"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "tk",
+    "good": "depeleşdir",
+    "bad": "ridşeleped"
+  }
+}

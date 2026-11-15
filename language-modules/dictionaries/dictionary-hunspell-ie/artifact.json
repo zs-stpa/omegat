@@ -1,0 +1,37 @@
+{
+  "language": "ie",
+  "languageName": "Interlingue",
+  "license": "Apache-2.0",
+  "version": "2024.09.09",
+  "commit": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "branch": "main",
+  "pairs": [
+    {
+      "stem": "ie",
+      "codes": [],
+      "words": 23596,
+      "affUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ie/index.aff",
+      "affSha256": "7dea5efa7b33134d370e64cf7b4c57b0cf19045d1bb155b36b7d16e2ff0f289d",
+      "dicUrl": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ie/index.dic",
+      "dicSha256": "f44d9fad8b6a206f2d517624e70dc60426747d118f6674bd16a71cfedb8a6e6d",
+      "upstream": "https://github.com/Carmina16/hunspell-ie",
+      "documents": [
+        {
+          "name": "license",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ie/license",
+          "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+        },
+        {
+          "name": "readme.md",
+          "url": "https://raw.githubusercontent.com/wooorm/dictionaries/8cfea406b505e4d7df52d5a19bce525df98c54ab/dictionaries/ie/readme.md",
+          "sha256": "83b5096f399303010e62bafaf24ae93c62e82c16318b7685d086b50f534246ed"
+        }
+      ]
+    }
+  ],
+  "test": {
+    "stem": "ie",
+    "good": "heptameton",
+    "bad": "notematpeh"
+  }
+}
