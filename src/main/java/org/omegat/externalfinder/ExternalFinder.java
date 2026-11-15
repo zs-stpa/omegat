@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.core.Core;
 import org.omegat.core.CoreEvents;
 import org.omegat.core.data.IProject;
@@ -202,7 +203,7 @@ public final class ExternalFinder {
         return new File(configDir, FINDER_FILE);
     }
 
-    private static ExternalFinderConfiguration projectConfig;
+    private static @Nullable ExternalFinderConfiguration projectConfig;
 
     /**
      * Get the project-specific configuration.
@@ -210,7 +211,7 @@ public final class ExternalFinder {
      * @return The configuration, or null if no project is loaded or the project
      *         has no config file
      */
-    public static ExternalFinderConfiguration getProjectConfig() {
+    public static @Nullable ExternalFinderConfiguration getProjectConfig() {
         IProject currentProject = Core.getProject();
         if (!currentProject.isProjectLoaded()) {
             return null;
@@ -236,7 +237,7 @@ public final class ExternalFinder {
      * loaded. Any existing configuration file will be overwritten with the new
      * one. Pass null to delete the config file.
      */
-    public static void setProjectConfig(ExternalFinderConfiguration newConfig) {
+    public static void setProjectConfig(@Nullable ExternalFinderConfiguration newConfig) {
         IProject currentProject = Core.getProject();
         if (!currentProject.isProjectLoaded()) {
             return;
@@ -249,7 +250,7 @@ public final class ExternalFinder {
         }
     }
 
-    private static void writeConfig(ExternalFinderConfiguration config, File toFile) {
+    private static void writeConfig(@Nullable ExternalFinderConfiguration config, File toFile) {
         if (config == null) {
             boolean deleted = toFile.delete();
             if (!deleted) {

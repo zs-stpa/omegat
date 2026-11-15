@@ -242,7 +242,7 @@ public class DefaultTokenizer implements ITokenizer {
     }
 
     /**
-     * Search a haystack for an token equal to the needle and return the token from the haystack.
+     * Search a haystack for a token equal to the needle and return the index of the matching token.
      * <p>
      * This makes no sense! Why are we returning an object equal to the one we already have? Because the Token class is
      * bizarrely implemented to consider two tokens equal based on only their hash field, and in this case we are
@@ -252,7 +252,7 @@ public class DefaultTokenizer implements ITokenizer {
      *            Array of tokens to search
      * @param needle
      *            The token with the hash we want to match
-     * @return The matching token, or null if not found
+     * @return The index of the matching token in the haystack, or -1 if not found
      */
     private static int search(Token[] haystack, Token needle, int start) {
         for (int i = start; i < haystack.length; i++) {

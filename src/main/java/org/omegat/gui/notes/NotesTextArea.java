@@ -36,6 +36,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.undo.UndoManager;
 
+import org.jspecify.annotations.Nullable;
 import org.omegat.gui.common.EntryInfoPane;
 import org.omegat.gui.main.DockableScrollPane;
 import org.omegat.gui.main.IMainWindow;
@@ -103,7 +104,7 @@ public class NotesTextArea extends EntryInfoPane<String> implements INotes, IPan
      *            note's text, or null if note doesn't exist
      */
     @Override
-    public void setNoteText(String text) {
+    public void setNoteText(@Nullable String text) {
         UIThreadsUtil.mustBeSwingThread();
 
         if (Preferences.isPreference(Preferences.NOTIFY_NOTES)) {
@@ -122,7 +123,7 @@ public class NotesTextArea extends EntryInfoPane<String> implements INotes, IPan
      * @return notes content.
      */
     @Override
-    public String getNoteText() {
+    public @Nullable String getNoteText() {
         UIThreadsUtil.mustBeSwingThread();
 
         String text = getText();

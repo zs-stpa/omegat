@@ -177,7 +177,8 @@ public class GlossarySearcher {
         return result;
     }
 
-    public List<String> searchTargetMatches(String trg, ProtectedPart[] protectedParts, GlossaryEntry entry) {
+    public List<String> searchTargetMatches(String trg, ProtectedPart @Nullable [] protectedParts,
+            GlossaryEntry entry) {
 
         List<String> result = new ArrayList<>();
 
