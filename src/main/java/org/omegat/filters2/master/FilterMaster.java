@@ -49,12 +49,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -72,10 +67,12 @@ import org.omegat.filters2.ITranslateCallback;
 import org.omegat.filters2.Instance;
 import org.omegat.filters2.TranslationException;
 import org.omegat.gui.main.IMainWindow;
+import org.omegat.util.FileUtil;
 import org.omegat.util.Language;
 import org.omegat.util.Log;
 import org.omegat.util.OStrings;
 import org.omegat.util.StringUtil;
+import org.omegat.util.XmlMapperFactory;
 
 import gen.core.filters.Files;
 import gen.core.filters.Filter;
@@ -143,12 +140,7 @@ public class FilterMaster {
     }
 
     static {
-        MAPPER = XmlMapper.xmlBuilder().defaultUseWrapper(false)
-                .enable(MapperFeature.USE_WRAPPER_NAME_AS_PROPERTY_NAME).build();
-        MAPPER.registerModule(new JakartaXmlBindAnnotationModule());
-        MAPPER.configure(ToXmlGenerator.Feature.WRITE_XML_DECLARATION, true);
-        MAPPER.setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY);
-        MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
+        MAPPER = XmlMapperFactory.createConfigMapper();
     }
 
     /**
@@ -496,16 +488,20 @@ public class FilterMaster {
     }
 
     /**
-     * Loads information about the filters from an XML file. If there's an error
-     * loading a file, it calls <code>setupDefaultFilters</code>.
+     * Loads information about the filters from an XML file. Elements and
+     * attributes unknown to this version are skipped; they are lost as soon
+     * as the file is saved again, which happens right here when a registered
+     * filter is missing from the file. If the file cannot be read at all, a
+     * copy of it is kept next to it and the default configuration is returned
+     * without touching the file.
      *
      * @param configFile
      *            the file from which the filter configuration is to be loaded
      * @return an instance of {@code Filters} containing the loaded
-     *         configuration, or a new {@code Filters} instance if an error
-     *         occurs or a new configuration is generated
+     *         configuration, the default configuration if the file is
+     *         unreadable, or null if the file does not exist
      * @throws IOException
-     *             if an I/O error occurs while reading the configuration file
+     *             if an I/O error occurs while completing the configuration file
      */
     public static @Nullable Filters loadConfig(File configFile) throws IOException {
         if (!configFile.exists()) {
@@ -517,7 +513,8 @@ public class FilterMaster {
         } catch (Exception e) {
             Log.logErrorRB("FILTERMASTER_ERROR_LOADING_FILTERS_CONFIG");
             Log.log(e);
-            result = new Filters();
+            FileUtil.backupUnreadable(configFile);
+            return createDefaultFiltersConfig();
         }
 
         if (addNewFiltersToConfig(result)) {
