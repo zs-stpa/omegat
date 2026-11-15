@@ -214,12 +214,6 @@ dd {
 }
 
 
-span.guimenu::before,
-span.guisubmenu::before,
-span.guimenuitem::before {
-	content: "> ";
-}
-
 span.guimenu,
 span.guimenuitem,
 span.guilabel
