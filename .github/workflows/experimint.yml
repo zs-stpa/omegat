@@ -57,7 +57,7 @@ jobs:
 
   mac:
     name: build Mac arm dist
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 90
     outputs:
       stamp: ${{ steps.build.outputs.stamp }}
