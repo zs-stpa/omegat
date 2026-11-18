@@ -1258,7 +1258,7 @@ public class SearchWindowController {
         doSearch();
     }
 
-    public void makeVisible(String query) {
+    public void makeVisible(@Nullable String query) {
         if (!StringUtil.isEmpty(query)) {
             setSearchText(query);
         }
