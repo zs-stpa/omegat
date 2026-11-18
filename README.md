@@ -25,4 +25,8 @@ Trust boundaries:
 - The packages themselves are built from every integrated branch; only their
   names and sizes are checked here, not their content.
 - A newer build run replaces a publish run still waiting in the queue.
-- Keep "immutable releases" off: reruns and retention delete releases/tags.
+- Works with "immutable releases" (recommended): assets are attached to a
+  draft before publishing, a rerun of a published tag does nothing, and
+  retention deletes the release before its tag. A deleted release's tag name
+  can't be reused, so republishing the same commit after a manual delete
+  fails.

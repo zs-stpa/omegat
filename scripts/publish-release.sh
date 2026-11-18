@@ -3,7 +3,8 @@
 # it public, so a failed or interrupted run never leaves a half release.
 # The tag names the commit (date stamp + sha7): if it is already published,
 # a rerun keeps it and stops. Leftover drafts under the prefix are removed;
-# published releases beyond the retention count are pruned.
+# published releases beyond the retention count are pruned (release first,
+# then its tag, as immutable releases require).
 # Usage: publish-release.sh <repo> <tag> <title> <body-file> <target-sha> <keep> <tag-prefix> <asset>...
 set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true  # bash >= 4.4 (runner); explicit checks below
