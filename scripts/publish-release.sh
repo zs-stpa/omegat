@@ -19,11 +19,11 @@ AUTH=(-H "Authorization: Bearer $FORK_TOKEN" -H "Accept: application/vnd.github+
 # Reads are safe to retry; writes are not (a lost response would duplicate).
 get() { curl -fsS --retry 3 "${AUTH[@]}" "$@"; }
 post() { curl -fsS "${AUTH[@]}" "$@"; }
-# DELETE: 404 means already gone.
+# DELETE: 404 (release) or 422 (tag ref) means already gone.
 del() {
   local code
   code=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE "${AUTH[@]}" "$1")
-  case "$code" in 204|404) ;; *) echo "DELETE $1 -> $code"; return 1 ;; esac
+  case "$code" in 204|404|422) ;; *) echo "DELETE $1 -> $code"; return 1 ;; esac
 }
 # All releases, every page (drafts included for an authorized token), one
 # JSON object per line. Any failed or malformed page aborts the run: a
